@@ -45,7 +45,7 @@ const LoginPage = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center space-y-2">
-          <CardTitle className="text-2xl font-bold">Hotel Manager Login</CardTitle>
+          <CardTitle className="text-2xl font-bold">HSQ Hotels Login</CardTitle>
           <CardDescription>Enter your credentials to sign in</CardDescription>
         </CardHeader>
         <CardContent>

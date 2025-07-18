@@ -36,7 +36,7 @@ const Layout = ({ children }: LayoutProps) => {
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                   <Hotel className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xl font-bold text-gray-900">Hotel Manager</span>
+                <span className="text-xl font-bold text-gray-900">HSQ Towers</span>
               </Link>
               
               <div className="hidden md:ml-10 md:flex md:space-x-8">
