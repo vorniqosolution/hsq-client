@@ -15,6 +15,7 @@ import RoomsPage from "./pages/RoomsPage";
 import GuestsPage from "./pages/GuestsPage";
 import GuestDetailPage from "./pages/GuestDetailPage";
 import NotFound from "./pages/NotFound";
+import HomeRedirect from "./components/HomeRedirect";
 
 const queryClient = new QueryClient();
 
@@ -28,10 +29,7 @@ const App = () => (
           <RoomProvider>
             <GuestProvider>
               <Routes>
-                <Route
-                  path="/"
-                  element={<Navigate to="/dashboard" replace />}
-                />
+                <Route path="/" element={<HomeRedirect />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route
                   path="/dashboard"

@@ -1,4 +1,3 @@
-// // src/contexts/GuestContext.tsx
 // import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 // import axios from 'axios';
 
@@ -15,6 +14,9 @@
 // }
 
 // export interface Guest {
+//   discountTitle: boolean;
+//   email: ReactNode;
+//   createdBy: any;
 //   _id: string;
 //   fullName: string;
 //   address: string;
@@ -55,7 +57,10 @@
 //     setLoading(true);
 //     setError(null);
 //     try {
-//       const res = await axios.get<{ guests: Guest[] }>(`${API_BASE}/api/guests/get-all-guest`, { withCredentials: true });
+//       const res = await axios.get<{ guests: Guest[] }>(
+//         `${API_BASE}/api/guests/get-all-guest`,
+//         { withCredentials: true }
+//       );
 //       setGuests(res.data.guests);
 //     } catch (err: any) {
 //       setError(err.message);
@@ -68,7 +73,10 @@
 //     setLoading(true);
 //     setError(null);
 //     try {
-//       const res = await axios.get<{ guest: Guest }>(`${API_BASE}/api/guests/get-Guest-By-Id/${id}`, { withCredentials: true });
+//       const res = await axios.get<{ guest: Guest }>(
+//         `${API_BASE}/api/guests/get-Guest-By-Id/${id}`,
+//         { withCredentials: true }
+//       );
 //       setGuest(res.data.guest);
 //     } catch (err: any) {
 //       setError(err.message);
@@ -81,7 +89,10 @@
 //     setLoading(true);
 //     setError(null);
 //     try {
-//       const res = await axios.get<{ rooms: Room[] }>(`${API_BASE}/api/rooms/get-available-rooms`, { withCredentials: true });
+//       const res = await axios.get<{ rooms: Room[] }>(
+//         `${API_BASE}/api/rooms/get-available-rooms`,
+//         { withCredentials: true }
+//       );
 //       setRooms(res.data.rooms);
 //     } catch (err: any) {
 //       setError(err.message);
@@ -90,11 +101,17 @@
 //     }
 //   };
 
-//   const createGuest = async (data: Omit<Guest, '_id' | 'status' | 'totalRent'>) => {
+//   const createGuest = async (
+//     data: Omit<Guest, '_id' | 'status' | 'totalRent'>
+//   ) => {
 //     setLoading(true);
 //     setError(null);
 //     try {
-//       await axios.post(`${API_BASE}/api/guests/create-guest`, data, { withCredentials: true });
+//       await axios.post(
+//         `${API_BASE}/api/guests/create-guest`,
+//         data,
+//         { withCredentials: true }
+//       );
 //       await fetchGuests();
 //       await fetchAvailableRooms();
 //     } catch (err: any) {
@@ -109,7 +126,11 @@
 //     setLoading(true);
 //     setError(null);
 //     try {
-//       await axios.patch(`${API_BASE}/api/guests/update-guest/${id}`, data, { withCredentials: true });
+//       await axios.patch(
+//         `${API_BASE}/api/guests/update-guest/${id}`,
+//         data,
+//         { withCredentials: true }
+//       );
 //       await fetchGuestById(id);
 //       await fetchGuests();
 //     } catch (err: any) {
@@ -124,7 +145,11 @@
 //     setLoading(true);
 //     setError(null);
 //     try {
-//       await axios.patch(`${API_BASE}/api/guests/check-out-Guest/${id}/checkout`, {}, { withCredentials: true });
+//       await axios.patch(
+//         `${API_BASE}/api/guests/check-out-Guest/${id}/checkout`,
+//         {},
+//         { withCredentials: true }
+//       );
 //       await fetchGuestById(id);
 //       await fetchGuests();
 //       await fetchAvailableRooms();
@@ -163,11 +188,22 @@
 
 // export const useGuestContext = () => {
 //   const context = useContext(GuestContext);
-//   if (!context) throw new Error('useGuestContext must be used within a GuestProvider');
+//   if (!context)
+//     throw new Error(
+//       'useGuestContext must be used within a GuestProvider'
+//     );
 //   return context;
 // };
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+// src/contexts/GuestContext.tsx
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+  ReactNode,
+} from 'react';
 import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
@@ -222,6 +258,9 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Ref to track that we've done the first rooms fetch
+  const didInitialRoomsFetch = useRef(false);
+
   const fetchGuests = async () => {
     setLoading(true);
     setError(null);
@@ -254,9 +293,12 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const fetchAvailableRooms = async () => {
-    setLoading(true);
-    setError(null);
+  // Now accepts a flag to show spinner only on first load
+  const fetchAvailableRooms = async (showSpinner = false) => {
+    if (showSpinner) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const res = await axios.get<{ rooms: Room[] }>(
         `${API_BASE}/api/rooms/get-available-rooms`,
@@ -266,7 +308,7 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
     } catch (err: any) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   };
 
@@ -282,7 +324,7 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
         { withCredentials: true }
       );
       await fetchGuests();
-      await fetchAvailableRooms();
+      await fetchAvailableRooms(); // you can decide if this should be spinner or silent
     } catch (err: any) {
       setError(err.message);
       throw err;
@@ -331,8 +373,22 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    // 1️⃣ load guests immediately
     fetchGuests();
-    fetchAvailableRooms();
+
+    // 2️⃣ initial rooms fetch with spinner
+    fetchAvailableRooms(true).then(() => {
+      didInitialRoomsFetch.current = true;
+    });
+
+    // 3️⃣ then poll rooms silently every 5 seconds
+    const intervalId = window.setInterval(() => {
+      if (didInitialRoomsFetch.current) {
+        fetchAvailableRooms(false);
+      }
+    }, 5000);
+
+    return () => window.clearInterval(intervalId);
   }, []);
 
   return (
@@ -357,9 +413,8 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
 
 export const useGuestContext = () => {
   const context = useContext(GuestContext);
-  if (!context)
-    throw new Error(
-      'useGuestContext must be used within a GuestProvider'
-    );
+  if (!context) {
+    throw new Error('useGuestContext must be used within a GuestProvider');
+  }
   return context;
 };
