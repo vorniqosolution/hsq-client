@@ -32,6 +32,7 @@ const GuestsPage: React.FC = () => {
     address: '',
     phone: '',
     cnic: '',
+    email: '',
     roomNumber: '',
     stayDuration: 1,
     applyDiscount: false,
@@ -56,7 +57,7 @@ const GuestsPage: React.FC = () => {
         ...formData,
         room: selectedRoom,
         checkInAt: new Date().toISOString(),
-        email: '', // Provide email value here or add to formData
+        email: formData.email, // Provide email value here or add to formData
         createdBy: '', // Provide createdBy value here or fetch from context/auth
         discountTitle: formData.applyDiscount, // Set as boolean
       };
@@ -68,6 +69,7 @@ const GuestsPage: React.FC = () => {
         address: '',
         phone: '',
         cnic: '',
+        email: '',
         roomNumber: '',
         stayDuration: 1,
         applyDiscount: false,
@@ -125,6 +127,14 @@ const GuestsPage: React.FC = () => {
                   />
                 </div>
                 <div>
+                  <Label>Email</Label>
+                  <Input
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="hsq@hotel.com"
+                  />
+                </div>
+                <div>
                   <Label>CNIC</Label>
                   <Input
                     value={formData.cnic}
@@ -143,7 +153,7 @@ const GuestsPage: React.FC = () => {
                   <SelectContent>
                     {rooms.map((r) => (
                       <SelectItem key={r._id} value={r.roomNumber}>
-                        {`Room ${r.roomNumber} - ${r.bedType} ($${r.rate}/night)`}
+                        {`Room ${r.roomNumber} - ${r.bedType} - (Rs${r.rate}/night) - ${r.category} - ${r.view}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -176,7 +186,7 @@ const GuestsPage: React.FC = () => {
               </Button>
             </form>
           </DialogContent>
-        </Dialog>
+        </Dialog>6
       </div>
       <Input
         placeholder="Search guests..."
@@ -191,6 +201,7 @@ const GuestsPage: React.FC = () => {
               <div>
                 <p className="font-semibold">{g.fullName}</p>
                 <p className="text-sm text-gray-500">{g.phone}</p>
+                <p className="text-sm text-gray-500">{g.email}</p>
               </div>
               <Badge className={getStatusColor(g.status)}>{g.status}</Badge>
               <Link to={`/guests/${g._id}`}>
