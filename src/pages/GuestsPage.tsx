@@ -32,8 +32,10 @@ const GuestsPage: React.FC = () => {
     address: '',
     phone: '',
     cnic: '',
+    email: '',
     roomNumber: '',
     stayDuration: 1,
+    paymentMethod: "cash",
     applyDiscount: false,
   });
   const { toast } = useToast();
@@ -56,9 +58,10 @@ const GuestsPage: React.FC = () => {
         ...formData,
         room: selectedRoom,
         checkInAt: new Date().toISOString(),
-        email: '', // Provide email value here or add to formData
+        email: formData.email, // Provide email value here or add to formData
         createdBy: '', // Provide createdBy value here or fetch from context/auth
         discountTitle: formData.applyDiscount, // Set as boolean
+        paymentMethod: formData.paymentMethod as "cash" | "card" | "online",
       };
       await createGuest(guestToCreate);
       toast({ title: 'Guest checked in', description: 'Successfully added.' });
@@ -68,7 +71,9 @@ const GuestsPage: React.FC = () => {
         address: '',
         phone: '',
         cnic: '',
+        email: '',
         roomNumber: '',
+        paymentMethod: "cash",
         stayDuration: 1,
         applyDiscount: false,
       });
@@ -125,6 +130,14 @@ const GuestsPage: React.FC = () => {
                   />
                 </div>
                 <div>
+                  <Label>Email</Label>
+                  <Input
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="hsq@hotel.com"
+                  />
+                </div>
+                <div>
                   <Label>CNIC</Label>
                   <Input
                     value={formData.cnic}
@@ -143,7 +156,7 @@ const GuestsPage: React.FC = () => {
                   <SelectContent>
                     {rooms.map((r) => (
                       <SelectItem key={r._id} value={r.roomNumber}>
-                        {`Room ${r.roomNumber} - ${r.bedType} ($${r.rate}/night)`}
+                        {`Room ${r.roomNumber} - ${r.bedType} - (Rs${r.rate}/night) - ${r.category} - ${r.view}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -170,13 +183,31 @@ const GuestsPage: React.FC = () => {
                   />
                   <Label htmlFor="applyDiscount">Apply Discount</Label>
                 </div>
+                <div>
+                  <Label>Payment Method</Label>
+                  <div className="flex gap-4">
+                    {["cash", "card", "online"].map((method) => (
+                      <label key={method} className="flex items-center">
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value={method}
+                          checked={formData.paymentMethod === method}
+                          onChange={() => setFormData({ ...formData, paymentMethod: method })}
+                          className="mr-2"
+                        />
+                        {method.charAt(0).toUpperCase() + method.slice(1)}
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
               <Button type="submit" className="w-full">
                 Submit
               </Button>
             </form>
           </DialogContent>
-        </Dialog>
+        </Dialog>6
       </div>
       <Input
         placeholder="Search guests..."
@@ -191,6 +222,7 @@ const GuestsPage: React.FC = () => {
               <div>
                 <p className="font-semibold">{g.fullName}</p>
                 <p className="text-sm text-gray-500">{g.phone}</p>
+                <p className="text-sm text-gray-500">{g.email}</p>
               </div>
               <Badge className={getStatusColor(g.status)}>{g.status}</Badge>
               <Link to={`/guests/${g._id}`}>

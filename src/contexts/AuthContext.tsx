@@ -61,9 +61,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (data.user.role === 'admin') {
         navigate('/dashboard');
       } else if (data.user.role === 'receptionist') {
-        navigate('/rooms');
+        navigate('/guests');
       } else {
-        navigate('/');
+        navigate('/login');
       }
       return { success: true, message: data.message };
     } catch (err: any) {
