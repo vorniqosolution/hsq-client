@@ -35,6 +35,7 @@ const GuestsPage: React.FC = () => {
     email: '',
     roomNumber: '',
     stayDuration: 1,
+    paymentMethod: "cash",
     applyDiscount: false,
   });
   const { toast } = useToast();
@@ -60,6 +61,7 @@ const GuestsPage: React.FC = () => {
         email: formData.email, // Provide email value here or add to formData
         createdBy: '', // Provide createdBy value here or fetch from context/auth
         discountTitle: formData.applyDiscount, // Set as boolean
+        paymentMethod: formData.paymentMethod as "cash" | "card" | "online",
       };
       await createGuest(guestToCreate);
       toast({ title: 'Guest checked in', description: 'Successfully added.' });
@@ -71,6 +73,7 @@ const GuestsPage: React.FC = () => {
         cnic: '',
         email: '',
         roomNumber: '',
+        paymentMethod: "cash",
         stayDuration: 1,
         applyDiscount: false,
       });
@@ -179,6 +182,24 @@ const GuestsPage: React.FC = () => {
                     className="mr-2"
                   />
                   <Label htmlFor="applyDiscount">Apply Discount</Label>
+                </div>
+                <div>
+                  <Label>Payment Method</Label>
+                  <div className="flex gap-4">
+                    {["cash", "card", "online"].map((method) => (
+                      <label key={method} className="flex items-center">
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value={method}
+                          checked={formData.paymentMethod === method}
+                          onChange={() => setFormData({ ...formData, paymentMethod: method })}
+                          className="mr-2"
+                        />
+                        {method.charAt(0).toUpperCase() + method.slice(1)}
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
               <Button type="submit" className="w-full">

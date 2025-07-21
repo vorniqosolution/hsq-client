@@ -30,6 +30,7 @@ export interface Guest {
   phone: string;
   cnic: string;
   email: string; // Optional email field
+  paymentMethod: "cash" | "card" | "online";
   room: {
     view: any;
     category: any;

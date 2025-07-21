@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, LogOut, Printer } from "lucide-react";
+import { ArrowLeft, Check, LogOut, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -186,9 +186,6 @@ const GuestDetailPage: React.FC = () => {
             <p>
               <strong>CNIC:</strong> {guest.cnic}
             </p>
-            {/* <p>
-              <strong>Room Number:</strong> {guest.room.roomNumber}
-            </p> */}
             <p>
               <strong>Room:</strong>{' '}
               {`Room ${guest.room.roomNumber} - ${guest.room.bedType} - (Rs${guest.room.rate}/night) - ${guest.room.category} - ${guest.room.view}`}
@@ -217,6 +214,17 @@ const GuestDetailPage: React.FC = () => {
                 </p>
               </>
             )}
+            <p><strong>Payment Method:</strong></p>
+            <ul className="list-none">
+              {["cash", "card", "online"].map((m) => (
+                <li key={m} className="flex items-center">
+                  {guest.paymentMethod === m
+                    ? <Check className="w-4 h-4 text-green-600 mr-1" />
+                    : <span className="w-4 h-4 mr-1" />}
+                  {m.charAt(0).toUpperCase() + m.slice(1)}
+                </li>
+              ))}
+            </ul>
           </CardContent>
         </Card>
 
@@ -229,15 +237,29 @@ const GuestDetailPage: React.FC = () => {
             <p>
               <strong>Stay Duration:</strong> {guest.stayDuration} day(s)
             </p>
-            <p>
-              <strong>Total Rent:</strong> Rs{guest.totalRent.toLocaleString()}
-            </p>
-            {guest.applyDiscount && guest.discountTitle && (
+
+            {guest.applyDiscount && guest.discountTitle ? (
+              <>
+                <p>
+                  <strong>Rent After Discount:</strong>{" "}
+                  Rs{guest.totalRent.toLocaleString()}
+                </p>
+                <p>
+                  <strong>Original Total:</strong>{" "}
+                  Rs{(guest.room.rate * guest.stayDuration).toLocaleString()}
+                </p>
+                <p>
+                  <strong>Discount ({guest.discountTitle}):</strong> Applied
+                </p>
+              </>
+            ) : (
               <p>
-                <strong>Discount ({guest.discountTitle}):</strong> Applied
+                <strong>Total Rent:</strong>{" "}
+                Rs{(guest.room.rate * guest.stayDuration).toLocaleString()}
               </p>
             )}
           </CardContent>
+
         </Card>
       </div>
     </div>
