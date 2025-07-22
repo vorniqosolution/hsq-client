@@ -29,12 +29,17 @@ const App = () => (
           <RoomProvider>
             <GuestProvider>
               <Routes>
-                <Route path="/" element={<HomeRedirect />} />
+                {/* <Route
+                  path="/"
+                  element={<Navigate to="/login" replace />}
+                />
+                <Route path="/login" element={<LoginPage />} /> */}
+                <Route path="/" element={<Navigate to="/login" replace />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route
                   path="/dashboard"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute roles={['admin']}>
                       <Layout>
                         <DashboardPage />
                       </Layout>
@@ -44,7 +49,7 @@ const App = () => (
                 <Route
                   path="/rooms"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute roles={['admin']}>
                       <Layout>
                         <RoomsPage />
                       </Layout>
