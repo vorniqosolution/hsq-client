@@ -63,7 +63,7 @@
     margin: 0 !important;
     padding: 0 !important;
     box-shadow: none !important;
-    color-adjust: exact !important;
+    accent-color: exact !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     page-break-inside: avoid;
