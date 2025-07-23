@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Check, LogOut, Printer, Building2, Calendar, Clock, CreditCard, User, Phone, Mail, Hash } from "lucide-react";
@@ -158,15 +159,15 @@ const GuestDetailPage: React.FC = () => {
           
           {/* HSQ TOWERS Header */}
           <div className="text-center py-8 border-b-2 border-blue-600">
-  <div className="flex items-center justify-center mb-2">
-    <Building2 className="h-8 w-8 mr-3 text-blue-600" />
-    <h1 className="text-3xl font-bold text-gray-900 tracking-wide">HSQ TOWERS</h1>
-  </div>
-  <p className="text-gray-600 text-sm font-medium">Premium Hospitality Services</p>
-  <div className="mt-4 text-xs text-gray-500">
-    Invoice Generated: {guest.fullName}, Room {guest.room.roomNumber}, {new Date().toLocaleDateString()}, {new Date().toLocaleTimeString()}
-  </div>
-</div>
+            <div className="flex items-center justify-center mb-2">
+              <Building2 className="h-8 w-8 mr-3 text-blue-600" />
+              <h1 className="text-3xl font-bold text-gray-900 tracking-wide">HSQ TOWERS</h1>
+            </div>
+            <p className="text-gray-600 text-sm font-medium">Premium Hospitality Services</p>
+            <div className="mt-4 text-xs text-gray-500">
+              Invoice Generated: {guest.fullName}, Room {guest.room.roomNumber}, {new Date().toLocaleDateString()}, {new Date().toLocaleTimeString()}
+            </div>
+          </div>
 
           <div className="p-8">
             {/* Guest Header */}
