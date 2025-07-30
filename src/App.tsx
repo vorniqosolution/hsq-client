@@ -14,8 +14,12 @@ import DashboardPage from "./pages/DashboardPage";
 import RoomsPage from "./pages/RoomsPage";
 import GuestsPage from "./pages/GuestsPage";
 import GuestDetailPage from "./pages/GuestDetailPage";
+import DiscountPage from "./pages/Discount";
+import InventoryPage from "./pages/Inventory";
 import NotFound from "./pages/NotFound";
 import HomeRedirect from "./components/HomeRedirect";
+import InvoicesPage from "./pages/Invoices";
+import RevenuePage from "./pages/Revenue";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +71,43 @@ const App = () => (
                     <ProtectedRoute>
                       <Layout>
                         <GuestDetailPage />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                /><Route
+                  path="/Discount"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <DiscountPage />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                /><Route
+                  path="/Inventory"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <InventoryPage />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/Invoices"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <InvoicesPage />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                /><Route
+                  path="/Revenue"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <RevenuePage />
                       </Layout>
                     </ProtectedRoute>
                   }
