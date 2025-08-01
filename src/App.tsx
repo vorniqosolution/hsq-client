@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { RoomProvider } from "./contexts/RoomContext";
 import { GuestProvider } from "./contexts/GuestContext";
+import { InventoryProvider } from "./contexts/InventoryContext";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -32,6 +33,7 @@ const App = () => (
         <AuthProvider>
           <RoomProvider>
             <GuestProvider>
+              <InventoryProvider>
               <Routes>
                 <Route path="/" element={<Navigate to="/login" replace />} />
                 <Route path="/login" element={<LoginPage />} />
@@ -114,6 +116,7 @@ const App = () => (
                 />
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              </InventoryProvider>
             </GuestProvider>
           </RoomProvider>
         </AuthProvider>

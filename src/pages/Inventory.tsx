@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { InventoryCategory, InventoryItem, useInventory } from '@/contexts/InventoryContext';
 import { 
   Users, Bed, DollarSign, Settings, LogOut, Menu, X, Home, Crown, Star, Sparkles,
-  Box, Package, Search, MoreVertical, Plus, Filter, AlertTriangle, 
-  ArrowDown, Download, RefreshCw, FileText, Ticket, Archive, BarChart3
+  Box, Package, Search, MoreVertical, Plus, Filter, AlertTriangle, ArrowDown, Download, 
+  RefreshCw, FileText, Ticket, Archive, BarChart3, Trash2, Edit, Tag, Layers, CornerDownRight
 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -17,27 +17,128 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
-
-// Mock inventory data interface
-interface InventoryItem {
-  id: string;
-  name: string;
-  category: string;
-  sku: string;
-  currentStock: number;
-  minStock: number;
-  unitPrice: number;
-  location: string;
-  lastRestocked: string;
-}
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle,
+  DialogTrigger
+} from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
 
 const InventoryPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
   const location = useLocation();
-
-  // Sidebar navigation items
+  
+  // === MODAL STATES ===
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [itemModalOpen, setItemModalOpen] = useState(false);
+  const [transactionModalOpen, setTransactionModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('items');
+  
+  // === FORM STATES ===
+  // Category Form
+  const [categoryForm, setCategoryForm] = useState({
+    _id: '',
+    name: '',
+    description: ''
+  });
+  
+  // Item Form
+  const [itemForm, setItemForm] = useState({
+    _id: '',
+    name: '',
+    category: '',
+    unitPrice: 0,
+    quantityOnHand: 0,
+    reorderLevel: 0,
+    location: '',
+    defaultCheckInQty: 0
+  });
+  
+  // Transaction Form
+  const [transactionForm, setTransactionForm] = useState<{
+    item: string;
+    transactionType: 'adjustment' | 'issue' | 'return' | 'usage';
+    quantity: number;
+    reason: string;
+  }>({
+    item: '',
+    transactionType: 'adjustment',
+    quantity: 1,
+    reason: ''
+  });
+  
+  // Delete confirmation state
+  const [deleteItemInfo, setDeleteItemInfo] = useState({
+    type: '', // 'category' or 'item'
+    id: '',
+    name: ''
+  });
+  
+  // Use the inventory context
+  const {
+    categories,
+    items,
+    transactions,
+    lowStockItems,
+    totalInventoryValue,
+    loading,
+    error,
+    searchQuery,
+    setSearchQuery,
+    categoryFilter,
+    setCategoryFilter,
+    getFilteredItems,
+    refreshData,
+    // Category functions
+    createCategory,
+    updateCategory,
+    deleteCategory,
+    // Item functions
+    createItem,
+    updateItem,
+    deleteItem,
+    setDefaultCheckInQuantity,
+    // Transaction functions
+    createTransaction
+  } = useInventory();
+  
+  // Get filtered items
+  const filteredInventory = getFilteredItems();
+  
+  // Category options for filter dropdown
+  const categoryOptions = useMemo(() => {
+    return ['all', ...categories.map(cat => cat.name)];
+  }, [categories]);
+  
+  // === SIDEBAR NAVIGATION ===
   const mainNavItems = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Guests', href: '/guests', icon: Users },
@@ -47,21 +148,11 @@ const InventoryPage = () => {
     { name: 'Invoices', href: '/invoices', icon: FileText },
   ];
 
-  // Reports section
-  const reportNavItems = [
-    { name: 'Reports', href: '/reports', icon: BarChart3 },
-  ];
-  
-  // System section
-  const systemNavItems = [
-    { name: 'Settings', href: '/settings', icon: Settings },
-  ];
+  const reportNavItems = [{ name: 'Reports', href: '/reports', icon: BarChart3 }];
+  const systemNavItems = [{ name: 'Settings', href: '/settings', icon: Settings }];
 
   const isActive = (href: string) => {
-    // Exact match for dashboard, startsWith for others to keep parent active
-    if (href === '/dashboard') {
-        return location.pathname === href;
-    }
+    if (href === '/dashboard') return location.pathname === href;
     return location.pathname.startsWith(href);
   }
 
@@ -100,54 +191,7 @@ const InventoryPage = () => {
       });
   }
 
-  // Fetch inventory data
-  const { data: inventory = [] } = useQuery<InventoryItem[]>({
-    queryKey: ['inventory'],
-    queryFn: async () => {
-      // Replace with actual API call
-      return [
-        { id: '1', name: 'Bath Towels (Large)', category: 'linens', sku: 'LIN-001', currentStock: 125, minStock: 50, unitPrice: 18.99, location: 'Main Storage A1', lastRestocked: '2025-07-15' },
-        { id: '2', name: 'Hand Towels', category: 'linens', sku: 'LIN-002', currentStock: 210, minStock: 75, unitPrice: 8.50, location: 'Main Storage A2', lastRestocked: '2025-07-10' },
-        { id: '3', name: 'Queen Bed Sheets', category: 'linens', sku: 'LIN-003', currentStock: 85, minStock: 40, unitPrice: 45.00, location: 'Main Storage A3', lastRestocked: '2025-07-05' },
-        { id: '4', name: 'King Bed Sheets', category: 'linens', sku: 'LIN-004', currentStock: 32, minStock: 30, unitPrice: 55.00, location: 'Main Storage A3', lastRestocked: '2025-06-28' },
-        { id: '5', name: 'Toilet Paper', category: 'supplies', sku: 'SUP-001', currentStock: 350, minStock: 100, unitPrice: 0.75, location: 'Supply Room B1', lastRestocked: '2025-07-20' },
-        { id: '6', name: 'Shampoo (2oz)', category: 'toiletries', sku: 'TOI-001', currentStock: 180, minStock: 75, unitPrice: 1.25, location: 'Supply Room B2', lastRestocked: '2025-07-18' },
-        { id: '7', name: 'Conditioner (2oz)', category: 'toiletries', sku: 'TOI-002', currentStock: 165, minStock: 75, unitPrice: 1.25, location: 'Supply Room B2', lastRestocked: '2025-07-18' },
-        { id: '8', name: 'Body Lotion (2oz)', category: 'toiletries', sku: 'TOI-003', currentStock: 145, minStock: 75, unitPrice: 1.50, location: 'Supply Room B2', lastRestocked: '2025-07-18' },
-        { id: '9', name: 'Shower Caps', category: 'toiletries', sku: 'TOI-004', currentStock: 250, minStock: 100, unitPrice: 0.30, location: 'Supply Room B3', lastRestocked: '2025-07-12' },
-        { id: '10', name: 'Coffee Pods', category: 'food', sku: 'FOD-001', currentStock: 15, minStock: 50, unitPrice: 0.60, location: 'Kitchen Storage C1', lastRestocked: '2025-07-08' },
-        { id: '11', name: 'Tea Bags', category: 'food', sku: 'FOD-002', currentStock: 220, minStock: 100, unitPrice: 0.20, location: 'Kitchen Storage C1', lastRestocked: '2025-07-08' },
-        { id: '12', name: 'Light Bulbs', category: 'maintenance', sku: 'MNT-001', currentStock: 95, minStock: 40, unitPrice: 3.25, location: 'Maintenance Room D1', lastRestocked: '2025-06-25' },
-      ];
-    },
-  });
-
-  // Get categories for filter
-  const categories = ['all', ...new Set(inventory.map(item => item.category))];
-
-  // Filter inventory based on search query and category
-  const filteredInventory = inventory.filter(item => {
-    const matchesSearch = 
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      item.sku.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = 
-      categoryFilter === 'all' || 
-      item.category === categoryFilter;
-    
-    return matchesSearch && matchesCategory;
-  });
-
-  // Get low stock items
-  const lowStockItems = inventory.filter(item => item.currentStock <= item.minStock);
-
-  // Calculate total inventory value
-  const totalValue = inventory.reduce(
-    (sum, item) => sum + (item.currentStock * item.unitPrice), 
-    0
-  );
-
-  // Generate stock level chart data
+  // Stock level chart data
   const stockChartData = [
     { month: 'Jan', level: 650 },
     { month: 'Feb', level: 720 },
@@ -166,6 +210,227 @@ const InventoryPage = () => {
       day: 'numeric',
     });
   };
+
+  // === HANDLER FUNCTIONS ===
+  
+  // Handle restock item
+  const handleRestockItem = async (itemId: string, currentQty: number, additionalQty: number = 10) => {
+    try {
+      await createTransaction({
+        item: itemId,
+        transactionType: 'adjustment',
+        quantity: additionalQty,
+        reason: 'Restock'
+      });
+      await refreshData();
+    } catch (error) {
+      console.error('Error restocking item:', error);
+    }
+  };
+  
+  // Open the category modal for creating a new category
+  const handleAddCategory = () => {
+    setCategoryForm({
+      _id: '',
+      name: '',
+      description: ''
+    });
+    setCategoryModalOpen(true);
+  };
+  
+  // Open the category modal for editing an existing category
+  const handleEditCategory = (category: InventoryCategory) => {
+    setCategoryForm({
+      _id: category._id,
+      name: category.name,
+      description: category.description || ''
+    });
+    setCategoryModalOpen(true);
+  };
+  
+  // Save a category (create or update)
+  const handleSaveCategory = async () => {
+    try {
+      if (categoryForm._id) {
+        // Update existing category
+        await updateCategory(categoryForm._id, {
+          name: categoryForm.name,
+          description: categoryForm.description
+        });
+      } else {
+        // Create new category
+        await createCategory({
+          name: categoryForm.name,
+          description: categoryForm.description
+        });
+      }
+      setCategoryModalOpen(false);
+      await refreshData();
+    } catch (error) {
+      console.error('Error saving category:', error);
+    }
+  };
+  
+  // Open delete confirmation for a category
+  const handleDeleteCategoryConfirm = (category: InventoryCategory) => {
+    setDeleteItemInfo({
+      type: 'category',
+      id: category._id,
+      name: category.name
+    });
+    setDeleteDialogOpen(true);
+  };
+  
+  // Open the item modal for creating a new item
+  const handleAddItem = () => {
+    setItemForm({
+      _id: '',
+      name: '',
+      category: categories.length > 0 ? categories[0]._id : '',
+      unitPrice: 0,
+      quantityOnHand: 0,
+      reorderLevel: 0,
+      location: '',
+      defaultCheckInQty: 0
+    });
+    setItemModalOpen(true);
+  };
+  
+  // Open the item modal for editing an existing item
+  const handleEditItem = (item: InventoryItem) => {
+    setItemForm({
+      _id: item._id,
+      name: item.name,
+      category: typeof item.category === 'object' ? item.category._id : item.category,
+      unitPrice: item.unitPrice,
+      quantityOnHand: item.quantityOnHand,
+      reorderLevel: item.reorderLevel,
+      location: item.location || '',
+      defaultCheckInQty: item.defaultCheckInQty
+    });
+    setItemModalOpen(true);
+  };
+  
+  // Save an item (create or update)
+  const handleSaveItem = async () => {
+    try {
+      if (itemForm._id) {
+        // Update existing item
+        await updateItem(itemForm._id, {
+          name: itemForm.name,
+          category: itemForm.category,
+          unitPrice: itemForm.unitPrice,
+          quantityOnHand: itemForm.quantityOnHand,
+          reorderLevel: itemForm.reorderLevel,
+          location: itemForm.location,
+          defaultCheckInQty: itemForm.defaultCheckInQty
+        });
+      } else {
+        // Create new item
+        await createItem({
+          name: itemForm.name,
+          category: itemForm.category,
+          unitPrice: itemForm.unitPrice,
+          quantityOnHand: itemForm.quantityOnHand,
+          reorderLevel: itemForm.reorderLevel,
+          location: itemForm.location,
+          defaultCheckInQty: itemForm.defaultCheckInQty
+        });
+      }
+      setItemModalOpen(false);
+      await refreshData();
+    } catch (error) {
+      console.error('Error saving item:', error);
+    }
+  };
+  
+  // Open delete confirmation for an item
+  const handleDeleteItemConfirm = (item: InventoryItem) => {
+    setDeleteItemInfo({
+      type: 'item',
+      id: item._id,
+      name: item.name
+    });
+    setDeleteDialogOpen(true);
+  };
+  
+  // Set default check-in quantity
+  const handleSetDefaultQuantity = async (itemId: string, quantity: number) => {
+    try {
+      await setDefaultCheckInQuantity(itemId, quantity);
+      await refreshData();
+    } catch (error) {
+      console.error('Error setting default quantity:', error);
+    }
+  };
+  
+  // Open the transaction modal
+  const handleAddTransaction = (itemId?: string) => {
+    setTransactionForm({
+      item: itemId || (items.length > 0 ? items[0]._id : ''),
+      transactionType: 'adjustment',
+      quantity: 1,
+      reason: ''
+    });
+    setTransactionModalOpen(true);
+  };
+  
+  // Create a transaction
+  const handleCreateTransaction = async () => {
+    try {
+      await createTransaction({
+        item: transactionForm.item,
+        transactionType: transactionForm.transactionType,
+        quantity: transactionForm.quantity,
+        reason: transactionForm.reason
+      });
+      setTransactionModalOpen(false);
+      await refreshData();
+    } catch (error) {
+      console.error('Error creating transaction:', error);
+    }
+  };
+  
+  // Handle final deletion
+  const handleDeleteConfirmed = async () => {
+    try {
+      if (deleteItemInfo.type === 'category') {
+        await deleteCategory(deleteItemInfo.id);
+      } else if (deleteItemInfo.type === 'item') {
+        await deleteItem(deleteItemInfo.id);
+      }
+      setDeleteDialogOpen(false);
+      await refreshData();
+    } catch (error) {
+      console.error('Error deleting:', error);
+    }
+  };
+  
+  // Loading state - show a loading indicator if no items have loaded yet
+  if (loading && items.length === 0 && categories.length === 0) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <Package className="h-12 w-12 text-amber-500 mx-auto mb-4 animate-pulse" />
+          <p className="text-slate-600">Loading inventory data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error && items.length === 0 && categories.length === 0) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center max-w-md p-6 bg-white rounded-lg shadow-lg">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-medium text-slate-900 mb-2">Error Loading Inventory</h2>
+          <p className="text-slate-600 mb-4">{error}</p>
+          <Button onClick={refreshData}>Try Again</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
@@ -267,283 +532,777 @@ const InventoryPage = () => {
         <div className="p-8">
           <div className="max-w-7xl mx-auto">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-10">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
               <div>
                 <h1 className="text-4xl font-light text-slate-900 tracking-wide">Inventory Management</h1>
                 <p className="text-slate-600 mt-2 font-light">Track and manage property supplies and stock levels</p>
               </div>
               <div className="mt-4 md:mt-0 space-x-3">
-                <Button variant="outline">
+                <Button variant="outline" onClick={refreshData}>
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Restock
+                  Refresh
                 </Button>
-                <Button className="bg-amber-500 hover:bg-amber-600 text-white">
+                <Button 
+                  className="bg-amber-500 hover:bg-amber-600 text-white"
+                  onClick={handleAddItem}
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Item
                 </Button>
               </div>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <Card className="border-0 shadow-lg bg-white">
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-slate-500">Total Items</p>
-                      <p className="text-3xl font-light mt-2 text-slate-900">{inventory.length}</p>
-                    </div>
-                    <div className="p-3 bg-blue-100 rounded-lg">
-                      <Package className="h-6 w-6 text-blue-600" />
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-500 mt-4">{filteredInventory.length} items in view</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="border-0 shadow-lg bg-white">
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-slate-500">Low Stock</p>
-                      <p className="text-3xl font-light mt-2 text-slate-900">{lowStockItems.length}</p>
-                    </div>
-                    <div className="p-3 bg-amber-100 rounded-lg">
-                      <AlertTriangle className="h-6 w-6 text-amber-600" />
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-500 mt-4">{lowStockItems.length > 0 ? 'Requires attention' : 'All stock levels OK'}</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="border-0 shadow-lg bg-white">
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-slate-500">Categories</p>
-                      <p className="text-3xl font-light mt-2 text-slate-900">{categories.length - 1}</p>
-                    </div>
-                    <div className="p-3 bg-indigo-100 rounded-lg">
-                      <Box className="h-6 w-6 text-indigo-600" />
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-500 mt-4">Across all inventory</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="border-0 shadow-lg bg-white">
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-slate-500">Total Value</p>
-                      <p className="text-3xl font-light mt-2 text-slate-900">${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                    </div>
-                    <div className="p-3 bg-emerald-100 rounded-lg">
-                      <BarChart3 className="h-6 w-6 text-emerald-600" />
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-500 mt-4">Current inventory value</p>
-                </CardContent>
-              </Card>
-            </div>
+            {/* Tabs for Inventory, Categories, Transactions */}
+            <Tabs defaultValue="items" className="mb-6" onValueChange={setActiveTab} value={activeTab}>
+              <TabsList className="bg-slate-100 p-1">
+                <TabsTrigger value="items" className="data-[state=active]:bg-white data-[state=active]:text-amber-600">
+                  <Package className="h-4 w-4 mr-2" />
+                  Items
+                </TabsTrigger>
+                <TabsTrigger value="categories" className="data-[state=active]:bg-white data-[state=active]:text-amber-600">
+                  <Tag className="h-4 w-4 mr-2" />
+                  Categories
+                </TabsTrigger>
+                <TabsTrigger value="transactions" className="data-[state=active]:bg-white data-[state=active]:text-amber-600">
+                  <Layers className="h-4 w-4 mr-2" />
+                  Transactions
+                </TabsTrigger>
+              </TabsList>
 
-            {/* Chart and Low Stock Items */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-              <Card className="border-0 shadow-lg bg-white lg:col-span-2">
-                <CardHeader>
-                  <CardTitle className="text-xl font-light text-slate-900">Stock Level Trends</CardTitle>
-                  <CardDescription className="font-light text-slate-500">Inventory levels over the past 6 months</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={stockChartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                        <XAxis dataKey="month" tick={{ fill: '#64748b' }} />
-                        <YAxis tick={{ fill: '#64748b' }} />
-                        <Tooltip />
-                        <Line 
-                          type="monotone" 
-                          dataKey="level" 
-                          stroke="#3b82f6" 
-                          strokeWidth={3}
-                          dot={{ fill: '#3b82f6', r: 6 }}
-                          activeDot={{ r: 8 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-lg bg-white">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-xl font-light text-slate-900">Low Stock Alert</CardTitle>
-                    <Badge className="bg-amber-100 text-amber-800 border-amber-200">{lowStockItems.length}</Badge>
-                  </div>
-                  <CardDescription className="font-light text-slate-500">Items requiring restock</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4 max-h-[275px] overflow-y-auto">
-                    {lowStockItems.length > 0 ? (
-                      lowStockItems.map(item => (
-                        <div key={item.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                          <div>
-                            <p className="font-medium text-slate-800">{item.name}</p>
-                            <div className="flex items-center mt-1">
-                              <p className="text-xs text-red-600 font-medium">{item.currentStock} left</p>
-                              <ArrowDown className="h-3 w-3 text-red-600 ml-1" />
-                              <p className="text-xs text-slate-500 ml-2">Min: {item.minStock}</p>
-                            </div>
-                          </div>
-                          <Button size="sm" variant="outline" className="h-8">Restock</Button>
+              {/* Stats Cards - Only show on Items tab */}
+              <TabsContent value="items">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  <Card className="border-0 shadow-lg bg-white">
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-sm font-medium text-slate-500">Total Items</p>
+                          <p className="text-3xl font-light mt-2 text-slate-900">{items.length}</p>
                         </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-6">
-                        <p className="text-slate-500">All stock levels are healthy</p>
+                        <div className="p-3 bg-blue-100 rounded-lg">
+                          <Package className="h-6 w-6 text-blue-600" />
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Inventory Table */}
-            <Card className="border-0 shadow-lg bg-white overflow-hidden">
-              <CardHeader className="pb-4 border-b bg-slate-50 flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-                <div>
-                  <CardTitle className="text-xl font-light text-slate-900">Inventory Items</CardTitle>
-                  <CardDescription className="font-light text-slate-500">Complete list of supplies and stock</CardDescription>
+                      <p className="text-sm text-slate-500 mt-4">{filteredInventory.length} items in view</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="border-0 shadow-lg bg-white">
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-sm font-medium text-slate-500">Low Stock</p>
+                          <p className="text-3xl font-light mt-2 text-slate-900">{lowStockItems.length}</p>
+                        </div>
+                        <div className="p-3 bg-amber-100 rounded-lg">
+                          <AlertTriangle className="h-6 w-6 text-amber-600" />
+                        </div>
+                      </div>
+                      <p className="text-sm text-slate-500 mt-4">{lowStockItems.length > 0 ? 'Requires attention' : 'All stock levels OK'}</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="border-0 shadow-lg bg-white">
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-sm font-medium text-slate-500">Categories</p>
+                          <p className="text-3xl font-light mt-2 text-slate-900">{categories.length}</p>
+                        </div>
+                        <div className="p-3 bg-indigo-100 rounded-lg">
+                          <Box className="h-6 w-6 text-indigo-600" />
+                        </div>
+                      </div>
+                      <p className="text-sm text-slate-500 mt-4">Across all inventory</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="border-0 shadow-lg bg-white">
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-sm font-medium text-slate-500">Total Value</p>
+                          <p className="text-3xl font-light mt-2 text-slate-900">Rs:{totalInventoryValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                        </div>
+                        <div className="p-3 bg-emerald-100 rounded-lg">
+                          <BarChart3 className="h-6 w-6 text-emerald-600" />
+                        </div>
+                      </div>
+                      <p className="text-sm text-slate-500 mt-4">Current inventory value</p>
+                    </CardContent>
+                  </Card>
                 </div>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                    <Input 
-                      placeholder="Search items..." 
-                      className="pl-9 bg-white border-slate-200 w-full sm:w-64"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Filter className="h-4 w-4 text-slate-500" />
-                    <select 
-                      value={categoryFilter}
-                      onChange={(e) => setCategoryFilter(e.target.value)}
-                      className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    >
-                      {categories.map(category => (
-                        <option key={category} value={category}>
-                          {category === 'all' ? 'All Categories' : 
-                           category.charAt(0).toUpperCase() + category.slice(1)}
-                        </option>
-                      ))}
-                    </select>
-                    <Button variant="outline" size="sm" className="ml-2 whitespace-nowrap">
-                      <Download className="h-4 w-4 mr-2" />
-                      Export
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
 
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-slate-100">
-                      <th className="text-left py-4 px-6 text-sm font-medium text-slate-500">Item Name</th>
-                      <th className="text-left py-4 px-6 text-sm font-medium text-slate-500">SKU</th>
-                      <th className="text-left py-4 px-6 text-sm font-medium text-slate-500">Category</th>
-                      <th className="text-right py-4 px-6 text-sm font-medium text-slate-500">Stock</th>
-                      <th className="text-right py-4 px-6 text-sm font-medium text-slate-500">Unit Price</th>
-                      <th className="text-left py-4 px-6 text-sm font-medium text-slate-500">Location</th>
-                      <th className="text-center py-4 px-6 text-sm font-medium text-slate-500">Last Restocked</th>
-                      <th className="text-right py-4 px-6 text-sm font-medium text-slate-500">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredInventory.map((item) => (
-                      <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                        <td className="py-4 px-6">
-                          <span className="font-medium text-slate-800">{item.name}</span>
-                        </td>
-                        <td className="py-4 px-6 text-sm text-slate-600">{item.sku}</td>
-                        <td className="py-4 px-6">
-                          <Badge className="capitalize bg-slate-100 text-slate-800 hover:bg-slate-200">{item.category}</Badge>
-                        </td>
-                        <td className="py-4 px-6 text-right">
-                          <span className={`font-medium ${
-                            item.currentStock <= item.minStock ? 'text-red-600' : 
-                            item.currentStock <= item.minStock * 1.5 ? 'text-amber-600' : 
-                            'text-emerald-600'
-                          }`}>
-                            {item.currentStock}
-                          </span>
-                          <span className="text-xs text-slate-500 ml-1">/ {item.minStock} min</span>
-                        </td>
-                        <td className="py-4 px-6 text-right font-medium text-slate-800">
-                          ${item.unitPrice.toFixed(2)}
-                        </td>
-                        <td className="py-4 px-6 text-sm text-slate-600">{item.location}</td>
-                        <td className="py-4 px-6 text-center text-sm text-slate-600">
-                          {formatDate(item.lastRestocked)}
-                        </td>
-                        <td className="py-4 px-6 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem className="cursor-pointer">
-                                <RefreshCw className="h-4 w-4 mr-2" />
+                {/* Chart and Low Stock Items */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                  <Card className="border-0 shadow-lg bg-white lg:col-span-2">
+                    <CardHeader>
+                      <CardTitle className="text-xl font-light text-slate-900">Stock Level Trends</CardTitle>
+                      <CardDescription className="font-light text-slate-500">Inventory levels over the past 6 months</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={stockChartData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                            <XAxis dataKey="month" tick={{ fill: '#64748b' }} />
+                            <YAxis tick={{ fill: '#64748b' }} />
+                            <Tooltip />
+                            <Line 
+                              type="monotone" 
+                              dataKey="level" 
+                              stroke="#3b82f6" 
+                              strokeWidth={3}
+                              dot={{ fill: '#3b82f6', r: 6 }}
+                              activeDot={{ r: 8 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-0 shadow-lg bg-white">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-xl font-light text-slate-900">Low Stock Alert</CardTitle>
+                        <Badge className="bg-amber-100 text-amber-800 border-amber-200">{lowStockItems.length}</Badge>
+                      </div>
+                      <CardDescription className="font-light text-slate-500">Items requiring restock</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4 max-h-[275px] overflow-y-auto">
+                        {lowStockItems.length > 0 ? (
+                          lowStockItems.map(item => (
+                            <div key={item._id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                              <div>
+                                <p className="font-medium text-slate-800">{item.name}</p>
+                                <div className="flex items-center mt-1">
+                                  <p className="text-xs text-red-600 font-medium">{item.quantityOnHand} left</p>
+                                  <ArrowDown className="h-3 w-3 text-red-600 ml-1" />
+                                  <p className="text-xs text-slate-500 ml-2">Min: {item.reorderLevel}</p>
+                                </div>
+                              </div>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-8"
+                                onClick={() => handleAddTransaction(item._id)}
+                              >
                                 Restock
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="cursor-pointer">
-                                <FileText className="h-4 w-4 mr-2" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="cursor-pointer">
-                                Edit
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                              </Button>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-6">
+                            <p className="text-slate-500">All stock levels are healthy</p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
 
-              {filteredInventory.length === 0 && (
-                <div className="py-12 text-center">
-                  <Package className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-500 font-light">No inventory items found</p>
-                  <Button variant="outline" size="sm" className="mt-4">
+                {/* Inventory Table */}
+                <Card className="border-0 shadow-lg bg-white overflow-hidden">
+                  <CardHeader className="pb-4 border-b bg-slate-50 flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                    <div>
+                      <CardTitle className="text-xl font-light text-slate-900">Inventory Items</CardTitle>
+                      <CardDescription className="font-light text-slate-500">Complete list of supplies and stock</CardDescription>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        <Input 
+                          placeholder="Search items..." 
+                          className="pl-9 bg-white border-slate-200 w-full sm:w-64"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Filter className="h-4 w-4 text-slate-500" />
+                        <select 
+                          value={categoryFilter}
+                          onChange={(e) => setCategoryFilter(e.target.value)}
+                          className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        >
+                          {categoryOptions.map(category => (
+                            <option key={category} value={category}>
+                              {category === 'all' ? 'All Categories' : 
+                              category.charAt(0).toUpperCase() + category.slice(1)}
+                            </option>
+                          ))}
+                        </select>
+                        <Button variant="outline" size="sm" className="ml-2 whitespace-nowrap">
+                          <Download className="h-4 w-4 mr-2" />
+                          Export
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-slate-100">
+                          <th className="text-left py-4 px-6 text-sm font-medium text-slate-500">Item Name</th>
+                          <th className="text-left py-4 px-6 text-sm font-medium text-slate-500">SKU/ID</th>
+                          <th className="text-left py-4 px-6 text-sm font-medium text-slate-500">Category</th>
+                          <th className="text-right py-4 px-6 text-sm font-medium text-slate-500">Stock</th>
+                          <th className="text-right py-4 px-6 text-sm font-medium text-slate-500">Unit Price</th>
+                          <th className="text-left py-4 px-6 text-sm font-medium text-slate-500">Location</th>
+                          <th className="text-center py-4 px-6 text-sm font-medium text-slate-500">Default Qty</th>
+                          <th className="text-right py-4 px-6 text-sm font-medium text-slate-500">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredInventory.map((item) => (
+                          <tr key={item._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                            <td className="py-4 px-6">
+                              <span className="font-medium text-slate-800">{item.name}</span>
+                            </td>
+                            <td className="py-4 px-6 text-sm text-slate-600">{item._id.substring(0, 8)}</td>
+                            <td className="py-4 px-6">
+                              <Badge className="capitalize bg-slate-100 text-slate-800 hover:bg-slate-200">
+                                {typeof item.category === 'object' ? item.category.name : String(item.category)}
+                              </Badge>
+                            </td>
+                            <td className="py-4 px-6 text-right">
+                              <span className={`font-medium ${
+                                item.quantityOnHand <= item.reorderLevel ? 'text-red-600' : 
+                                item.quantityOnHand <= item.reorderLevel * 1.5 ? 'text-amber-600' : 
+                                'text-emerald-600'
+                              }`}>
+                                {item.quantityOnHand}
+                              </span>
+                              <span className="text-xs text-slate-500 ml-1">/ {item.reorderLevel} min</span>
+                            </td>
+                            <td className="py-4 px-6 text-right font-medium text-slate-800">
+                              ${item.unitPrice.toFixed(2)}
+                            </td>
+                            <td className="py-4 px-6 text-sm text-slate-600">{item.location || 'N/A'}</td>
+                            <td className="py-4 px-6 text-center">
+                              <div className="flex items-center justify-center space-x-2">
+                                <input 
+                                  type="number" 
+                                  min="0" 
+                                  className="w-14 h-8 text-center border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                  value={item.defaultCheckInQty}
+                                  onChange={(e) => handleSetDefaultQuantity(item._id, parseInt(e.target.value) || 0)}
+                                />
+                              </div>
+                            </td>
+                            <td className="py-4 px-6 text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem 
+                                    className="cursor-pointer"
+                                    onClick={() => handleAddTransaction(item._id)}
+                                  >
+                                    <RefreshCw className="h-4 w-4 mr-2" />
+                                    Restock
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    className="cursor-pointer"
+                                    onClick={() => handleEditItem(item)}
+                                  >
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Edit Item
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    className="cursor-pointer text-red-600"
+                                    onClick={() => handleDeleteItemConfirm(item)}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {filteredInventory.length === 0 && (
+                    <div className="py-12 text-center">
+                      <Package className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                      <p className="text-slate-500 font-light">No inventory items found</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-4"
+                        onClick={handleAddItem}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add New Item
+                      </Button>
+                    </div>
+                  )}
+
+                  <CardContent className="p-6 border-t">
+                    <div className="flex justify-between items-center">
+                      <p className="text-sm text-slate-500">
+                        Showing {filteredInventory.length} of {items.length} items
+                      </p>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="sm" disabled>Previous</Button>
+                        <Button variant="outline" size="sm" disabled>Next</Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Categories Tab */}
+              <TabsContent value="categories">
+                <div className="mb-6 flex justify-between">
+                  <h3 className="text-xl font-light text-slate-900">Categories</h3>
+                  <Button 
+                    className="bg-amber-500 hover:bg-amber-600 text-white"
+                    onClick={handleAddCategory}
+                  >
                     <Plus className="h-4 w-4 mr-2" />
-                    Add New Item
+                    Add Category
                   </Button>
                 </div>
-              )}
-
-              <CardContent className="p-6 border-t">
-                <div className="flex justify-between items-center">
-                  <p className="text-sm text-slate-500">
-                    Showing {filteredInventory.length} of {inventory.length} items
-                  </p>
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="sm" disabled>Previous</Button>
-                    <Button variant="outline" size="sm" disabled>Next</Button>
-                  </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {categories.map(category => (
+                    <Card key={category._id} className="border-0 shadow-md hover:shadow-lg transition-shadow">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg font-medium">{category.name}</CardTitle>
+                        <CardDescription>
+                          {category.description || 'No description available'}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center text-sm">
+                          <Package className="h-4 w-4 mr-1 text-slate-500" />
+                          <span className="text-slate-600">
+                            {items.filter(item => 
+                              typeof item.category === 'object' 
+                                ? item.category._id === category._id
+                                : item.category === category._id
+                            ).length} items
+                          </span>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="flex justify-end space-x-2 border-t pt-4">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleEditCategory(category)}
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleDeleteCategoryConfirm(category)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
+                
+                {categories.length === 0 && (
+                  <div className="py-12 text-center">
+                    <Tag className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                    <p className="text-slate-500 font-light">No categories found</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-4"
+                      onClick={handleAddCategory}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add New Category
+                    </Button>
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* Transactions Tab */}
+              <TabsContent value="transactions">
+                <div className="mb-6 flex justify-between">
+                  <h3 className="text-xl font-light text-slate-900">Inventory Transactions</h3>
+                  <Button 
+                    className="bg-amber-500 hover:bg-amber-600 text-white"
+                    onClick={() => handleAddTransaction()}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Transaction
+                  </Button>
+                </div>
+                
+                <div className="overflow-hidden bg-white shadow-lg rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Item</TableHead>
+                        <TableHead>Transaction Type</TableHead>
+                        <TableHead className="text-right">Quantity</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Reason</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {transactions.slice(0, 30).map(transaction => (
+                        <TableRow key={transaction._id}>
+                          <TableCell className="font-medium">
+                            {typeof transaction.item === 'object' 
+                              ? transaction.item.name 
+                              : items.find(i => i._id === transaction.item)?.name || 'Unknown Item'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={
+                              transaction.transactionType === 'issue' ? 'bg-red-100 text-red-800' :
+                              transaction.transactionType === 'return' ? 'bg-green-100 text-green-800' :
+                              transaction.transactionType === 'adjustment' ? 'bg-blue-100 text-blue-800' :
+                              'bg-amber-100 text-amber-800'
+                            }>
+                              {transaction.transactionType.charAt(0).toUpperCase() + transaction.transactionType.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {transaction.quantity}
+                          </TableCell>
+                          <TableCell>
+                            {formatDate(transaction.createdAt)}
+                          </TableCell>
+                          <TableCell>
+                            {transaction.reason || 'N/A'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  
+                  {transactions.length === 0 && (
+                    <div className="py-12 text-center">
+                      <Layers className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                      <p className="text-slate-500 font-light">No transactions found</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-4"
+                        onClick={() => handleAddTransaction()}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create New Transaction
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>
+
+      {/* === MODALS === */}
+      
+      {/* Category Modal */}
+      <Dialog open={categoryModalOpen} onOpenChange={setCategoryModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{categoryForm._id ? 'Edit Category' : 'Add New Category'}</DialogTitle>
+            <DialogDescription>
+              Create or update inventory categories to organize your items.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                Name
+              </Label>
+              <Input
+                id="name"
+                value={categoryForm.name}
+                onChange={(e) => setCategoryForm({...categoryForm, name: e.target.value})}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="description" className="text-right">
+                Description
+              </Label>
+              <Textarea
+                id="description"
+                value={categoryForm.description}
+                onChange={(e) => setCategoryForm({...categoryForm, description: e.target.value})}
+                className="col-span-3"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCategoryModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveCategory}
+              disabled={!categoryForm.name}
+              className="bg-amber-500 hover:bg-amber-600"
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Item Modal */}
+      <Dialog open={itemModalOpen} onOpenChange={setItemModalOpen}>
+        <DialogContent className="sm:max-w-[525px]">
+          <DialogHeader>
+            <DialogTitle>{itemForm._id ? 'Edit Item' : 'Add New Item'}</DialogTitle>
+            <DialogDescription>
+              Add or update items in your inventory.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="itemName" className="text-right">
+                Name
+              </Label>
+              <Input
+                id="itemName"
+                value={itemForm.name}
+                onChange={(e) => setItemForm({...itemForm, name: e.target.value})}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="itemCategory" className="text-right">
+                Category
+              </Label>
+              <Select 
+                value={itemForm.category} 
+                onValueChange={(value) => setItemForm({...itemForm, category: value})}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map(category => (
+                    <SelectItem key={category._id} value={category._id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="itemPrice" className="text-right">
+                Unit Price
+              </Label>
+              <Input
+                id="itemPrice"
+                type="number"
+                min="0"
+                step="0.01"
+                value={itemForm.unitPrice}
+                onChange={(e) => setItemForm({...itemForm, unitPrice: parseFloat(e.target.value) || 0})}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="itemQuantity" className="text-right">
+                Quantity
+              </Label>
+              <Input
+                id="itemQuantity"
+                type="number"
+                min="0"
+                value={itemForm.quantityOnHand}
+                onChange={(e) => setItemForm({...itemForm, quantityOnHand: parseInt(e.target.value) || 0})}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="itemReorderLevel" className="text-right">
+                Reorder Level
+              </Label>
+              <Input
+                id="itemReorderLevel"
+                type="number"
+                min="0"
+                value={itemForm.reorderLevel}
+                onChange={(e) => setItemForm({...itemForm, reorderLevel: parseInt(e.target.value) || 0})}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="itemLocation" className="text-right">
+                Location
+              </Label>
+              <Input
+                id="itemLocation"
+                value={itemForm.location}
+                onChange={(e) => setItemForm({...itemForm, location: e.target.value})}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="itemDefaultQty" className="text-right">
+                Default Check-In
+              </Label>
+              <Input
+                id="itemDefaultQty"
+                type="number"
+                min="0"
+                value={itemForm.defaultCheckInQty}
+                onChange={(e) => setItemForm({...itemForm, defaultCheckInQty: parseInt(e.target.value) || 0})}
+                className="col-span-3"
+              />
+              <div className="col-span-4 -mt-2 ml-auto max-w-[75%]">
+                <p className="text-xs text-slate-500 italic">
+                  Items automatically assigned to guests during check-in
+                </p>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setItemModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveItem}
+              disabled={!itemForm.name || !itemForm.category}
+              className="bg-amber-500 hover:bg-amber-600"
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Transaction Modal */}
+      <Dialog open={transactionModalOpen} onOpenChange={setTransactionModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Create Transaction</DialogTitle>
+            <DialogDescription>
+              Record inventory movements, restocking, or adjustments.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="transactionItem" className="text-right">
+                Item
+              </Label>
+              <Select 
+                value={transactionForm.item} 
+                onValueChange={(value) => setTransactionForm({...transactionForm, item: value})}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select an item" />
+                </SelectTrigger>
+                <SelectContent>
+                  {items.map(item => (
+                    <SelectItem key={item._id} value={item._id}>
+                      {item.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="transactionType" className="text-right">
+                Type
+              </Label>
+              <Select 
+                value={transactionForm.transactionType} 
+                onValueChange={(value: any) => setTransactionForm({...transactionForm, transactionType: value})}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select transaction type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="adjustment">Adjustment (Add)</SelectItem>
+                  <SelectItem value="issue">Issue (Remove)</SelectItem>
+                  <SelectItem value="return">Return</SelectItem>
+                  <SelectItem value="usage">Usage</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="transactionQuantity" className="text-right">
+                Quantity
+              </Label>
+              <Input
+                id="transactionQuantity"
+                type="number"
+                min="1"
+                value={transactionForm.quantity}
+                onChange={(e) => setTransactionForm({...transactionForm, quantity: parseInt(e.target.value) || 1})}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="transactionReason" className="text-right">
+                Reason
+              </Label>
+              <Textarea
+                id="transactionReason"
+                value={transactionForm.reason}
+                onChange={(e) => setTransactionForm({...transactionForm, reason: e.target.value})}
+                className="col-span-3"
+                placeholder="Optional"
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTransactionModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCreateTransaction}
+              disabled={!transactionForm.item || transactionForm.quantity < 1}
+              className="bg-amber-500 hover:bg-amber-600"
+            >
+              Create
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <span className="font-medium">{deleteItemInfo.name}</span>. 
+              {deleteItemInfo.type === 'category' && ' All items in this category will need to be reassigned.'}
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={handleDeleteConfirmed}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
