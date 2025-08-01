@@ -779,7 +779,7 @@ const InventoryPage = () => {
                               <span className="text-xs text-slate-500 ml-1">/ {item.reorderLevel} min</span>
                             </td>
                             <td className="py-4 px-6 text-right font-medium text-slate-800">
-                              ${item.unitPrice.toFixed(2)}
+                              Rs:{" "}{item.unitPrice.toFixed(2)}
                             </td>
                             <td className="py-4 px-6 text-sm text-slate-600">{item.location || 'N/A'}</td>
                             <td className="py-4 px-6 text-center">

@@ -1,250 +1,10 @@
-// import React, { useState, useEffect } from 'react';
-// import { Search, Eye } from 'lucide-react';
-// import { Button } from '@/components/ui/button';
-// import { Input } from '@/components/ui/input';
-// import { Card, CardContent } from '@/components/ui/card';
-// import { Badge } from '@/components/ui/badge';
-// import {
-//   Dialog,
-//   DialogContent,
-//   DialogHeader,
-//   DialogTitle,
-//   DialogTrigger,
-// } from '@/components/ui/dialog';
-// import { Label } from '@/components/ui/label';
-// import {
-//   Select,
-//   SelectContent,
-//   SelectItem,
-//   SelectTrigger,
-//   SelectValue,
-// } from '@/components/ui/select';
-// import { useToast } from '@/hooks/use-toast';
-// import { Link } from 'react-router-dom';
-// import { useGuestContext } from '@/contexts/GuestContext';
-
-// const GuestsPage: React.FC = () => {
-//   const { guests, rooms, loading, error, fetchGuests, createGuest } = useGuestContext();
-//   const [searchTerm, setSearchTerm] = useState('');
-//   const [isDialogOpen, setIsDialogOpen] = useState(false);
-//   const [formData, setFormData] = useState({
-//     fullName: '',
-//     address: '',
-//     phone: '',
-//     cnic: '',
-//     email: '',
-//     roomNumber: '',
-//     stayDuration: 1,
-//     paymentMethod: "cash",
-//     applyDiscount: false,
-//   });
-//   const { toast } = useToast();
-
-//   useEffect(() => {
-//     fetchGuests();
-//   }, []);
-
-//   const filtered = guests.filter((g) =>
-//     g.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-//     g.phone.includes(searchTerm) ||
-//     g.room.roomNumber.includes(searchTerm)
-//   );
-
-//   const handleSubmit = async (e: React.FormEvent) => {
-//     e.preventDefault();
-//     try {
-//       const selectedRoom = rooms.find((r) => r.roomNumber === formData.roomNumber);
-//       const guestToCreate = {
-//         ...formData,
-//         room: selectedRoom,
-//         checkInAt: new Date().toISOString(),
-//         email: formData.email, // Provide email value here or add to formData
-//         createdBy: '', // Provide createdBy value here or fetch from context/auth
-//         discountTitle: formData.applyDiscount, // Set as boolean
-//         paymentMethod: formData.paymentMethod as "cash" | "card" | "online",
-//       };
-//       await createGuest(guestToCreate);
-//       toast({ title: 'Guest checked in', description: 'Successfully added.' });
-//       setIsDialogOpen(false);
-//       setFormData({
-//         fullName: '',
-//         address: '',
-//         phone: '',
-//         cnic: '',
-//         email: '',
-//         roomNumber: '',
-//         paymentMethod: "cash",
-//         stayDuration: 1,
-//         applyDiscount: false,
-//       });
-//     } catch {
-//       toast({ title: 'Error', description: 'Failed to check in.', variant: 'destructive' });
-//     }
-//   };
-
-//   const getStatusColor = (status: string) =>
-//     status === 'checked-in' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
-
-//   if (loading) return <p>Loading...</p>;
-//   if (error) return <p>Error: {error}</p>;
-
-//   return (
-//     <div className="p-6">
-//       <div className="flex justify-between mb-4">
-//         <h1 className="text-2xl font-bold">Guests</h1>
-//         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-//           <DialogTrigger asChild>
-//             <Button>Check In Guest</Button>
-//           </DialogTrigger>
-//           <DialogContent>
-//             <DialogHeader>
-//               <DialogTitle>Check In Guest</DialogTitle>
-//             </DialogHeader>
-//             <form onSubmit={handleSubmit} className="space-y-4">
-//               <div>
-//                 <Label>Full Name</Label>
-//                 <Input
-//                   value={formData.fullName}
-//                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-//                   placeholder="John Doe"
-//                   required
-//                 />
-//               </div>
-//               <div>
-//                 <Label>Address</Label>
-//                 <Input
-//                   value={formData.address}
-//                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-//                   placeholder="123 Main St"
-//                   required
-//                 />
-//               </div>
-//               <div className="grid grid-cols-2 gap-4">
-//                 <div>
-//                   <Label>Phone</Label>
-//                   <Input
-//                     value={formData.phone}
-//                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-//                     placeholder="+1 555 1234"
-//                     required
-//                   />
-//                 </div>
-//                 <div>
-//                   <Label>Email</Label>
-//                   <Input
-//                     value={formData.email}
-//                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-//                     placeholder="hsq@hotel.com"
-//                   />
-//                 </div>
-//                 <div>
-//                   <Label>CNIC</Label>
-//                   <Input
-//                     value={formData.cnic}
-//                     onChange={(e) => setFormData({ ...formData, cnic: e.target.value })}
-//                     placeholder="12345-6789012-3"
-//                     required
-//                   />
-//                 </div>
-//               </div>
-//               <div>
-//                 <Label>Room</Label>
-//                 <Select value={formData.roomNumber} onValueChange={(v) => setFormData({ ...formData, roomNumber: v })}>
-//                   <SelectTrigger>
-//                     <SelectValue placeholder="Select room" />
-//                   </SelectTrigger>
-//                   <SelectContent>
-//                     {rooms.map((r) => (
-//                       <SelectItem key={r._id} value={r.roomNumber}>
-//                         {`Room ${r.roomNumber} - ${r.bedType} - (Rs${r.rate}/night) - ${r.category} - ${r.view}`}
-//                       </SelectItem>
-//                     ))}
-//                   </SelectContent>
-//                 </Select>
-//               </div>
-//               <div className="grid grid-cols-2 gap-4">
-//                 <div>
-//                   <Label>Stay Duration (days)</Label>
-//                   <Input
-//                     type="number"
-//                     min={1}
-//                     value={formData.stayDuration}
-//                     onChange={(e) => setFormData({ ...formData, stayDuration: parseInt(e.target.value) })}
-//                     required
-//                   />
-//                 </div>
-//                 <div className="flex items-center mt-6">
-//                   <input
-//                     type="checkbox"
-//                     checked={formData.applyDiscount}
-//                     onChange={(e) => setFormData({ ...formData, applyDiscount: e.target.checked })}
-//                     id="applyDiscount"
-//                     className="mr-2"
-//                   />
-//                   <Label htmlFor="applyDiscount">Apply Discount</Label>
-//                 </div>
-//                 <div>
-//                   <Label>Payment Method</Label>
-//                   <div className="flex gap-4">
-//                     {["cash", "card", "online"].map((method) => (
-//                       <label key={method} className="flex items-center">
-//                         <input
-//                           type="radio"
-//                           name="paymentMethod"
-//                           value={method}
-//                           checked={formData.paymentMethod === method}
-//                           onChange={() => setFormData({ ...formData, paymentMethod: method })}
-//                           className="mr-2"
-//                         />
-//                         {method.charAt(0).toUpperCase() + method.slice(1)}
-//                       </label>
-//                     ))}
-//                   </div>
-//                 </div>
-//               </div>
-//               <Button type="submit" className="w-full">
-//                 Submit
-//               </Button>
-//             </form>
-//           </DialogContent>
-//         </Dialog>6
-//       </div>
-//       <Input
-//         placeholder="Search guests..."
-//         value={searchTerm}
-//         onChange={(e) => setSearchTerm(e.target.value)}
-//         className="mb-4"
-//       />
-//       <div className="space-y-4">
-//         {filtered.map((g) => (
-//           <Card key={g._id} className="hover:shadow-md transition-shadow">
-//             <CardContent className="flex justify-between items-center">
-//               <div>
-//                 <p className="font-semibold">{g.fullName}</p>
-//                 <p className="text-sm text-gray-500">{g.phone}</p>
-//                 <p className="text-sm text-gray-500">{g.email}</p>
-//               </div>
-//               <Badge className={getStatusColor(g.status)}>{g.status}</Badge>
-//               <Link to={`/guests/${g._id}`}>
-//                 <Button variant="outline">
-//                   <Eye className="w-4 h-4 mr-1" />
-//                   View Details
-//                 </Button>
-//               </Link>
-//             </CardContent>
-//           </Card>
-//         ))}
-//         {filtered.length === 0 && <p>No guests found.</p>}
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default GuestsPage;
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { Search, Eye, Trash2, UserPlus, X } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { 
+  Search, Eye, Trash2, UserPlus, X, Menu,
+  Users, Bed, DollarSign, Settings, LogOut, Home, Crown, Star, Sparkles,
+  Archive, FileText, Ticket, BarChart3
+} from 'lucide-react';
 
 // Shadcn UI Components
 import { Button } from '@/components/ui/button';
@@ -281,6 +41,7 @@ import {
 // Hooks & Contexts
 import { useToast } from '@/hooks/use-toast';
 import { useGuestContext, Guest, Room, CreateGuestInput } from '@/contexts/GuestContext';
+import { useAuth } from '@/contexts/AuthContext'; // Import auth context
 
 // --- Constants and Types ---
 const ROOM_CATEGORIES = ['Standard', 'Deluxe', 'Executive', 'Presidential'];
@@ -309,6 +70,9 @@ const GuestsPage: React.FC = () => {
     createGuest,
     deleteGuest,
   } = useGuestContext();
+  
+  const { user } = useAuth(); // Access the authenticated user
+  const isAdmin = user?.role === "admin"; // Check if user is admin
 
   // --- State Management ---
   const [searchTerm, setSearchTerm] = useState('');
@@ -316,6 +80,8 @@ const GuestsPage: React.FC = () => {
   const [isCheckInDialogOpen, setIsCheckInDialogOpen] = useState(false);
   const [guestToDelete, setGuestToDelete] = useState<Guest | null>(null);
   const { toast } = useToast();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
 
   // --- Data Fetching ---
   useEffect(() => {
@@ -377,6 +143,59 @@ const GuestsPage: React.FC = () => {
     setGuestToDelete(guest);
   }, []);
 
+  // --- Sidebar Navigation ---
+  const mainNavItems = [
+    { name: 'Dashboard', href: '/dashboard', icon: Home },
+    { name: 'Guests', href: '/guests', icon: Users },
+    { name: 'Rooms', href: '/rooms', icon: Bed },
+    { name: 'Discounts', href: '/discounts', icon: Ticket },
+    { name: 'Inventory', href: '/inventory', icon: Archive },
+    { name: 'Invoices', href: '/invoices', icon: FileText },
+  ];
+
+  const reportNavItems = [{ name: 'Reports', href: '/reports', icon: BarChart3 }];
+  const systemNavItems = [{ name: 'Settings', href: '/settings', icon: Settings }];
+
+  const isActive = (href: string) => {
+    if (href === '/dashboard') return location.pathname === href;
+    return location.pathname.startsWith(href);
+  }
+
+  // Helper function to render navigation links
+  const renderNavLinks = (items: typeof mainNavItems) => {
+    return items.map((item) => {
+      const Icon = item.icon;
+      const active = isActive(item.href);
+      return (
+        <Link
+          key={item.name}
+          to={item.href}
+          onClick={() => setSidebarOpen(false)}
+          className={`
+            group flex items-center px-4 py-3 text-sm rounded-lg
+            transition-all duration-200 relative overflow-hidden
+            ${active
+              ? 'bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-400 shadow-lg shadow-amber-500/10'
+              : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
+            }
+          `}
+        >
+          {active && (
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-amber-600" />
+          )}
+          <Icon className={`
+            mr-3 h-5 w-5 transition-all duration-200
+            ${active ? 'text-amber-400' : 'text-slate-400 group-hover:text-slate-300'}
+          `} />
+          <span className="font-light tracking-wide">{item.name}</span>
+          {active && (
+            <Star className="ml-auto h-3 w-3 text-amber-400/60" />
+          )}
+        </Link>
+      );
+    });
+  }
+
   // --- Render Logic ---
   // This ContentContainer ensures stable layout height
   const ContentContainer: React.FC<{children: React.ReactNode}> = ({ children }) => (
@@ -436,100 +255,206 @@ const GuestsPage: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 md:p-6 lg:p-8">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">Guests</h1>
-        <Button onClick={handleOpenCheckInDialog}>
-          <UserPlus className="mr-2 h-4 w-4" /> Check In Guest
-        </Button>
-      </div>
+    <div className="min-h-screen bg-slate-50 flex">
+      {/* Sidebar for admin users only */}
+      {isAdmin && (
+        <>
+          {/* Mobile backdrop */}
+          {sidebarOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+          )}
 
-      {/* Toolbar */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50">
-        <div className="md:col-span-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-            <Input
-              placeholder="Search by name, phone, or room..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10"
-            />
+          {/* Sidebar */}
+          <div className={`
+            fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-slate-900 to-slate-950 
+            shadow-2xl transform transition-transform duration-300 ease-in-out
+            lg:translate-x-0 lg:static lg:inset-0
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          `}>
+            {/* Logo Section */}
+            <div className="h-20 px-6 flex items-center border-b border-slate-800/50">
+              <div className="flex items-center space-x-3">
+                <div className="relative">
+                  <Crown className="h-9 w-9 text-amber-400" />
+                  <Sparkles className="h-4 w-4 text-amber-300 absolute -top-1 -right-1" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-light tracking-wider text-white">HSQ ADMIN</h1>
+                  <p className="text-xs text-amber-400/80 tracking-widest uppercase">Management Panel</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="lg:hidden ml-auto p-1.5 rounded-lg hover:bg-slate-800/50 transition-colors"
+              >
+                <X className="h-5 w-5 text-slate-400" />
+              </button>
+            </div>
+
+            {/* Navigation */}
+            <nav className="mt-8 px-4 flex flex-col h-[calc(100%-80px)]">
+              <div className="flex-grow">
+                <div className="space-y-1">
+                    {renderNavLinks(mainNavItems)}
+                </div>
+                
+                {/* Reports Section */}
+                <div className="mt-6">
+                    <p className="px-4 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Analysis</p>
+                    <div className="space-y-1">
+                        {renderNavLinks(reportNavItems)}
+                    </div>
+                </div>
+              </div>
+              
+              {/* Bottom Section */}
+              <div className="flex-shrink-0">
+                <div className="my-4 px-4"><div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" /></div>
+                <div className="space-y-1">
+                  {renderNavLinks(systemNavItems)}
+                  <button className="group flex items-center px-4 py-3 text-sm text-slate-300 rounded-lg hover:text-white hover:bg-slate-800/50 w-full transition-all duration-200">
+                      <LogOut className="mr-3 h-5 w-5 text-slate-400 group-hover:text-slate-300" />
+                      <span className="font-light tracking-wide">Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            </nav>
+
+            {/* User Profile */}
+            <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-slate-800/50 bg-slate-950">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-lg">
+                  <span className="text-sm font-medium text-slate-900">AM</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-light text-white truncate">Admin Manager</p>
+                  <p className="text-xs text-slate-400 truncate">{user?.email || 'admin@hsqtowers.com'}</p>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:col-span-2">
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="sm:col-span-1">
-              <SelectValue placeholder="Filter by Category" />
-            </SelectTrigger>
-            <SelectContent>
-              {ROOM_CATEGORIES.map((cat) => (
-                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button 
-            onClick={handleApplyCategoryFilter} 
-            className="w-full sm:col-span-1"
-            disabled={!categoryFilter}
+        </>
+      )}
+
+      {/* Main content */}
+      <div className={`flex-1 ${isAdmin ? 'lg:ml-0' : ''}`}>
+        {/* Mobile header - only for admin */}
+        {isAdmin && (
+          <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4">
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <Menu className="h-5 w-5 text-slate-700" />
+              </button>
+              <div className="flex items-center space-x-2">
+                <Crown className="h-6 w-6 text-amber-500" />
+                <span className="font-light tracking-wider text-slate-900">HSQ ADMIN</span>
+              </div>
+              <div className="w-9" />
+            </div>
+          </div>
+        )}
+
+        {/* Main content - Your existing guest page */}
+        <div className="container mx-auto p-4 md:p-6 lg:p-8">
+          {/* Page Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <h1 className="text-3xl font-bold tracking-tight">Guests</h1>
+            <Button onClick={handleOpenCheckInDialog}>
+              <UserPlus className="mr-2 h-4 w-4" /> Check In Guest
+            </Button>
+          </div>
+
+          {/* Toolbar */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50">
+            <div className="md:col-span-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                <Input
+                  placeholder="Search by name, phone, or room..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:col-span-2">
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="sm:col-span-1">
+                  <SelectValue placeholder="Filter by Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROOM_CATEGORIES.map((cat) => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button 
+                onClick={handleApplyCategoryFilter} 
+                className="w-full sm:col-span-1"
+                disabled={!categoryFilter}
+              >
+                Filter
+              </Button>
+              <Button 
+                onClick={handleClearFilters} 
+                variant="outline" 
+                className="w-full sm:col-span-1"
+                disabled={!categoryFilter && !searchTerm}
+              >
+                <X className="h-4 w-4 mr-2" />
+                Clear
+              </Button>
+            </div>
+          </div>
+          
+          {/* Content Area - Fixed height container prevents layout jumps */}
+          <ContentContainer>
+            {renderContent()}
+          </ContentContainer>
+
+          {/* Check-in Dialog */}
+          <CheckInFormDialog
+            isOpen={isCheckInDialogOpen}
+            setIsOpen={setIsCheckInDialogOpen}
+            rooms={rooms}
+            createGuest={createGuest}
+          />
+
+          {/* Delete Confirmation Dialog */}
+          <AlertDialog 
+            open={!!guestToDelete} 
+            onOpenChange={(open) => !open && setGuestToDelete(null)}
           >
-            Filter
-          </Button>
-          <Button 
-            onClick={handleClearFilters} 
-            variant="outline" 
-            className="w-full sm:col-span-1"
-            disabled={!categoryFilter && !searchTerm}
-          >
-            <X className="h-4 w-4 mr-2" />
-            Clear
-          </Button>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the guest record for{' '}
+                  <span className="font-semibold">{guestToDelete?.fullName}</span>.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleDeleteConfirm} 
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
-      
-      {/* Content Area - Fixed height container prevents layout jumps */}
-      <ContentContainer>
-        {renderContent()}
-      </ContentContainer>
-
-      {/* Check-in Dialog */}
-      <CheckInFormDialog
-        isOpen={isCheckInDialogOpen}
-        setIsOpen={setIsCheckInDialogOpen}
-        rooms={rooms}
-        createGuest={createGuest}
-      />
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog 
-        open={!!guestToDelete} 
-        onOpenChange={(open) => !open && setGuestToDelete(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the guest record for{' '}
-              <span className="font-semibold">{guestToDelete?.fullName}</span>.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteConfirm} 
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
 
 // --- Sub-components with React.memo for performance ---
+// (No changes needed to these components)
 
 interface GuestCardProps {
   guest: Guest;
@@ -838,9 +763,14 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
 
 export default GuestsPage;
 
-// import React, { useState, useEffect, useMemo } from 'react';
-// import { Link } from 'react-router-dom';
-// import { Search, Eye, Trash2, UserPlus, X } from 'lucide-react';
+
+// import React, { useState, useEffect, useMemo, useCallback } from 'react';
+// import { Link, useLocation } from 'react-router-dom';
+// import { 
+//   Search, Eye, Trash2, UserPlus, X, Menu,
+//   Users, Bed, DollarSign, Settings, LogOut, Home, Crown, Star, Sparkles,
+//   Archive, FileText, Ticket, BarChart3
+// } from 'lucide-react';
 
 // // Shadcn UI Components
 // import { Button } from '@/components/ui/button';
@@ -876,11 +806,12 @@ export default GuestsPage;
 
 // // Hooks & Contexts
 // import { useToast } from '@/hooks/use-toast';
-// import { useGuestContext, Guest } from '@/contexts/GuestContext'; // Assuming Guest type is exported
+// import { useGuestContext, Guest, Room, CreateGuestInput } from '@/contexts/GuestContext';
 
 // // --- Constants and Types ---
+// const ROOM_CATEGORIES = ['Standard', 'Deluxe', 'Executive', 'Presidential'];
 
-// const INITIAL_FORM_STATE = {
+// const INITIAL_FORM_STATE: CreateGuestInput = {
 //   fullName: '',
 //   address: '',
 //   phone: '',
@@ -888,14 +819,11 @@ export default GuestsPage;
 //   email: '',
 //   roomNumber: '',
 //   stayDuration: 1,
-//   paymentMethod: 'cash' as 'cash' | 'card' | 'online',
+//   paymentMethod: 'cash',
 //   applyDiscount: false,
 // };
 
-// type FormData = typeof INITIAL_FORM_STATE;
-
 // // --- Main Page Component ---
-
 // const GuestsPage: React.FC = () => {
 //   const {
 //     guests,
@@ -914,37 +842,44 @@ export default GuestsPage;
 //   const [isCheckInDialogOpen, setIsCheckInDialogOpen] = useState(false);
 //   const [guestToDelete, setGuestToDelete] = useState<Guest | null>(null);
 //   const { toast } = useToast();
+//   const [sidebarOpen, setSidebarOpen] = useState(false);
+//   const location = useLocation();
 
 //   // --- Data Fetching ---
 //   useEffect(() => {
+//     // Initial data fetch
 //     fetchGuests();
 //   }, [fetchGuests]);
 
 //   // --- Memoized Filtering ---
 //   const filteredGuests = useMemo(() => {
 //     if (!searchTerm) return guests;
+    
+//     const searchLower = searchTerm.toLowerCase();
 //     return guests.filter(
 //       (g) =>
-//         g.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+//         g.fullName.toLowerCase().includes(searchLower) ||
 //         g.phone.includes(searchTerm) ||
 //         g.room.roomNumber.includes(searchTerm)
 //     );
 //   }, [guests, searchTerm]);
 
-//   // --- Event Handlers ---
-//   const handleApplyCategoryFilter = () => {
+//   // --- Event Handlers (with useCallback) ---
+//   const handleApplyCategoryFilter = useCallback(() => {
 //     if (categoryFilter) {
 //       fetchGuestsByCategory(categoryFilter);
 //     }
-//   };
+//   }, [categoryFilter, fetchGuestsByCategory]);
 
-//   const handleClearFilters = () => {
+//   const handleClearFilters = useCallback(() => {
 //     setCategoryFilter('');
-//     fetchGuests(); // Refetch all guests
-//   };
+//     setSearchTerm('');
+//     fetchGuests();
+//   }, [fetchGuests]);
 
-//   const handleDeleteConfirm = async () => {
+//   const handleDeleteConfirm = useCallback(async () => {
 //     if (!guestToDelete) return;
+    
 //     try {
 //       await deleteGuest(guestToDelete._id);
 //       toast({
@@ -960,26 +895,121 @@ export default GuestsPage;
 //     } finally {
 //       setGuestToDelete(null);
 //     }
-//   };
+//   }, [guestToDelete, deleteGuest, toast]);
+
+//   const handleOpenCheckInDialog = useCallback(() => {
+//     setIsCheckInDialogOpen(true);
+//   }, []);
+
+//   const handleGuestDelete = useCallback((guest: Guest) => {
+//     setGuestToDelete(guest);
+//   }, []);
+
+//   // --- Sidebar Navigation ---
+//   const mainNavItems = [
+//     { name: 'Dashboard', href: '/dashboard', icon: Home },
+//     { name: 'Guests', href: '/guests', icon: Users },
+//     { name: 'Rooms', href: '/rooms', icon: Bed },
+//     { name: 'Discounts', href: '/discounts', icon: Ticket },
+//     { name: 'Inventory', href: '/inventory', icon: Archive },
+//     { name: 'Invoices', href: '/invoices', icon: FileText },
+//   ];
+
+//   const reportNavItems = [{ name: 'Reports', href: '/reports', icon: BarChart3 }];
+//   const systemNavItems = [{ name: 'Settings', href: '/settings', icon: Settings }];
+
+//   const isActive = (href: string) => {
+//     if (href === '/dashboard') return location.pathname === href;
+//     return location.pathname.startsWith(href);
+//   }
+
+//   // Helper function to render navigation links
+//   const renderNavLinks = (items: typeof mainNavItems) => {
+//     return items.map((item) => {
+//       const Icon = item.icon;
+//       const active = isActive(item.href);
+//       return (
+//         <Link
+//           key={item.name}
+//           to={item.href}
+//           onClick={() => setSidebarOpen(false)}
+//           className={`
+//             group flex items-center px-4 py-3 text-sm rounded-lg
+//             transition-all duration-200 relative overflow-hidden
+//             ${active
+//               ? 'bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-400 shadow-lg shadow-amber-500/10'
+//               : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
+//             }
+//           `}
+//         >
+//           {active && (
+//             <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-amber-600" />
+//           )}
+//           <Icon className={`
+//             mr-3 h-5 w-5 transition-all duration-200
+//             ${active ? 'text-amber-400' : 'text-slate-400 group-hover:text-slate-300'}
+//           `} />
+//           <span className="font-light tracking-wide">{item.name}</span>
+//           {active && (
+//             <Star className="ml-auto h-3 w-3 text-amber-400/60" />
+//           )}
+//         </Link>
+//       );
+//     });
+//   }
 
 //   // --- Render Logic ---
+//   // This ContentContainer ensures stable layout height
+//   const ContentContainer: React.FC<{children: React.ReactNode}> = ({ children }) => (
+//     <div className="relative min-h-[400px]">
+//       {children}
+//     </div>
+//   );
+
+//   // Content renderer with stable height
 //   const renderContent = () => {
 //     if (loading) {
 //       return <GuestListSkeleton />;
 //     }
+    
 //     if (error) {
-//       return <p className="text-center text-red-500">Error: {error}</p>;
+//       return (
+//         <div className="flex h-[400px] items-center justify-center">
+//           <div className="text-center text-red-500 p-6 rounded-lg">
+//             <p className="text-xl mb-2">Error</p>
+//             <p>{error}</p>
+//           </div>
+//         </div>
+//       );
 //     }
+    
 //     if (filteredGuests.length === 0) {
-//       return <p className="text-center text-gray-500 py-10">No guests found.</p>;
+//       return (
+//         <div className="flex h-[400px] items-center justify-center">
+//           <div className="text-center text-gray-500 p-6 rounded-lg">
+//             <p className="text-xl mb-2">No guests found</p>
+//             <p>Try adjusting your search or filters</p>
+//             {categoryFilter && (
+//               <Button 
+//                 variant="outline" 
+//                 className="mt-4" 
+//                 onClick={handleClearFilters}
+//               >
+//                 Clear Filters
+//               </Button>
+//             )}
+//           </div>
+//         </div>
+//       );
 //     }
+    
 //     return (
 //       <div className="space-y-4">
 //         {filteredGuests.map((guest) => (
 //           <GuestCard
 //             key={guest._id}
 //             guest={guest}
-//             onDelete={() => setGuestToDelete(guest)}
+//             onDelete={() => handleGuestDelete(guest)}
 //           />
 //         ))}
 //       </div>
@@ -987,88 +1017,210 @@ export default GuestsPage;
 //   };
 
 //   return (
-//     <div className="container mx-auto p-4 md:p-6 lg:p-8">
-//       {/* Page Header */}
-//       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-//         <h1 className="text-3xl font-bold tracking-tight">Guests</h1>
-//         <CheckInFormDialog
-//           isOpen={isCheckInDialogOpen}
-//           setIsOpen={setIsCheckInDialogOpen}
-//           rooms={rooms}
-//           createGuest={createGuest}
-//         />
-//       </div>
+//     <div className="min-h-screen bg-slate-50 flex">
+//       {/* Mobile backdrop */}
+//       {sidebarOpen && (
+//         <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+//       )}
 
-//       {/* Toolbar */}
-//       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50">
-//         <div className="md:col-span-1">
-//           <div className="relative">
-//             <Input
-//               placeholder="Search by name, phone, or room..."
-//               value={searchTerm}
-//               onChange={(e) => setSearchTerm(e.target.value)}
-//               className="w-full pl-10"
-//             />
-//             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+//       {/* Sidebar */}
+//       <div className={`
+//         fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-slate-900 to-slate-950 
+//         shadow-2xl transform transition-transform duration-300 ease-in-out
+//         lg:translate-x-0 lg:static lg:inset-0
+//         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+//       `}>
+//         {/* Logo Section */}
+//         <div className="h-20 px-6 flex items-center border-b border-slate-800/50">
+//           <div className="flex items-center space-x-3">
+//             <div className="relative">
+//               <Crown className="h-9 w-9 text-amber-400" />
+//               <Sparkles className="h-4 w-4 text-amber-300 absolute -top-1 -right-1" />
+//             </div>
+//             <div>
+//               <h1 className="text-xl font-light tracking-wider text-white">HSQ ADMIN</h1>
+//               <p className="text-xs text-amber-400/80 tracking-widest uppercase">Management Panel</p>
+//             </div>
+//           </div>
+//           <button
+//             onClick={() => setSidebarOpen(false)}
+//             className="lg:hidden ml-auto p-1.5 rounded-lg hover:bg-slate-800/50 transition-colors"
+//           >
+//             <X className="h-5 w-5 text-slate-400" />
+//           </button>
+//         </div>
+
+//         {/* Navigation */}
+//         <nav className="mt-8 px-4 flex flex-col h-[calc(100%-80px)]">
+//           <div className="flex-grow">
+//             <div className="space-y-1">
+//                 {renderNavLinks(mainNavItems)}
+//             </div>
+            
+//             {/* Reports Section */}
+//             <div className="mt-6">
+//                 <p className="px-4 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Analysis</p>
+//                 <div className="space-y-1">
+//                     {renderNavLinks(reportNavItems)}
+//                 </div>
+//             </div>
+//           </div>
+          
+//           {/* Bottom Section */}
+//           <div className="flex-shrink-0">
+//             <div className="my-4 px-4"><div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" /></div>
+//             <div className="space-y-1">
+//               {renderNavLinks(systemNavItems)}
+//               <button className="group flex items-center px-4 py-3 text-sm text-slate-300 rounded-lg hover:text-white hover:bg-slate-800/50 w-full transition-all duration-200">
+//                   <LogOut className="mr-3 h-5 w-5 text-slate-400 group-hover:text-slate-300" />
+//                   <span className="font-light tracking-wide">Sign Out</span>
+//               </button>
+//             </div>
+//           </div>
+//         </nav>
+
+//         {/* User Profile */}
+//         <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-slate-800/50 bg-slate-950">
+//           <div className="flex items-center space-x-3">
+//             <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-lg">
+//               <span className="text-sm font-medium text-slate-900">AM</span>
+//             </div>
+//             <div className="flex-1 min-w-0">
+//               <p className="text-sm font-light text-white truncate">Admin Manager</p>
+//               <p className="text-xs text-slate-400 truncate">admin@hsqtowers.com</p>
+//             </div>
 //           </div>
 //         </div>
-//         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:col-span-2">
-//            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-//             <SelectTrigger className="sm:col-span-1">
-//               <SelectValue placeholder="Filter by Category" />
-//             </SelectTrigger>
-//             <SelectContent>
-//               {['Standard', 'Deluxe', 'Executive', 'Presidential'].map((cat) => (
-//                 <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-//               ))}
-//             </SelectContent>
-//           </Select>
-//           <Button onClick={handleApplyCategoryFilter} className="w-full sm:col-span-1">Filter</Button>
-//           <Button onClick={handleClearFilters} variant="outline" className="w-full sm:col-span-1">
-//             <X className="h-4 w-4 mr-2" />
-//             Clear
-//           </Button>
+//       </div>
+
+//       {/* Main content */}
+//       <div className="flex-1 lg:ml-0">
+//         {/* Mobile header */}
+//         <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4">
+//           <div className="flex items-center justify-between">
+//             <button
+//               onClick={() => setSidebarOpen(true)}
+//               className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+//             >
+//               <Menu className="h-5 w-5 text-slate-700" />
+//             </button>
+//             <div className="flex items-center space-x-2">
+//               <Crown className="h-6 w-6 text-amber-500" />
+//               <span className="font-light tracking-wider text-slate-900">HSQ ADMIN</span>
+//             </div>
+//             <div className="w-9" />
+//           </div>
+//         </div>
+
+//         {/* Main content - Your existing guest page */}
+//         <div className="container mx-auto p-4 md:p-6 lg:p-8">
+//           {/* Page Header */}
+//           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+//             <h1 className="text-3xl font-bold tracking-tight">Guests</h1>
+//             <Button onClick={handleOpenCheckInDialog}>
+//               <UserPlus className="mr-2 h-4 w-4" /> Check In Guest
+//             </Button>
+//           </div>
+
+//           {/* Toolbar */}
+//           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50">
+//             <div className="md:col-span-1">
+//               <div className="relative">
+//                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+//                 <Input
+//                   placeholder="Search by name, phone, or room..."
+//                   value={searchTerm}
+//                   onChange={(e) => setSearchTerm(e.target.value)}
+//                   className="w-full pl-10"
+//                 />
+//               </div>
+//             </div>
+//             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:col-span-2">
+//               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+//                 <SelectTrigger className="sm:col-span-1">
+//                   <SelectValue placeholder="Filter by Category" />
+//                 </SelectTrigger>
+//                 <SelectContent>
+//                   {ROOM_CATEGORIES.map((cat) => (
+//                     <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+//                   ))}
+//                 </SelectContent>
+//               </Select>
+//               <Button 
+//                 onClick={handleApplyCategoryFilter} 
+//                 className="w-full sm:col-span-1"
+//                 disabled={!categoryFilter}
+//               >
+//                 Filter
+//               </Button>
+//               <Button 
+//                 onClick={handleClearFilters} 
+//                 variant="outline" 
+//                 className="w-full sm:col-span-1"
+//                 disabled={!categoryFilter && !searchTerm}
+//               >
+//                 <X className="h-4 w-4 mr-2" />
+//                 Clear
+//               </Button>
+//             </div>
+//           </div>
+          
+//           {/* Content Area - Fixed height container prevents layout jumps */}
+//           <ContentContainer>
+//             {renderContent()}
+//           </ContentContainer>
+
+//           {/* Check-in Dialog */}
+//           <CheckInFormDialog
+//             isOpen={isCheckInDialogOpen}
+//             setIsOpen={setIsCheckInDialogOpen}
+//             rooms={rooms}
+//             createGuest={createGuest}
+//           />
+
+//           {/* Delete Confirmation Dialog */}
+//           <AlertDialog 
+//             open={!!guestToDelete} 
+//             onOpenChange={(open) => !open && setGuestToDelete(null)}
+//           >
+//             <AlertDialogContent>
+//               <AlertDialogHeader>
+//                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+//                 <AlertDialogDescription>
+//                   This action cannot be undone. This will permanently delete the guest record for{' '}
+//                   <span className="font-semibold">{guestToDelete?.fullName}</span>.
+//                 </AlertDialogDescription>
+//               </AlertDialogHeader>
+//               <AlertDialogFooter>
+//                 <AlertDialogCancel>Cancel</AlertDialogCancel>
+//                 <AlertDialogAction 
+//                   onClick={handleDeleteConfirm} 
+//                   className="bg-red-600 hover:bg-red-700"
+//                 >
+//                   Delete
+//                 </AlertDialogAction>
+//               </AlertDialogFooter>
+//             </AlertDialogContent>
+//           </AlertDialog>
 //         </div>
 //       </div>
-      
-//       {/* Content Area */}
-//       {renderContent()}
-
-//       {/* Delete Confirmation Dialog */}
-//       <AlertDialog open={!!guestToDelete} onOpenChange={() => setGuestToDelete(null)}>
-//         <AlertDialogContent>
-//           <AlertDialogHeader>
-//             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-//             <AlertDialogDescription>
-//               This action cannot be undone. This will permanently delete the guest record for{' '}
-//               <span className="font-semibold">{guestToDelete?.fullName}</span>.
-//             </AlertDialogDescription>
-//           </AlertDialogHeader>
-//           <AlertDialogFooter>
-//             <AlertDialogCancel>Cancel</AlertDialogCancel>
-//             <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-600 hover:bg-red-700">
-//               Delete
-//             </AlertDialogAction>
-//           </AlertDialogFooter>
-//         </AlertDialogContent>
-//       </AlertDialog>
 //     </div>
 //   );
 // };
 
-// // --- Sub-components (kept in the same file for simplicity) ---
+// // --- Sub-components with React.memo for performance ---
 
 // interface GuestCardProps {
 //   guest: Guest;
 //   onDelete: () => void;
 // }
 
-// const GuestCard: React.FC<GuestCardProps> = ({ guest, onDelete }) => {
+// const GuestCard = React.memo<GuestCardProps>(({ guest, onDelete }) => {
 //   const getStatusColor = (status: string) =>
 //     status === 'checked-in' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
 
 //   return (
-//     <Card className="hover:shadow-lg transition-shadow duration-300">
+//     <Card className="hover:shadow transition-shadow duration-300">
 //       <CardContent className="grid grid-cols-1 md:grid-cols-4 items-center gap-4 p-4">
 //         <div className="md:col-span-2 flex flex-col">
 //           <p className="font-bold text-lg">{guest.fullName}</p>
@@ -1091,20 +1243,25 @@ export default GuestsPage;
 //       </CardContent>
 //     </Card>
 //   );
-// };
+// });
 
+// // Make the skeleton match the actual card layout
 // const GuestListSkeleton: React.FC = () => (
 //   <div className="space-y-4">
 //     {[...Array(3)].map((_, i) => (
 //       <Card key={i}>
-//         <CardContent className="flex justify-between items-center p-4">
-//           <div className="space-y-2">
+//         <CardContent className="grid grid-cols-1 md:grid-cols-4 items-center gap-4 p-4">
+//           <div className="md:col-span-2 space-y-2">
 //             <Skeleton className="h-6 w-48" />
 //             <Skeleton className="h-4 w-32" />
+//             <Skeleton className="h-4 w-40" />
 //           </div>
-//           <div className="flex gap-2">
-//             <Skeleton className="h-10 w-24" />
-//             <Skeleton className="h-10 w-10" />
+//           <div className="flex justify-start md:justify-center">
+//             <Skeleton className="h-6 w-24 rounded-full" />
+//           </div>
+//           <div className="flex justify-start md:justify-end items-center gap-2">
+//             <Skeleton className="h-9 w-24 rounded" />
+//             <Skeleton className="h-9 w-9 rounded" />
 //           </div>
 //         </CardContent>
 //       </Card>
@@ -1115,121 +1272,243 @@ export default GuestsPage;
 // interface CheckInFormDialogProps {
 //   isOpen: boolean;
 //   setIsOpen: (open: boolean) => void;
-//   rooms: any[]; // Replace with specific Room type if available
-//   createGuest: (data: FormData) => Promise<void>;
+//   rooms: Room[];
+//   createGuest: (data: CreateGuestInput) => Promise<void>;
 // }
 
-// const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({ isOpen, setIsOpen, rooms, createGuest }) => {
-//   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_STATE);
+// const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({ 
+//   isOpen, 
+//   setIsOpen, 
+//   rooms, 
+//   createGuest 
+// }) => {
+//   const [formData, setFormData] = useState<CreateGuestInput>(INITIAL_FORM_STATE);
+//   const [isSubmitting, setIsSubmitting] = useState(false);
 //   const { toast } = useToast();
 
-//   const handleFormChange = (
-//     e: React.ChangeEvent<HTMLInputElement> | { name: string; value: string | number | boolean }
-//   ) => {
-//     if ('target' in e) {
-//       const { name, value, type, checked } = e.target as HTMLInputElement;
-//       setFormData((prev) => ({
-//         ...prev,
-//         [name]: type === 'checkbox' ? checked : value,
-//       }));
-//     } else {
-//       const { name, value } = e;
-//       setFormData((prev) => ({
-//         ...prev,
-//         [name]: value,
-//       }));
+//   // Reset form when dialog opens/closes
+//   useEffect(() => {
+//     if (!isOpen) {
+//       // Small delay to make sure the animation completes before resetting
+//       const timeout = setTimeout(() => {
+//         setFormData(INITIAL_FORM_STATE);
+//         setIsSubmitting(false);
+//       }, 300);
+//       return () => clearTimeout(timeout);
 //     }
-//   };
+//   }, [isOpen]);
+
+//   const handleFormChange = useCallback((
+//     e: React.ChangeEvent<HTMLInputElement>
+//   ) => {
+//     const { name, value, type, checked } = e.target;
+//     setFormData((prev) => ({
+//       ...prev,
+//       [name]: type === 'checkbox' ? checked : value,
+//     }));
+//   }, []);
   
-//   const handleSelectChange = (name: string, value: string) => {
+//   const handleSelectChange = useCallback((name: string, value: string) => {
 //     setFormData(prev => ({ ...prev, [name]: value}));
-//   }
+//   }, []);
 
 //   const handleSubmit = async (e: React.FormEvent) => {
 //     e.preventDefault();
+    
 //     if (!formData.roomNumber) {
-//         toast({ title: "Validation Error", description: "Please select a room.", variant: "destructive"});
-//         return;
+//       toast({ 
+//         title: "Validation Error", 
+//         description: "Please select a room.", 
+//         variant: "destructive"
+//       });
+//       return;
 //     }
+
+//     setIsSubmitting(true);
+    
 //     try {
 //       await createGuest(formData);
-//       toast({ title: 'Guest Checked In', description: 'The new guest has been added successfully.' });
+//       toast({ 
+//         title: 'Guest Checked In', 
+//         description: 'The new guest has been added successfully.' 
+//       });
 //       setIsOpen(false);
-//       setFormData(INITIAL_FORM_STATE); // Reset form
-//     } catch {
-//       toast({ title: 'Check-in Failed', description: 'Could not create the guest record.', variant: 'destructive' });
+//     } catch (err) {
+//       toast({ 
+//         title: 'Check-in Failed', 
+//         description: 'Could not create the guest record.', 
+//         variant: 'destructive' 
+//       });
+//     } finally {
+//       setIsSubmitting(false);
 //     }
 //   };
 
+//   // Filter only available rooms for selection
+//   const availableRooms = useMemo(() => 
+//     rooms.filter(r => r.status === 'available'),
+//     [rooms]
+//   );
+
 //   return (
 //     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-//       <DialogTrigger asChild>
-//         <Button>
-//           <UserPlus className="mr-2 h-4 w-4" /> Check In Guest
-//         </Button>
-//       </DialogTrigger>
 //       <DialogContent className="max-w-lg">
 //         <DialogHeader>
 //           <DialogTitle>New Guest Check-In</DialogTitle>
 //         </DialogHeader>
+        
 //         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
 //           <div className="space-y-2">
 //             <Label htmlFor="fullName">Full Name</Label>
-//             <Input id="fullName" name="fullName" value={formData.fullName} onChange={handleFormChange} placeholder="John Doe" required />
+//             <Input 
+//               id="fullName" 
+//               name="fullName" 
+//               value={formData.fullName} 
+//               onChange={handleFormChange} 
+//               placeholder="John Doe" 
+//               disabled={isSubmitting}
+//               required 
+//             />
 //           </div>
-//            <div className="space-y-2">
+          
+//           <div className="space-y-2">
 //             <Label htmlFor="address">Address</Label>
-//             <Input id="address" name="address" value={formData.address} onChange={handleFormChange} placeholder="123 Main St, Anytown" required />
+//             <Input 
+//               id="address" 
+//               name="address" 
+//               value={formData.address} 
+//               onChange={handleFormChange} 
+//               placeholder="123 Main St, Anytown" 
+//               disabled={isSubmitting}
+//               required 
+//             />
 //           </div>
+          
 //           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 //             <div className="space-y-2">
 //               <Label htmlFor="phone">Phone Number</Label>
-//               <Input id="phone" name="phone" value={formData.phone} onChange={handleFormChange} placeholder="+92 300 1234567" required />
+//               <Input 
+//                 id="phone" 
+//                 name="phone" 
+//                 value={formData.phone} 
+//                 onChange={handleFormChange} 
+//                 placeholder="+92 300 1234567" 
+//                 disabled={isSubmitting}
+//                 required 
+//               />
 //             </div>
+            
 //             <div className="space-y-2">
 //               <Label htmlFor="email">Email (Optional)</Label>
-//               <Input id="email" name="email" type="email" value={formData.email} onChange={handleFormChange} placeholder="guest@example.com" />
+//               <Input 
+//                 id="email" 
+//                 name="email" 
+//                 type="email" 
+//                 value={formData.email} 
+//                 onChange={handleFormChange} 
+//                 placeholder="guest@example.com" 
+//                 disabled={isSubmitting}
+//               />
 //             </div>
-//              <div className="space-y-2">
+            
+//             <div className="space-y-2">
 //               <Label htmlFor="cnic">CNIC</Label>
-//               <Input id="cnic" name="cnic" value={formData.cnic} onChange={handleFormChange} placeholder="12345-6789012-3" required />
+//               <Input 
+//                 id="cnic" 
+//                 name="cnic" 
+//                 value={formData.cnic} 
+//                 onChange={handleFormChange} 
+//                 placeholder="12345-6789012-3" 
+//                 disabled={isSubmitting}
+//                 required 
+//               />
 //             </div>
+            
 //             <div className="space-y-2">
 //               <Label htmlFor="stayDuration">Stay (days)</Label>
-//               <Input id="stayDuration" name="stayDuration" type="number" min={1} value={formData.stayDuration} onChange={handleFormChange} required />
+//               <Input 
+//                 id="stayDuration" 
+//                 name="stayDuration" 
+//                 type="number" 
+//                 min={1} 
+//                 value={formData.stayDuration} 
+//                 onChange={handleFormChange} 
+//                 disabled={isSubmitting}
+//                 required 
+//               />
 //             </div>
 //           </div>
+          
 //           <div className="space-y-2">
 //             <Label>Room</Label>
-//             <Select name="roomNumber" value={formData.roomNumber} onValueChange={(v) => handleSelectChange('roomNumber', v)}>
-//               <SelectTrigger><SelectValue placeholder="Select an available room" /></SelectTrigger>
+//             <Select 
+//               name="roomNumber" 
+//               value={formData.roomNumber} 
+//               onValueChange={(v) => handleSelectChange('roomNumber', v)}
+//               disabled={isSubmitting}
+//             >
+//               <SelectTrigger>
+//                 <SelectValue placeholder="Select an available room" />
+//               </SelectTrigger>
 //               <SelectContent>
-//                 {rooms.map((r) => (
-//                   <SelectItem key={r._id} value={r.roomNumber}>
-//                     Room {r.roomNumber} — {r.bedType} — (Rs{r.rate}/night) — {r.category}
-//                   </SelectItem>
-//                 ))}
+//                 {availableRooms.length === 0 ? (
+//                   <div className="px-2 py-4 text-center text-gray-500">
+//                     No rooms available
+//                   </div>
+//                 ) : (
+//                   availableRooms.map((r) => (
+//                     <SelectItem key={r._id} value={r.roomNumber}>
+//                       Room {r.roomNumber} — {r.bedType} — (Rs{r.rate}/night) — {r.category}
+//                     </SelectItem>
+//                   ))
+//                 )}
 //               </SelectContent>
 //             </Select>
 //           </div>
+          
 //           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
 //             <div className="space-y-2">
-//                 <Label>Payment Method</Label>
-//                  <Select name="paymentMethod" value={formData.paymentMethod} onValueChange={(v) => handleSelectChange('paymentMethod', v)}>
-//                    <SelectTrigger><SelectValue/></SelectTrigger>
-//                    <SelectContent>
-//                      <SelectItem value="cash">Cash</SelectItem>
-//                      <SelectItem value="card">Card</SelectItem>
-//                      <SelectItem value="online">Online</SelectItem>
-//                    </SelectContent>
-//                  </Select>
+//               <Label>Payment Method</Label>
+//               <Select 
+//                 name="paymentMethod" 
+//                 value={formData.paymentMethod} 
+//                 onValueChange={(v) => handleSelectChange('paymentMethod', v)}
+//                 disabled={isSubmitting}
+//               >
+//                 <SelectTrigger>
+//                   <SelectValue />
+//                 </SelectTrigger>
+//                 <SelectContent>
+//                   <SelectItem value="cash">Cash</SelectItem>
+//                   <SelectItem value="card">Card</SelectItem>
+//                   <SelectItem value="online">Online</SelectItem>
+//                 </SelectContent>
+//               </Select>
 //             </div>
+            
 //             <div className="flex items-center pt-6 space-x-2">
-//               <input type="checkbox" name="applyDiscount" checked={formData.applyDiscount} onChange={handleFormChange} id="applyDiscount" className="h-4 w-4" />
-//               <Label htmlFor="applyDiscount" className="cursor-pointer">Apply Discount</Label>
+//               <input 
+//                 type="checkbox" 
+//                 name="applyDiscount" 
+//                 checked={formData.applyDiscount} 
+//                 onChange={handleFormChange} 
+//                 id="applyDiscount" 
+//                 disabled={isSubmitting}
+//                 className="h-4 w-4" 
+//               />
+//               <Label htmlFor="applyDiscount" className="cursor-pointer">
+//                 Apply Discount
+//               </Label>
 //             </div>
 //           </div>
-//           <Button type="submit" className="w-full">Submit Check-In</Button>
+          
+//           <Button 
+//             type="submit" 
+//             className="w-full" 
+//             disabled={isSubmitting || !formData.roomNumber}
+//           >
+//             {isSubmitting ? 'Processing...' : 'Submit Check-In'}
+//           </Button>
 //         </form>
 //       </DialogContent>
 //     </Dialog>
