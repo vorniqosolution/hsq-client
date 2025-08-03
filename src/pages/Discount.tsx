@@ -39,18 +39,19 @@ const DiscountsPage = () => {
 
   // Sidebar navigation items
   const mainNavItems = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home },
-    { name: 'Guests', href: '/guests', icon: Users },
-    { name: 'Rooms', href: '/rooms', icon: Bed },
-    { name: 'Discounts', href: '/discounts', icon: Ticket },
-    { name: 'Inventory', href: '/inventory', icon: Archive },
-    { name: 'Invoices', href: '/invoices', icon: FileText },
-  ];
+      { name: "Dashboard", href: "/dashboard", icon: Home },
+      { name: "Guests", href: "/guests", icon: Users },
+      { name: "Rooms", href: "/rooms", icon: Bed },
+      { name: "Discounts", href: "/Discount", icon: Ticket },
+      { name: "Inventory", href: "/Inventory", icon: Archive },
+      { name: "Invoices", href: "/Invoices", icon: FileText },
+      { name: "Revenue", href: "/Revenue", icon: FileText },
+    ];
 
   // Reports section
-  const reportNavItems = [
-    { name: 'Reports', href: '/reports', icon: BarChart3 },
-  ];
+  // const reportNavItems = [
+  //   { name: 'Reports', href: '/reports', icon: BarChart3 },
+  // ];
   
   // System section
   const systemNavItems = [
@@ -250,12 +251,12 @@ const DiscountsPage = () => {
             </div>
             
             {/* Reports Section */}
-            <div className="mt-6">
+            {/* <div className="mt-6">
                 <p className="px-4 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Analysis</p>
                 <div className="space-y-1">
                     {renderNavLinks(reportNavItems)}
                 </div>
-            </div>
+            </div> */}
           </div>
           
           {/* Bottom Section */}

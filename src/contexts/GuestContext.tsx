@@ -33,6 +33,7 @@ export interface Guest {
   paymentMethod: 'cash' | 'card' | 'online';
   stayDuration: number;
   applyDiscount: boolean;
+  
   discountTitle?: string;
   totalRent: number;
 }
