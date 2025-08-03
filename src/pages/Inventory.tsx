@@ -75,11 +75,11 @@ const InventoryPage = () => {
     _id: '',
     name: '',
     category: '',
-    unitPrice: 0,
-    quantityOnHand: 0,
-    reorderLevel: 0,
-    location: '',
-    defaultCheckInQty: 0
+    unitPrice: '',
+    quantityOnHand: '',
+    reorderLevel: '',
+    location: 'N/A',
+    defaultCheckInQty: ''
   });
   
   // Transaction Form
@@ -287,11 +287,11 @@ const InventoryPage = () => {
       _id: '',
       name: '',
       category: categories.length > 0 ? categories[0]._id : '',
-      unitPrice: 0,
-      quantityOnHand: 0,
-      reorderLevel: 0,
+      unitPrice: '',
+      quantityOnHand: '',
+      reorderLevel: '',
       location: '',
-      defaultCheckInQty: 0
+      defaultCheckInQty: ''
     });
     setItemModalOpen(true);
   };
@@ -302,11 +302,11 @@ const InventoryPage = () => {
       _id: item._id,
       name: item.name,
       category: typeof item.category === 'object' ? item.category._id : item.category,
-      unitPrice: item.unitPrice,
-      quantityOnHand: item.quantityOnHand,
-      reorderLevel: item.reorderLevel,
+      unitPrice: item.unitPrice.toString(),
+      quantityOnHand: item.quantityOnHand.toString(),
+      reorderLevel: item.reorderLevel.toString(),
       location: item.location || '',
-      defaultCheckInQty: item.defaultCheckInQty
+      defaultCheckInQty: item.defaultCheckInQty.toString()
     });
     setItemModalOpen(true);
   };
@@ -319,22 +319,22 @@ const InventoryPage = () => {
         await updateItem(itemForm._id, {
           name: itemForm.name,
           category: itemForm.category,
-          unitPrice: itemForm.unitPrice,
-          quantityOnHand: itemForm.quantityOnHand,
-          reorderLevel: itemForm.reorderLevel,
+          unitPrice: parseFloat(itemForm.unitPrice as string) || 0,
+          quantityOnHand: parseFloat(itemForm.quantityOnHand as string),
+          reorderLevel: parseInt(itemForm.reorderLevel as string) || 0,
           location: itemForm.location,
-          defaultCheckInQty: itemForm.defaultCheckInQty
+          defaultCheckInQty: parseInt(itemForm.defaultCheckInQty as string) || 0
         });
       } else {
         // Create new item
         await createItem({
           name: itemForm.name,
           category: itemForm.category,
-          unitPrice: itemForm.unitPrice,
-          quantityOnHand: itemForm.quantityOnHand,
-          reorderLevel: itemForm.reorderLevel,
+          unitPrice: parseFloat(itemForm.unitPrice as string) || 0,
+          quantityOnHand: parseFloat(itemForm.quantityOnHand as string),
+          reorderLevel: parseInt(itemForm.reorderLevel as string) || 0,
           location: itemForm.location,
-          defaultCheckInQty: itemForm.defaultCheckInQty
+          defaultCheckInQty: parseInt(itemForm.defaultCheckInQty as string) || 0
         });
       }
       setItemModalOpen(false);
@@ -538,10 +538,10 @@ const InventoryPage = () => {
                 <p className="text-slate-600 mt-2 font-light">Track and manage property supplies and stock levels</p>
               </div>
               <div className="mt-4 md:mt-0 space-x-3">
-                <Button variant="outline" onClick={refreshData}>
+                {/* <Button variant="outline" onClick={refreshData}>
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Refresh
-                </Button>
+                </Button> */}
                 <Button 
                   className="bg-amber-500 hover:bg-amber-600 text-white"
                   onClick={handleAddItem}
@@ -1115,7 +1115,7 @@ const InventoryPage = () => {
                 min="0"
                 step="0.01"
                 value={itemForm.unitPrice}
-                onChange={(e) => setItemForm({...itemForm, unitPrice: parseFloat(e.target.value) || 0})}
+                onChange={(e) => setItemForm({...itemForm, unitPrice: e.target.value})}
                 className="col-span-3"
               />
             </div>
@@ -1128,7 +1128,7 @@ const InventoryPage = () => {
                 type="number"
                 min="0"
                 value={itemForm.quantityOnHand}
-                onChange={(e) => setItemForm({...itemForm, quantityOnHand: parseInt(e.target.value) || 0})}
+                onChange={(e) => setItemForm({...itemForm, quantityOnHand: e.target.value})}
                 className="col-span-3"
               />
             </div>
@@ -1141,7 +1141,7 @@ const InventoryPage = () => {
                 type="number"
                 min="0"
                 value={itemForm.reorderLevel}
-                onChange={(e) => setItemForm({...itemForm, reorderLevel: parseInt(e.target.value) || 0})}
+                onChange={(e) => setItemForm({...itemForm, reorderLevel: e.target.value})}
                 className="col-span-3"
               />
             </div>
@@ -1165,7 +1165,7 @@ const InventoryPage = () => {
                 type="number"
                 min="0"
                 value={itemForm.defaultCheckInQty}
-                onChange={(e) => setItemForm({...itemForm, defaultCheckInQty: parseInt(e.target.value) || 0})}
+                onChange={(e) => setItemForm({...itemForm, defaultCheckInQty: e.target.value})}
                 className="col-span-3"
               />
               <div className="col-span-4 -mt-2 ml-auto max-w-[75%]">
