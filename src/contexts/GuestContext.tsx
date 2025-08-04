@@ -32,8 +32,8 @@ export interface Guest {
   status: 'checked-in' | 'checked-out';
   paymentMethod: 'cash' | 'card' | 'online';
   stayDuration: number;
+  additionaldiscount: number;
   applyDiscount: boolean;
-  
   discountTitle?: string;
   totalRent: number;
 }
@@ -60,6 +60,7 @@ export interface CreateGuestInput {
   stayDuration: number;
   paymentMethod: 'cash' | 'card' | 'online';
   applyDiscount: boolean;
+  additionaldiscount: number;
 }
 
 interface GuestContextType {
