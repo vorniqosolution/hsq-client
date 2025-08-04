@@ -1,41 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Users, Bed, DollarSign, Settings, LogOut, Menu, X, Home, Crown, Star, 
   Plus, Search, MoreVertical, Tag, Percent, Calendar, Edit2, Trash2, 
   CheckCircle, XCircle, Filter, Download, Sparkles, Ticket, Archive, FileText, BarChart3
 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-
-// Mock discount data interface
-interface Discount {
-  id: string;
-  code: string;
-  description: string;
-  discountType: 'percentage' | 'fixed';
-  value: number;
-  startDate: string;
-  endDate: string;
-  status: 'active' | 'expired' | 'scheduled';
-  usageCount: number;
-  restrictions?: string[];
-}
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
+import { useDiscountContext, Discount, CreateDiscountInput } from '@/contexts/DiscountContext';
+import { useAuth } from '@/contexts/AuthContext'; // Import auth context
 
 const DiscountsPage = () => {
+  const {
+    discounts,
+    currentDiscounts,
+    loading,
+    error,
+    fetchDiscounts,
+    createDiscount,
+    deleteDiscount
+  } = useDiscountContext();
+  
+  const { user } = useAuth(); // Access the authenticated user
+  const isAdmin = user?.role === "admin"; // Check if user is admin
+  
+  const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'expired' | 'scheduled'>('all');
   const location = useLocation();
+
+  // New discount dialog state
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newDiscount, setNewDiscount] = useState<CreateDiscountInput>({
+    title: '',
+    percentage: 0,
+    startDate: '',
+    endDate: ''
+  });
+  
+  // Delete confirmation state
+  const [discountToDelete, setDiscountToDelete] = useState<Discount | null>(null);
+
+  // Fetch discounts on mount
+  useEffect(() => {
+    fetchDiscounts();
+  }, [fetchDiscounts]);
 
   // Sidebar navigation items
   const mainNavItems = [
@@ -47,11 +85,6 @@ const DiscountsPage = () => {
       { name: "Invoices", href: "/Invoices", icon: FileText },
       { name: "Revenue", href: "/Revenue", icon: FileText },
     ];
-
-  // Reports section
-  // const reportNavItems = [
-  //   { name: 'Reports', href: '/reports', icon: BarChart3 },
-  // ];
   
   // System section
   const systemNavItems = [
@@ -99,92 +132,36 @@ const DiscountsPage = () => {
           </Link>
         );
       });
-  }
+  };
 
-  // Fetch discounts data
-  const { data: discounts = [] } = useQuery<Discount[]>({
-    queryKey: ['discounts'],
-    queryFn: async () => {
-      // Replace with actual API call
-      return [
-        { 
-          id: '1', 
-          code: 'SUMMER25', 
-          description: 'Summer Special Discount', 
-          discountType: 'percentage', 
-          value: 25, 
-          startDate: '2025-06-01', 
-          endDate: '2025-08-31', 
-          status: 'active',
-          usageCount: 132,
-          restrictions: ['Minimum stay 2 nights']
-        },
-        { 
-          id: '2', 
-          code: 'WELCOME10', 
-          description: 'New Guest Welcome Offer', 
-          discountType: 'percentage', 
-          value: 10, 
-          startDate: '2025-01-01', 
-          endDate: '2025-12-31', 
-          status: 'active',
-          usageCount: 257,
-        },
-        { 
-          id: '3', 
-          code: 'HOLIDAY50', 
-          description: 'Holiday Season Special', 
-          discountType: 'fixed', 
-          value: 50, 
-          startDate: '2025-12-15', 
-          endDate: '2026-01-10', 
-          status: 'scheduled',
-          usageCount: 0,
-        },
-        { 
-          id: '4', 
-          code: 'SPRING20', 
-          description: 'Spring Getaway Offer', 
-          discountType: 'percentage', 
-          value: 20, 
-          startDate: '2025-03-01', 
-          endDate: '2025-05-31', 
-          status: 'expired',
-          usageCount: 89,
-        },
-        { 
-          id: '5', 
-          code: 'LOYALTY15', 
-          description: 'Loyal Customer Appreciation', 
-          discountType: 'percentage', 
-          value: 15, 
-          startDate: '2025-01-01', 
-          endDate: '2025-12-31', 
-          status: 'active',
-          usageCount: 175,
-          restrictions: ['For returning guests only']
-        },
-      ];
-    },
-  });
+  // Helper to determine discount status based on dates
+  const getDiscountStatus = (discount: Discount): 'active' | 'expired' | 'scheduled' => {
+    const now = new Date();
+    const startDate = new Date(discount.startDate);
+    const endDate = new Date(discount.endDate);
+    
+    if (now < startDate) return 'scheduled';
+    if (now > endDate) return 'expired';
+    return 'active';
+  };
 
   // Filter discounts based on search query and status filter
   const filteredDiscounts = discounts.filter(discount => {
+    const status = getDiscountStatus(discount);
     const matchesSearch = 
-      discount.code.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      discount.description.toLowerCase().includes(searchQuery.toLowerCase());
+      discount.title.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesStatus = 
       statusFilter === 'all' || 
-      discount.status === statusFilter;
+      status === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
 
   // Get counts by status
-  const activeCount = discounts.filter(d => d.status === 'active').length;
-  const scheduledCount = discounts.filter(d => d.status === 'scheduled').length;
-  const expiredCount = discounts.filter(d => d.status === 'expired').length;
+  const activeCount = discounts.filter(d => getDiscountStatus(d) === 'active').length;
+  const scheduledCount = discounts.filter(d => getDiscountStatus(d) === 'scheduled').length;
+  const expiredCount = discounts.filter(d => getDiscountStatus(d) === 'expired').length;
 
   // Format date in readable format
   const formatDate = (dateString: string) => {
@@ -196,7 +173,7 @@ const DiscountsPage = () => {
   };
 
   // Get status badge
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: 'active' | 'expired' | 'scheduled') => {
     switch (status) {
       case 'active':
         return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200">Active</Badge>;
@@ -209,101 +186,166 @@ const DiscountsPage = () => {
     }
   };
 
+  // Form handlers
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewDiscount(prev => ({
+      ...prev,
+      [name]: name === 'percentage' ? parseFloat(value) : value
+    }));
+  };
+
+  const handleCreateDiscount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      await createDiscount(newDiscount);
+      toast({
+        title: "Success",
+        description: `Discount "${newDiscount.title}" has been created.`,
+      });
+      setIsCreateDialogOpen(false);
+      setNewDiscount({
+        title: '',
+        percentage: 0,
+        startDate: '',
+        endDate: ''
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to create the discount. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteDiscount = async () => {
+    if (!discountToDelete) return;
+    
+    try {
+      await deleteDiscount(discountToDelete._id);
+      toast({
+        title: "Success",
+        description: `Discount "${discountToDelete.title}" has been deleted.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to delete the discount. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDiscountToDelete(null);
+    }
+  };
+
+  // Loading state
+  if (loading && !discounts.length) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Mobile backdrop */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
+      {/* Sidebar for admin users only */}
+      {isAdmin && (
+        <>
+          {/* Mobile backdrop */}
+          {sidebarOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+          )}
 
-      {/* Sidebar */}
-      <div className={`
-        fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-slate-900 to-slate-950 
-        shadow-2xl transform transition-transform duration-300 ease-in-out
-        lg:translate-x-0 lg:static lg:inset-0
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-      `}>
-        {/* Logo Section */}
-        <div className="h-20 px-6 flex items-center border-b border-slate-800/50">
-          <div className="flex items-center space-x-3">
-            <div className="relative">
-              <Crown className="h-9 w-9 text-amber-400" />
-              <Sparkles className="h-4 w-4 text-amber-300 absolute -top-1 -right-1" />
-            </div>
-            <div>
-              <h1 className="text-xl font-light tracking-wider text-white">HSQ ADMIN</h1>
-              <p className="text-xs text-amber-400/80 tracking-widest uppercase">Management Panel</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden ml-auto p-1.5 rounded-lg hover:bg-slate-800/50 transition-colors"
-          >
-            <X className="h-5 w-5 text-slate-400" />
-          </button>
-        </div>
-
-        {/* Navigation */}
-        <nav className="mt-8 px-4 flex flex-col h-[calc(100%-80px)]">
-          <div className="flex-grow">
-            <div className="space-y-1">
-                {renderNavLinks(mainNavItems)}
-            </div>
-            
-            {/* Reports Section */}
-            {/* <div className="mt-6">
-                <p className="px-4 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Analysis</p>
-                <div className="space-y-1">
-                    {renderNavLinks(reportNavItems)}
+          {/* Sidebar */}
+          <div className={`
+            fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-slate-900 to-slate-950 
+            shadow-2xl transform transition-transform duration-300 ease-in-out
+            lg:translate-x-0 lg:static lg:inset-0
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          `}>
+            {/* Logo Section */}
+            <div className="h-20 px-6 flex items-center border-b border-slate-800/50">
+              <div className="flex items-center space-x-3">
+                <div className="relative">
+                  <Crown className="h-9 w-9 text-amber-400" />
+                  <Sparkles className="h-4 w-4 text-amber-300 absolute -top-1 -right-1" />
                 </div>
-            </div> */}
-          </div>
-          
-          {/* Bottom Section */}
-          <div className="flex-shrink-0">
-            <div className="my-4 px-4"><div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" /></div>
-            <div className="space-y-1">
-              {renderNavLinks(systemNavItems)}
-              <button className="group flex items-center px-4 py-3 text-sm text-slate-300 rounded-lg hover:text-white hover:bg-slate-800/50 w-full transition-all duration-200">
-                  <LogOut className="mr-3 h-5 w-5 text-slate-400 group-hover:text-slate-300" />
-                  <span className="font-light tracking-wide">Sign Out</span>
+                <div>
+                  <h1 className="text-xl font-light tracking-wider text-white">HSQ ADMIN</h1>
+                  <p className="text-xs text-amber-400/80 tracking-widest uppercase">Management Panel</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="lg:hidden ml-auto p-1.5 rounded-lg hover:bg-slate-800/50 transition-colors"
+              >
+                <X className="h-5 w-5 text-slate-400" />
               </button>
             </div>
-          </div>
-        </nav>
 
-        {/* User Profile */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-slate-800/50 bg-slate-950">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-lg">
-              <span className="text-sm font-medium text-slate-900">AM</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-light text-white truncate">Admin Manager</p>
-              <p className="text-xs text-slate-400 truncate">admin@hsqtowers.com</p>
+            {/* Navigation */}
+            <nav className="mt-8 px-4 flex flex-col h-[calc(100%-80px)]">
+              <div className="flex-grow">
+                <div className="space-y-1">
+                    {renderNavLinks(mainNavItems)}
+                </div>
+                
+                {/* Reports Section */}
+                
+              </div>
+              
+              {/* Bottom Section */}
+              <div className="flex-shrink-0">
+                <div className="my-4 px-4"><div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" /></div>
+                <div className="space-y-1">
+                  {renderNavLinks(systemNavItems)}
+                  <button className="group flex items-center px-4 py-3 text-sm text-slate-300 rounded-lg hover:text-white hover:bg-slate-800/50 w-full transition-all duration-200">
+                      <LogOut className="mr-3 h-5 w-5 text-slate-400 group-hover:text-slate-300" />
+                      <span className="font-light tracking-wide">Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            </nav>
+
+            {/* User Profile */}
+            <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-slate-800/50 bg-slate-950">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-lg">
+                  <span className="text-sm font-medium text-slate-900">AM</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-light text-white truncate">Admin Manager</p>
+                  <p className="text-xs text-slate-400 truncate">{user?.email || 'admin@hsqtowers.com'}</p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* Main content */}
-      <div className="flex-1 lg:ml-0">
-        {/* Mobile header */}
-        <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <Menu className="h-5 w-5 text-slate-700" />
-            </button>
-            <div className="flex items-center space-x-2">
-              <Crown className="h-6 w-6 text-amber-500" />
-              <span className="font-light tracking-wider text-slate-900">HSQ ADMIN</span>
+      <div className={`flex-1 ${isAdmin ? 'lg:ml-0' : ''}`}>
+        {/* Mobile header - only for admin */}
+        {isAdmin && (
+          <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4">
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <Menu className="h-5 w-5 text-slate-700" />
+              </button>
+              <div className="flex items-center space-x-2">
+                <Crown className="h-6 w-6 text-amber-500" />
+                <span className="font-light tracking-wider text-slate-900">HSQ ADMIN</span>
+              </div>
+              <div className="w-9" />
             </div>
-            <div className="w-9" />
           </div>
-        </div>
+        )}
 
         {/* Discounts content */}
         <div className="p-8">
@@ -315,7 +357,10 @@ const DiscountsPage = () => {
                 <p className="text-slate-600 mt-2 font-light">Manage promotional offers and discount codes</p>
               </div>
               <div className="mt-4 md:mt-0">
-                <Button className="bg-amber-500 hover:bg-amber-600 text-white">
+                <Button 
+                  className="bg-amber-500 hover:bg-amber-600 text-white"
+                  onClick={() => setIsCreateDialogOpen(true)}
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Create Discount
                 </Button>
@@ -393,84 +438,60 @@ const DiscountsPage = () => {
                   <thead>
                     <tr className="border-b border-slate-100">
                       <th className="text-left py-4 px-6 text-sm font-medium text-slate-500">Code</th>
-                      <th className="text-left py-4 px-6 text-sm font-medium text-slate-500">Description</th>
                       <th className="text-left py-4 px-6 text-sm font-medium text-slate-500">Value</th>
                       <th className="text-left py-4 px-6 text-sm font-medium text-slate-500">Validity</th>
                       <th className="text-left py-4 px-6 text-sm font-medium text-slate-500">Status</th>
-                      <th className="text-center py-4 px-6 text-sm font-medium text-slate-500">Usage</th>
                       <th className="text-right py-4 px-6 text-sm font-medium text-slate-500">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredDiscounts.map((discount) => (
-                      <tr key={discount.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                        <td className="py-4 px-6">
-                          <div className="flex items-center space-x-3">
-                            <div className="p-2 bg-amber-100 rounded-lg">
-                              <Tag className="h-4 w-4 text-amber-600" />
+                    {filteredDiscounts.map((discount) => {
+                      const status = getDiscountStatus(discount);
+                      return (
+                        <tr key={discount._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                          <td className="py-4 px-6">
+                            <div className="flex items-center space-x-3">
+                              <div className="p-2 bg-amber-100 rounded-lg">
+                                <Tag className="h-4 w-4 text-amber-600" />
+                              </div>
+                              <span className="font-medium text-slate-800">{discount.title}</span>
                             </div>
-                            <span className="font-medium text-slate-800">{discount.code}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 text-sm text-slate-600">{discount.description}</td>
-                        <td className="py-4 px-6">
-                          <div className="flex items-center space-x-2">
-                            {discount.discountType === 'percentage' ? (
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="flex items-center space-x-2">
                               <Percent className="h-4 w-4 text-slate-500" />
-                            ) : (
-                              <span className="text-slate-500">$</span>
-                            )}
-                            <span className="text-slate-800 font-medium">
-                              {discount.value}{discount.discountType === 'percentage' && '%'}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 text-sm text-slate-600">
-                          {formatDate(discount.startDate)} - {formatDate(discount.endDate)}
-                        </td>
-                        <td className="py-4 px-6">
-                          {getStatusBadge(discount.status)}
-                        </td>
-                        <td className="py-4 px-6 text-center text-sm">
-                          <span className={`font-medium ${
-                            discount.usageCount > 0 ? 'text-blue-600' : 'text-slate-500'
-                          }`}>
-                            {discount.usageCount}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem className="cursor-pointer">
-                                <Edit2 className="h-4 w-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                              {discount.status === 'active' && (
-                                <DropdownMenuItem className="cursor-pointer text-amber-600">
-                                  <XCircle className="h-4 w-4 mr-2" />
-                                  Deactivate
+                              <span className="text-slate-800 font-medium">
+                                {discount.percentage}%
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 text-sm text-slate-600">
+                            {formatDate(discount.startDate)} - {formatDate(discount.endDate)}
+                          </td>
+                          <td className="py-4 px-6">
+                            {getStatusBadge(status)}
+                          </td>
+                          <td className="py-4 px-6 text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem 
+                                  className="cursor-pointer text-red-600"
+                                  onClick={() => setDiscountToDelete(discount)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
                                 </DropdownMenuItem>
-                              )}
-                              {discount.status !== 'active' && (
-                                <DropdownMenuItem className="cursor-pointer text-emerald-600">
-                                  <CheckCircle className="h-4 w-4 mr-2" />
-                                  Activate
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem className="cursor-pointer text-red-600">
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
-                      </tr>
-                    ))}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -479,7 +500,12 @@ const DiscountsPage = () => {
                 <div className="py-12 text-center">
                   <Tag className="h-12 w-12 text-slate-300 mx-auto mb-3" />
                   <p className="text-slate-500 font-light">No discounts found</p>
-                  <Button variant="outline" size="sm" className="mt-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-4"
+                    onClick={() => setIsCreateDialogOpen(true)}
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Create New Discount
                   </Button>
@@ -501,6 +527,116 @@ const DiscountsPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Create Discount Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Create New Discount</DialogTitle>
+            <DialogDescription>
+              Create a new discount code for guests to use during check-in.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateDiscount} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Discount Code</Label>
+              <Input
+                id="title"
+                name="title"
+                value={newDiscount.title}
+                onChange={handleInputChange}
+                placeholder="SUMMER25"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="percentage">Discount Percentage</Label>
+              <div className="relative">
+                <Input
+                  id="percentage"
+                  name="percentage"
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={newDiscount.percentage}
+                  onChange={handleInputChange}
+                  className="pr-8"
+                  required
+                />
+                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                  <span className="text-slate-500">%</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="startDate">Start Date</Label>
+              <Input
+                id="startDate"
+                name="startDate"
+                type="date"
+                value={newDiscount.startDate}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="endDate">End Date</Label>
+              <Input
+                id="endDate"
+                name="endDate"
+                type="date"
+                value={newDiscount.endDate}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsCreateDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-amber-500 hover:bg-amber-600"
+              >
+                Create Discount
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog 
+        open={!!discountToDelete} 
+        onOpenChange={(open) => !open && setDiscountToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Discount</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the discount code "{discountToDelete?.title}"? 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteDiscount}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

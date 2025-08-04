@@ -78,7 +78,7 @@ export const DiscountProvider = ({ children }: { children: ReactNode }) => {
   const fetchDiscounts = useCallback(async () => {
     await apiCall(
       async () => {
-        const res = await apiClient.get<{ discounts: Discount[] }>('/api/discount/get-Discounts');
+        const res = await apiClient.get<{ discounts: Discount[] }>('/api/discounts/get-Discounts');
         return res.data.discounts;
       },
       setDiscounts,
@@ -90,7 +90,7 @@ export const DiscountProvider = ({ children }: { children: ReactNode }) => {
   const fetchCurrentDiscounts = useCallback(async () => {
     await apiCall(
       async () => {
-        const res = await apiClient.get<{ discount: Discount[] }>('/api/discount/currentdiscount');
+        const res = await apiClient.get<{ discount: Discount[] }>('/api/discounts/currentdiscount');
         return res.data.discount;
       },
       setCurrentDiscounts,
@@ -102,7 +102,7 @@ export const DiscountProvider = ({ children }: { children: ReactNode }) => {
   const createDiscount = useCallback(async (data: CreateDiscountInput) => {
     await apiCall(
       async () => {
-        await apiClient.post('/api/discount/create-Discount', data);
+        await apiClient.post('/api/discounts/create-Discount', data);
       },
       async () => {
         // Refresh both lists after creation
@@ -116,7 +116,7 @@ export const DiscountProvider = ({ children }: { children: ReactNode }) => {
   const deleteDiscount = useCallback(async (id: string) => {
     await apiCall(
       async () => {
-        await apiClient.delete(`/api/discount/delete-discount/${id}`);
+        await apiClient.delete(`/api/discounts/delete-discount/${id}`);
       },
       () => {
         // Optimistic UI: remove locally
