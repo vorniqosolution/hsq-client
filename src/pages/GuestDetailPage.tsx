@@ -147,6 +147,7 @@ const EditGuestDialog: React.FC<EditGuestDialogProps> = ({
     cnic: "",
     email: "",
     paymentMethod: "cash",
+    additionaldiscount: 0,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -161,6 +162,7 @@ const EditGuestDialog: React.FC<EditGuestDialogProps> = ({
         cnic: guest.cnic,
         email: guest.email || "",
         paymentMethod: guest.paymentMethod,
+        additionaldiscount: guest.additionaldiscount,
       });
     }
   }, [guest, isOpen]);
@@ -295,6 +297,20 @@ const EditGuestDialog: React.FC<EditGuestDialogProps> = ({
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="additionaldiscount">Additional Discount (Rs)</Label>
+            <Input
+              id="additionaldiscount"
+              name="additionaldiscount"
+              type="number"
+              min={0}
+              step="0.01"
+              value={formData.additionaldiscount || 0}
+              onChange={handleInputChange}
+              disabled={isSubmitting}
+              placeholder="0.00"
+            />
+          </div>
 
           <DialogFooter>
             <Button
@@ -424,17 +440,17 @@ const InvoiceCard: React.FC<InvoiceCardProps> = ({
 
           <div className="flex justify-between text-gray-500">
             <span>Discount</span>
-            <span>-Rs{' '}{invoice.discountAmount.toLocaleString()}</span>
+            <span>-Rs {invoice.discountAmount.toLocaleString()}</span>
           </div>
 
           <div className="flex justify-between text-gray-500">
             <span>Tax ({invoice.taxRate}%)</span>
-            <span>Rs{' '}{invoice.taxAmount.toLocaleString()}</span>
+            <span>Rs {invoice.taxAmount.toLocaleString()}</span>
           </div>
 
           <div className="flex justify-between font-bold mt-2 text-lg">
             <span>Total</span>
-            <span>Rs{' '}{invoice.grandTotal.toLocaleString()}</span>
+            <span>Rs {invoice.grandTotal.toLocaleString()}</span>
           </div>
         </div>
       </CardContent>
@@ -714,6 +730,8 @@ const GuestDetailPage: React.FC = () => {
                     {guest.paymentMethod.charAt(0).toUpperCase() +
                       guest.paymentMethod.slice(1)}
                   </p>
+
+
 
                   <p>
                     <strong>Stay Duration:</strong> {guest.stayDuration} day(s)

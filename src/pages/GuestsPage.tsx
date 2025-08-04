@@ -1,32 +1,48 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { 
-  Search, Eye, Trash2, UserPlus, X, Menu,
-  Users, Bed, DollarSign, Settings, LogOut, Home, Crown, Star, Sparkles,
-  Archive, FileText, Ticket, BarChart3
-} from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { Link, useLocation } from "react-router-dom";
+import {
+  Search,
+  Eye,
+  Trash2,
+  UserPlus,
+  X,
+  Menu,
+  Users,
+  Bed,
+  DollarSign,
+  Settings,
+  LogOut,
+  Home,
+  Crown,
+  Star,
+  Sparkles,
+  Archive,
+  FileText,
+  Ticket,
+  BarChart3,
+} from "lucide-react";
 
 // Shadcn UI Components
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,26 +52,32 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 
 // Hooks & Contexts
-import { useToast } from '@/hooks/use-toast';
-import { useGuestContext, Guest, Room, CreateGuestInput } from '@/contexts/GuestContext';
-import { useAuth } from '@/contexts/AuthContext'; // Import auth context
+import { useToast } from "@/hooks/use-toast";
+import {
+  useGuestContext,
+  Guest,
+  Room,
+  CreateGuestInput,
+} from "@/contexts/GuestContext";
+import { useAuth } from "@/contexts/AuthContext"; // Import auth context
 
 // --- Constants and Types ---
-const ROOM_CATEGORIES = ['Standard', 'Deluxe', 'Executive', 'Presidential'];
+const ROOM_CATEGORIES = ["Standard", "Deluxe", "Executive", "Presidential"];
 
 const INITIAL_FORM_STATE: CreateGuestInput = {
-  fullName: '',
-  address: '',
-  phone: '',
-  cnic: '',
-  email: '',
-  roomNumber: '',
+  fullName: "",
+  address: "",
+  phone: "",
+  cnic: "",
+  email: "",
+  roomNumber: "",
   stayDuration: 1,
-  paymentMethod: 'cash',
+  paymentMethod: "cash",
   applyDiscount: false,
+  additionaldiscount: 0,
 };
 
 // --- Main Page Component ---
@@ -70,13 +92,13 @@ const GuestsPage: React.FC = () => {
     createGuest,
     deleteGuest,
   } = useGuestContext();
-  
+
   const { user } = useAuth(); // Access the authenticated user
   const isAdmin = user?.role === "admin"; // Check if user is admin
 
   // --- State Management ---
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [isCheckInDialogOpen, setIsCheckInDialogOpen] = useState(false);
   const [guestToDelete, setGuestToDelete] = useState<Guest | null>(null);
   const { toast } = useToast();
@@ -92,7 +114,7 @@ const GuestsPage: React.FC = () => {
   // --- Memoized Filtering ---
   const filteredGuests = useMemo(() => {
     if (!searchTerm) return guests;
-    
+
     const searchLower = searchTerm.toLowerCase();
     return guests.filter(
       (g) =>
@@ -110,41 +132,40 @@ const GuestsPage: React.FC = () => {
   }, [categoryFilter, fetchGuestsByCategory]);
 
   const handleClearFilters = useCallback(() => {
-    setCategoryFilter('');
-    setSearchTerm('');
+    setCategoryFilter("");
+    setSearchTerm("");
     fetchGuests();
   }, [fetchGuests]);
 
   const handleDeleteConfirm = useCallback(async () => {
-  if (!guestToDelete) return;
+    if (!guestToDelete) return;
 
-  // Check user role before allowing delete
-  if (user.role === 'receptionist') {
-    toast({
-      title: 'Error',
-      description: 'Only Admin can delete a guest.',
-      variant: 'destructive',
-    });
-    return; // Prevent deletion
-  }
+    // Check user role before allowing delete
+    if (user.role === "receptionist") {
+      toast({
+        title: "Error",
+        description: "Only Admin can delete a guest.",
+        variant: "destructive",
+      });
+      return; // Prevent deletion
+    }
 
-  try {
-    await deleteGuest(guestToDelete._id);
-    toast({
-      title: 'Success',
-      description: `Guest "${guestToDelete.fullName}" has been deleted.`,
-    });
-  } catch (err) {
-    toast({
-      title: 'Error',
-      description: 'Failed to delete the guest. Please try again.',
-      variant: 'destructive',
-    });
-  } finally {
-    setGuestToDelete(null);
-  }
-}, [guestToDelete, deleteGuest, toast, user.role]);
-
+    try {
+      await deleteGuest(guestToDelete._id);
+      toast({
+        title: "Success",
+        description: `Guest "${guestToDelete.fullName}" has been deleted.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to delete the guest. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setGuestToDelete(null);
+    }
+  }, [guestToDelete, deleteGuest, toast, user.role]);
 
   const handleOpenCheckInDialog = useCallback(() => {
     setIsCheckInDialogOpen(true);
@@ -163,23 +184,25 @@ const GuestsPage: React.FC = () => {
   //   { name: 'Inventory', href: '/inventory', icon: Archive },
   //   { name: 'Invoices', href: '/invoices', icon: FileText },
   // ];
-    const mainNavItems = [
-       { name: "Dashboard", href: "/dashboard", icon: Home },
-       { name: "Guests", href: "/guests", icon: Users },
-       { name: "Rooms", href: "/rooms", icon: Bed },
-       { name: "Discounts", href: "/Discount", icon: Ticket },
-       { name: "Inventory", href: "/Inventory", icon: Archive },
-       { name: "Invoices", href: "/Invoices", icon: FileText },
-       { name: "Revenue", href: "/Revenue", icon: FileText },
-     ];
+  const mainNavItems = [
+    { name: "Dashboard", href: "/dashboard", icon: Home },
+    { name: "Guests", href: "/guests", icon: Users },
+    { name: "Rooms", href: "/rooms", icon: Bed },
+    { name: "Discounts", href: "/Discount", icon: Ticket },
+    { name: "Inventory", href: "/Inventory", icon: Archive },
+    { name: "Invoices", href: "/Invoices", icon: FileText },
+    { name: "Revenue", href: "/Revenue", icon: FileText },
+  ];
 
   // const reportNavItems = [{ name: 'Reports', href: '/reports', icon: BarChart3 }];
-  const systemNavItems = [{ name: 'Settings', href: '/settings', icon: Settings }];
+  const systemNavItems = [
+    { name: "Settings", href: "/settings", icon: Settings },
+  ];
 
   const isActive = (href: string) => {
-    if (href === '/dashboard') return location.pathname === href;
+    if (href === "/dashboard") return location.pathname === href;
     return location.pathname.startsWith(href);
-  }
+  };
 
   // Helper function to render navigation links
   const renderNavLinks = (items: typeof mainNavItems) => {
@@ -194,42 +217,45 @@ const GuestsPage: React.FC = () => {
           className={`
             group flex items-center px-4 py-3 text-sm rounded-lg
             transition-all duration-200 relative overflow-hidden
-            ${active
-              ? 'bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-400 shadow-lg shadow-amber-500/10'
-              : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
+            ${
+              active
+                ? "bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-400 shadow-lg shadow-amber-500/10"
+                : "text-slate-300 hover:text-white hover:bg-slate-800/50"
             }
           `}
         >
           {active && (
             <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-amber-600" />
           )}
-          <Icon className={`
+          <Icon
+            className={`
             mr-3 h-5 w-5 transition-all duration-200
-            ${active ? 'text-amber-400' : 'text-slate-400 group-hover:text-slate-300'}
-          `} />
+            ${
+              active
+                ? "text-amber-400"
+                : "text-slate-400 group-hover:text-slate-300"
+            }
+          `}
+          />
           <span className="font-light tracking-wide">{item.name}</span>
-          {active && (
-            <Star className="ml-auto h-3 w-3 text-amber-400/60" />
-          )}
+          {active && <Star className="ml-auto h-3 w-3 text-amber-400/60" />}
         </Link>
       );
     });
-  }
+  };
 
   // --- Render Logic ---
   // This ContentContainer ensures stable layout height
-  const ContentContainer: React.FC<{children: React.ReactNode}> = ({ children }) => (
-    <div className="relative min-h-[400px]">
-      {children}
-    </div>
-  );
+  const ContentContainer: React.FC<{ children: React.ReactNode }> = ({
+    children,
+  }) => <div className="relative min-h-[400px]">{children}</div>;
 
   // Content renderer with stable height
   const renderContent = () => {
     if (loading) {
       return <GuestListSkeleton />;
     }
-    
+
     if (error) {
       return (
         <div className="flex h-[400px] items-center justify-center">
@@ -240,7 +266,7 @@ const GuestsPage: React.FC = () => {
         </div>
       );
     }
-    
+
     if (filteredGuests.length === 0) {
       return (
         <div className="flex h-[400px] items-center justify-center">
@@ -248,9 +274,9 @@ const GuestsPage: React.FC = () => {
             <p className="text-xl mb-2">No guests found</p>
             <p>Try adjusting your search or filters</p>
             {categoryFilter && (
-              <Button 
-                variant="outline" 
-                className="mt-4" 
+              <Button
+                variant="outline"
+                className="mt-4"
                 onClick={handleClearFilters}
               >
                 Clear Filters
@@ -260,7 +286,7 @@ const GuestsPage: React.FC = () => {
         </div>
       );
     }
-    
+
     return (
       <div className="space-y-4">
         {filteredGuests.map((guest) => (
@@ -281,16 +307,21 @@ const GuestsPage: React.FC = () => {
         <>
           {/* Mobile backdrop */}
           {sidebarOpen && (
-            <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+            <div
+              className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-40 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
           )}
 
           {/* Sidebar */}
-          <div className={`
+          <div
+            className={`
             fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-slate-900 to-slate-950 
             shadow-2xl transform transition-transform duration-300 ease-in-out
             lg:translate-x-0 lg:static lg:inset-0
-            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          `}>
+            ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          `}
+          >
             {/* Logo Section */}
             <div className="h-20 px-6 flex items-center border-b border-slate-800/50">
               <div className="flex items-center space-x-3">
@@ -299,8 +330,12 @@ const GuestsPage: React.FC = () => {
                   <Sparkles className="h-4 w-4 text-amber-300 absolute -top-1 -right-1" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-light tracking-wider text-white">HSQ ADMIN</h1>
-                  <p className="text-xs text-amber-400/80 tracking-widest uppercase">Management Panel</p>
+                  <h1 className="text-xl font-light tracking-wider text-white">
+                    HSQ ADMIN
+                  </h1>
+                  <p className="text-xs text-amber-400/80 tracking-widest uppercase">
+                    Management Panel
+                  </p>
                 </div>
               </div>
               <button
@@ -314,10 +349,8 @@ const GuestsPage: React.FC = () => {
             {/* Navigation */}
             <nav className="mt-8 px-4 flex flex-col h-[calc(100%-80px)]">
               <div className="flex-grow">
-                <div className="space-y-1">
-                    {renderNavLinks(mainNavItems)}
-                </div>
-                
+                <div className="space-y-1">{renderNavLinks(mainNavItems)}</div>
+
                 {/* Reports Section */}
                 {/* <div className="mt-6">
                     <p className="px-4 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Analysis</p>
@@ -326,15 +359,17 @@ const GuestsPage: React.FC = () => {
                     </div>
                 </div> */}
               </div>
-              
+
               {/* Bottom Section */}
               <div className="flex-shrink-0">
-                <div className="my-4 px-4"><div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" /></div>
+                <div className="my-4 px-4">
+                  <div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
+                </div>
                 <div className="space-y-1">
                   {renderNavLinks(systemNavItems)}
                   <button className="group flex items-center px-4 py-3 text-sm text-slate-300 rounded-lg hover:text-white hover:bg-slate-800/50 w-full transition-all duration-200">
-                      <LogOut className="mr-3 h-5 w-5 text-slate-400 group-hover:text-slate-300" />
-                      <span className="font-light tracking-wide">Sign Out</span>
+                    <LogOut className="mr-3 h-5 w-5 text-slate-400 group-hover:text-slate-300" />
+                    <span className="font-light tracking-wide">Sign Out</span>
                   </button>
                 </div>
               </div>
@@ -347,8 +382,12 @@ const GuestsPage: React.FC = () => {
                   <span className="text-sm font-medium text-slate-900">AM</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-light text-white truncate">Admin Manager</p>
-                  <p className="text-xs text-slate-400 truncate">{user?.email || 'admin@hsqtowers.com'}</p>
+                  <p className="text-sm font-light text-white truncate">
+                    Admin Manager
+                  </p>
+                  <p className="text-xs text-slate-400 truncate">
+                    {user?.email || "admin@hsqtowers.com"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -357,7 +396,7 @@ const GuestsPage: React.FC = () => {
       )}
 
       {/* Main content */}
-      <div className={`flex-1 ${isAdmin ? 'lg:ml-0' : ''}`}>
+      <div className={`flex-1 ${isAdmin ? "lg:ml-0" : ""}`}>
         {/* Mobile header - only for admin */}
         {isAdmin && (
           <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4">
@@ -370,7 +409,9 @@ const GuestsPage: React.FC = () => {
               </button>
               <div className="flex items-center space-x-2">
                 <Crown className="h-6 w-6 text-amber-500" />
-                <span className="font-light tracking-wider text-slate-900">HSQ ADMIN</span>
+                <span className="font-light tracking-wider text-slate-900">
+                  HSQ ADMIN
+                </span>
               </div>
               <div className="w-9" />
             </div>
@@ -407,20 +448,22 @@ const GuestsPage: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {ROOM_CATEGORIES.map((cat) => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Button 
-                onClick={handleApplyCategoryFilter} 
+              <Button
+                onClick={handleApplyCategoryFilter}
                 className="w-full sm:col-span-1"
                 disabled={!categoryFilter}
               >
                 Filter
               </Button>
-              <Button 
-                onClick={handleClearFilters} 
-                variant="outline" 
+              <Button
+                onClick={handleClearFilters}
+                variant="outline"
                 className="w-full sm:col-span-1"
                 disabled={!categoryFilter && !searchTerm}
               >
@@ -429,11 +472,9 @@ const GuestsPage: React.FC = () => {
               </Button>
             </div>
           </div>
-          
+
           {/* Content Area - Fixed height container prevents layout jumps */}
-          <ContentContainer>
-            {renderContent()}
-          </ContentContainer>
+          <ContentContainer>{renderContent()}</ContentContainer>
 
           {/* Check-in Dialog */}
           <CheckInFormDialog
@@ -444,22 +485,26 @@ const GuestsPage: React.FC = () => {
           />
 
           {/* Delete Confirmation Dialog */}
-          <AlertDialog 
-            open={!!guestToDelete} 
+          <AlertDialog
+            open={!!guestToDelete}
             onOpenChange={(open) => !open && setGuestToDelete(null)}
           >
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete the guest record for{' '}
-                  <span className="font-semibold">{guestToDelete?.fullName}</span>.
+                  This action cannot be undone. This will permanently delete the
+                  guest record for{" "}
+                  <span className="font-semibold">
+                    {guestToDelete?.fullName}
+                  </span>
+                  .
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction 
-                  onClick={handleDeleteConfirm} 
+                <AlertDialogAction
+                  onClick={handleDeleteConfirm}
                   className="bg-red-600 hover:bg-red-700"
                 >
                   Delete
@@ -483,7 +528,9 @@ interface GuestCardProps {
 
 const GuestCard = React.memo<GuestCardProps>(({ guest, onDelete }) => {
   const getStatusColor = (status: string) =>
-    status === 'checked-in' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
+    status === "checked-in"
+      ? "bg-green-100 text-green-800"
+      : "bg-gray-100 text-gray-800";
 
   return (
     <Card className="hover:shadow transition-shadow duration-300">
@@ -491,7 +538,9 @@ const GuestCard = React.memo<GuestCardProps>(({ guest, onDelete }) => {
         <div className="md:col-span-2 flex flex-col">
           <p className="font-bold text-lg">{guest.fullName}</p>
           <p className="text-sm text-gray-500">{guest.phone}</p>
-          {guest.email && <p className="text-sm text-gray-500">{guest.email}</p>}
+          {guest.email && (
+            <p className="text-sm text-gray-500">{guest.email}</p>
+          )}
         </div>
         <div className="flex justify-start md:justify-center">
           <Badge className={getStatusColor(guest.status)}>{guest.status}</Badge>
@@ -542,13 +591,14 @@ interface CheckInFormDialogProps {
   createGuest: (data: CreateGuestInput) => Promise<void>;
 }
 
-const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({ 
-  isOpen, 
-  setIsOpen, 
-  rooms, 
-  createGuest 
+const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
+  isOpen,
+  setIsOpen,
+  rooms,
+  createGuest,
 }) => {
-  const [formData, setFormData] = useState<CreateGuestInput>(INITIAL_FORM_STATE);
+  const [formData, setFormData] =
+    useState<CreateGuestInput>(INITIAL_FORM_STATE);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -564,46 +614,47 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
     }
   }, [isOpen]);
 
-  const handleFormChange = useCallback((
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
-  }, []);
-  
+  const handleFormChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, value, type, checked } = e.target;
+      setFormData((prev) => ({
+        ...prev,
+        [name]: type === "checkbox" ? checked : value,
+      }));
+    },
+    []
+  );
+
   const handleSelectChange = useCallback((name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value}));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.roomNumber) {
-      toast({ 
-        title: "Validation Error", 
-        description: "Please select a room.", 
-        variant: "destructive"
+      toast({
+        title: "Validation Error",
+        description: "Please select a room.",
+        variant: "destructive",
       });
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
       await createGuest(formData);
-      toast({ 
-        title: 'Guest Checked In', 
-        description: 'The new guest has been added successfully.' 
+      toast({
+        title: "Guest Checked In",
+        description: "The new guest has been added successfully.",
       });
       setIsOpen(false);
     } catch (err) {
-      toast({ 
-        title: 'Check-in Failed', 
-        description: 'Could not create the guest record.', 
-        variant: 'destructive' 
+      toast({
+        title: "Check-in Failed",
+        description: "Could not create the guest record.",
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
@@ -611,8 +662,8 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
   };
 
   // Filter only available rooms for selection
-  const availableRooms = useMemo(() => 
-    rooms.filter(r => r.status === 'available'),
+  const availableRooms = useMemo(
+    () => rooms.filter((r) => r.status === "available"),
     [rooms]
   );
 
@@ -622,95 +673,95 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
         <DialogHeader>
           <DialogTitle>New Guest Check-In</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
           <div className="space-y-2">
             <Label htmlFor="fullName">Full Name</Label>
-            <Input 
-              id="fullName" 
-              name="fullName" 
-              value={formData.fullName} 
-              onChange={handleFormChange} 
-              placeholder="John Doe" 
+            <Input
+              id="fullName"
+              name="fullName"
+              value={formData.fullName}
+              onChange={handleFormChange}
+              placeholder="John Doe"
               disabled={isSubmitting}
-              required 
+              required
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="address">Address</Label>
-            <Input 
-              id="address" 
-              name="address" 
-              value={formData.address} 
-              onChange={handleFormChange} 
-              placeholder="123 Main St, Anytown" 
+            <Input
+              id="address"
+              name="address"
+              value={formData.address}
+              onChange={handleFormChange}
+              placeholder="123 Main St, Anytown"
               disabled={isSubmitting}
-              required 
+              required
             />
           </div>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
-              <Input 
-                id="phone" 
-                name="phone" 
-                value={formData.phone} 
-                onChange={handleFormChange} 
-                placeholder="+92 300 1234567" 
+              <Input
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleFormChange}
+                placeholder="+92 300 1234567"
                 disabled={isSubmitting}
-                required 
+                required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="email">Email (Optional)</Label>
-              <Input 
-                id="email" 
-                name="email" 
-                type="email" 
-                value={formData.email} 
-                onChange={handleFormChange} 
-                placeholder="guest@example.com" 
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleFormChange}
+                placeholder="guest@example.com"
                 disabled={isSubmitting}
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="cnic">CNIC</Label>
-              <Input 
-                id="cnic" 
-                name="cnic" 
-                value={formData.cnic} 
-                onChange={handleFormChange} 
-                placeholder="12345-6789012-3" 
+              <Input
+                id="cnic"
+                name="cnic"
+                value={formData.cnic}
+                onChange={handleFormChange}
+                placeholder="12345-6789012-3"
                 disabled={isSubmitting}
-                required 
+                required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="stayDuration">Stay (days)</Label>
-              <Input 
-                id="stayDuration" 
-                name="stayDuration" 
-                type="number" 
-                min={1} 
-                value={formData.stayDuration} 
-                onChange={handleFormChange} 
+              <Input
+                id="stayDuration"
+                name="stayDuration"
+                type="number"
+                min={1}
+                value={formData.stayDuration}
+                onChange={handleFormChange}
                 disabled={isSubmitting}
-                required 
+                required
               />
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <Label>Room</Label>
-            <Select 
-              name="roomNumber" 
-              value={formData.roomNumber} 
-              onValueChange={(v) => handleSelectChange('roomNumber', v)}
+            <Select
+              name="roomNumber"
+              value={formData.roomNumber}
+              onValueChange={(v) => handleSelectChange("roomNumber", v)}
               disabled={isSubmitting}
             >
               <SelectTrigger>
@@ -724,21 +775,42 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
                 ) : (
                   availableRooms.map((r) => (
                     <SelectItem key={r._id} value={r.roomNumber}>
-                      Room {r.roomNumber} — {r.bedType} — (Rs{r.rate}/night) — {r.category}
+                      Room {r.roomNumber} — {r.bedType} — (Rs{r.rate}/night) —{" "}
+                      {r.category}
                     </SelectItem>
                   ))
                 )}
               </SelectContent>
             </Select>
           </div>
-          
+
+          {/* Additional Discount Field - Only show when applyDiscount is checked */}
+          {formData.applyDiscount && (
+            <div className="space-y-2">
+              <Label htmlFor="additionaldiscount">
+                Additional Discount Amount (Rs)
+              </Label>
+              <Input
+                id="additionaldiscount"
+                name="additionaldiscount"
+                type="number"
+                min={0}
+                step="0.01"
+                value={formData.additionaldiscount}
+                onChange={handleFormChange}
+                placeholder="1000, 2000"
+                disabled={isSubmitting}
+              />
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
             <div className="space-y-2">
               <Label>Payment Method</Label>
-              <Select 
-                name="paymentMethod" 
-                value={formData.paymentMethod} 
-                onValueChange={(v) => handleSelectChange('paymentMethod', v)}
+              <Select
+                name="paymentMethod"
+                value={formData.paymentMethod}
+                onValueChange={(v) => handleSelectChange("paymentMethod", v)}
                 disabled={isSubmitting}
               >
                 <SelectTrigger>
@@ -751,29 +823,29 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="flex items-center pt-6 space-x-2">
-              <input 
-                type="checkbox" 
-                name="applyDiscount" 
-                checked={formData.applyDiscount} 
-                onChange={handleFormChange} 
-                id="applyDiscount" 
+              <input
+                type="checkbox"
+                name="applyDiscount"
+                checked={formData.applyDiscount}
+                onChange={handleFormChange}
+                id="applyDiscount"
                 disabled={isSubmitting}
-                className="h-4 w-4" 
+                className="h-4 w-4"
               />
               <Label htmlFor="applyDiscount" className="cursor-pointer">
                 Apply Discount
               </Label>
             </div>
           </div>
-          
-          <Button 
-            type="submit" 
-            className="w-full" 
+
+          <Button
+            type="submit"
+            className="w-full"
             disabled={isSubmitting || !formData.roomNumber}
           >
-            {isSubmitting ? 'Processing...' : 'Submit Check-In'}
+            {isSubmitting ? "Processing..." : "Submit Check-In"}
           </Button>
         </form>
       </DialogContent>

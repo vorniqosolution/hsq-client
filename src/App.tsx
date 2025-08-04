@@ -8,6 +8,7 @@ import { RoomProvider } from "./contexts/RoomContext";
 import { GuestProvider } from "./contexts/GuestContext";
 import { InventoryProvider } from "./contexts/InventoryContext";
 import { DiscountProvider } from "./contexts/DiscountContext";
+import { RevenueProvider } from "./contexts/revenueContext";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -36,6 +37,7 @@ const App = () => (
             <GuestProvider>
               <InventoryProvider>
                 <DiscountProvider>
+                  <RevenueProvider>
                   <Routes>
                     <Route
                       path="/"
@@ -124,6 +126,7 @@ const App = () => (
                     />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
+                  </RevenueProvider>
                 </DiscountProvider>
               </InventoryProvider>
             </GuestProvider>
