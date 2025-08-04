@@ -91,11 +91,6 @@ const Sidebar = ({
     { name: "Revenue", href: "/Revenue", icon: FileText },
   ];
 
-  // Reports section
-  // const reportNavItems = [
-  //   { name: "Reports", href: "/reports", icon: BarChart3 },
-  // ];
-
   // System section
   const systemNavItems = [
     { name: "Settings", href: "/settings", icon: Settings },
@@ -196,14 +191,6 @@ const Sidebar = ({
         <nav className="mt-8 px-4 flex flex-col h-[calc(100%-80px)]">
           <div className="flex-grow">
             <div className="space-y-1">{renderNavLinks(mainNavItems)}</div>
-
-            {/* Reports Section */}
-            {/* <div className="mt-6">
-              <p className="px-4 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                Analysis
-              </p>
-              <div className="space-y-1">{renderNavLinks(reportNavItems)}</div>
-            </div> */}
           </div>
 
           {/* Bottom Section */}
