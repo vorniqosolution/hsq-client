@@ -2,7 +2,8 @@ import { useEffect, useState, useRef } from 'react';
 import { useInventory } from '@/contexts/InventoryContext';
 import { toast } from 'sonner';
 
-const NOTIFICATION_INTERVAL = 3600000; // 1 hour in milliseconds
+// const NOTIFICATION_INTERVAL = 3600000;
+const NOTIFICATION_INTERVAL = 5000; // 1 hour in milliseconds
 
 export const useLowStockNotifier = () => {
   const { lowStockItems, loading } = useInventory();

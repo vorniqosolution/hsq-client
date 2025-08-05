@@ -16,7 +16,7 @@ export interface Room {
   category: string;
   view: string;
   rate: number;
-  status: 'available' | 'booked' | 'occupied' | 'maintenance';
+  status: 'available' | 'reserved' | 'occupied' | 'maintenance';
 }
 
 export interface Guest {
