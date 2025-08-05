@@ -175,15 +175,6 @@ const GuestsPage: React.FC = () => {
     setGuestToDelete(guest);
   }, []);
 
-  // --- Sidebar Navigation ---
-  // const mainNavItems = [
-  //   { name: 'Dashboard', href: '/dashboard', icon: Home },
-  //   { name: 'Guests', href: '/guests', icon: Users },
-  //   { name: 'Rooms', href: '/rooms', icon: Bed },
-  //   { name: 'Discounts', href: '/discounts', icon: Ticket },
-  //   { name: 'Inventory', href: '/inventory', icon: Archive },
-  //   { name: 'Invoices', href: '/invoices', icon: FileText },
-  // ];
   const mainNavItems = [
     { name: "Dashboard", href: "/dashboard", icon: Home },
     { name: "Guests", href: "/guests", icon: Users },

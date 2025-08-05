@@ -1,5 +1,6 @@
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster as Sonner } from "sonner"; // Use 'sonner' directly for clarity
+import { useLowStockNotifier } from "./hooks/useLowStockNotifier";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -9,6 +10,7 @@ import { GuestProvider } from "./contexts/GuestContext";
 import { InventoryProvider } from "./contexts/InventoryContext";
 import { DiscountProvider } from "./contexts/DiscountContext";
 import { RevenueProvider } from "./contexts/revenueContext";
+import { InvoiceProvider } from "./contexts/InvoiceContext";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -22,15 +24,30 @@ import InventoryPage from "./pages/Inventory";
 import NotFound from "./pages/NotFound";
 import HomeRedirect from "./components/HomeRedirect";
 import InvoicesPage from "./pages/Invoices";
+import InvoiceDetails from "./pages/InvoiceDetailsPage";
 import RevenuePage from "./pages/Revenue";
 
 const queryClient = new QueryClient();
 
+// FIX: Create a small component to legally call our hook.
+// This component will be placed inside all the providers.
+const AppInitializer = ({ children }) => {
+  // Now we are correctly calling the hook inside a function component.
+  useLowStockNotifier();
+
+  // This component's only job is to call the hook and render its children.
+  return <>{children}</>;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      {/* 
+        FIX: The invalid hook call has been removed from here.
+        useLowStockNotifier(); <-- This was incorrect.
+      */}
       <Toaster />
-      <Sonner />
+      <Sonner richColors position="top-right" />
       <BrowserRouter>
         <AuthProvider>
           <RoomProvider>
@@ -38,94 +55,108 @@ const App = () => (
               <InventoryProvider>
                 <DiscountProvider>
                   <RevenueProvider>
-                  <Routes>
-                    <Route
-                      path="/"
-                      element={<Navigate to="/login" replace />}
-                    />
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route
-                      path="/dashboard"
-                      element={
-                        <ProtectedRoute roles={["admin"]}>
-                          <Layout>
-                            <DashboardPage />
-                          </Layout>
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/rooms"
-                      element={
-                        <ProtectedRoute roles={["admin"]}>
-                          <Layout>
-                            <RoomsPage />
-                          </Layout>
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/guests"
-                      element={
-                        <ProtectedRoute>
-                          <Layout>
-                            <GuestsPage />
-                          </Layout>
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/guests/:id"
-                      element={
-                        <ProtectedRoute>
-                          <Layout>
-                            <GuestDetailPage />
-                          </Layout>
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/Discount"
-                      element={
-                        <ProtectedRoute>
-                          <Layout>
-                            <DiscountPage />
-                          </Layout>
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/Inventory"
-                      element={
-                        <ProtectedRoute>
-                          <Layout>
-                            <InventoryPage />
-                          </Layout>
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/Invoices"
-                      element={
-                        <ProtectedRoute>
-                          <Layout>
-                            <InvoicesPage />
-                          </Layout>
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/Revenue"
-                      element={
-                        <ProtectedRoute>
-                          <Layout>
-                            <RevenuePage />
-                          </Layout>
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
+                    <InvoiceProvider>
+                      <AppInitializer>
+                        <Routes>
+                          <Route
+                            path="/"
+                            element={<Navigate to="/login" replace />}
+                          />
+                          <Route path="/login" element={<LoginPage />} />
+                          <Route
+                            path="/dashboard"
+                            element={
+                              <ProtectedRoute roles={["admin"]}>
+                                <Layout>
+                                  <DashboardPage />
+                                </Layout>
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route
+                            path="/rooms"
+                            element={
+                              <ProtectedRoute roles={["admin"]}>
+                                <Layout>
+                                  <RoomsPage />
+                                </Layout>
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route
+                            path="/guests"
+                            element={
+                              <ProtectedRoute>
+                                <Layout>
+                                  <GuestsPage />
+                                </Layout>
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route
+                            path="/guests/:id"
+                            element={
+                              <ProtectedRoute>
+                                <Layout>
+                                  <GuestDetailPage />
+                                </Layout>
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route
+                            path="/Discount"
+                            element={
+                              <ProtectedRoute>
+                                <Layout>
+                                  <DiscountPage />
+                                </Layout>
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route
+                            path="/Inventory"
+                            element={
+                              <ProtectedRoute>
+                                <Layout>
+                                  <InventoryPage />
+                                </Layout>
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route
+                            path="/Invoices"
+                            element={
+                              <ProtectedRoute>
+                                <Layout>
+                                  <InvoicesPage />
+                                </Layout>
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route
+                            path="/Invoices/:id"
+                            element={
+                              <ProtectedRoute>
+                                <Layout>
+                                  <InvoiceDetails />
+                                </Layout>
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route
+                            path="/Revenue"
+                            element={
+                              <ProtectedRoute>
+                                <Layout>
+                                  <RevenuePage />
+                                </Layout>
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                      </AppInitializer>
+                    </InvoiceProvider>
                   </RevenueProvider>
                 </DiscountProvider>
               </InventoryProvider>
