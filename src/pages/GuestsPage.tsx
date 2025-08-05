@@ -784,25 +784,22 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
             </Select>
           </div>
 
-          {/* Additional Discount Field - Only show when applyDiscount is checked */}
-          {formData.applyDiscount && (
-            <div className="space-y-2">
-              <Label htmlFor="additionaldiscount">
-                Additional Discount Amount (Rs)
-              </Label>
-              <Input
-                id="additionaldiscount"
-                name="additionaldiscount"
-                type="number"
-                min={0}
-                step="0.01"
-                value={formData.additionaldiscount}
-                onChange={handleFormChange}
-                placeholder="1000, 2000"
-                disabled={isSubmitting}
-              />
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label htmlFor="additionaldiscount">
+              Additional Discount Amount (Rs)
+            </Label>
+            <Input
+              id="additionaldiscount"
+              name="additionaldiscount"
+              type="number"
+              min={0}
+              step="0.01"
+              value={formData.additionaldiscount}
+              onChange={handleFormChange}
+              placeholder="1000, 2000"
+              disabled={isSubmitting}
+            />
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
             <div className="space-y-2">
