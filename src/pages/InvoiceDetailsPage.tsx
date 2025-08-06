@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // --- Helper Functions (No changes here) ---
 const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'PKR' }).format(amount);
 
 const getStatusBadge = (status: Invoice['status']) => {
   const styles = {
