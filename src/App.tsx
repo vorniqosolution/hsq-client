@@ -11,6 +11,7 @@ import { InventoryProvider } from "./contexts/InventoryContext";
 import { DiscountProvider } from "./contexts/DiscountContext";
 import { RevenueProvider } from "./contexts/revenueContext";
 import { InvoiceProvider } from "./contexts/InvoiceContext";
+import { ReservationProvider } from "./contexts/ReservationContext";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -52,114 +53,116 @@ const App = () => (
         <AuthProvider>
           <RoomProvider>
             <GuestProvider>
-              <InventoryProvider>
-                <DiscountProvider>
-                  <RevenueProvider>
-                    <InvoiceProvider>
-                      <AppInitializer>
-                        <Routes>
-                          <Route
-                            path="/"
-                            element={<Navigate to="/login" replace />}
-                          />
-                          <Route path="/login" element={<LoginPage />} />
-                          <Route
-                            path="/dashboard"
-                            element={
-                              <ProtectedRoute roles={["admin"]}>
-                                <Layout>
-                                  <DashboardPage />
-                                </Layout>
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path="/rooms"
-                            element={
-                              <ProtectedRoute roles={["admin"]}>
-                                <Layout>
-                                  <RoomsPage />
-                                </Layout>
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path="/guests"
-                            element={
-                              <ProtectedRoute>
-                                <Layout>
-                                  <GuestsPage />
-                                </Layout>
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path="/guests/:id"
-                            element={
-                              <ProtectedRoute>
-                                <Layout>
-                                  <GuestDetailPage />
-                                </Layout>
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path="/Discount"
-                            element={
-                              <ProtectedRoute>
-                                <Layout>
-                                  <DiscountPage />
-                                </Layout>
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path="/Inventory"
-                            element={
-                              <ProtectedRoute>
-                                <Layout>
-                                  <InventoryPage />
-                                </Layout>
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path="/Invoices"
-                            element={
-                              <ProtectedRoute>
-                                <Layout>
-                                  <InvoicesPage />
-                                </Layout>
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path="/Invoices/:id"
-                            element={
-                              <ProtectedRoute>
-                                <Layout>
-                                  <InvoiceDetails />
-                                </Layout>
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path="/Revenue"
-                            element={
-                              <ProtectedRoute>
-                                <Layout>
-                                  <RevenuePage />
-                                </Layout>
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route path="*" element={<NotFound />} />
-                        </Routes>
-                      </AppInitializer>
-                    </InvoiceProvider>
-                  </RevenueProvider>
-                </DiscountProvider>
-              </InventoryProvider>
+              <ReservationProvider>
+                <InventoryProvider>
+                  <DiscountProvider>
+                    <RevenueProvider>
+                      <InvoiceProvider>
+                        <AppInitializer>
+                          <Routes>
+                            <Route
+                              path="/"
+                              element={<Navigate to="/login" replace />}
+                            />
+                            <Route path="/login" element={<LoginPage />} />
+                            <Route
+                              path="/dashboard"
+                              element={
+                                <ProtectedRoute roles={["admin"]}>
+                                  <Layout>
+                                    <DashboardPage />
+                                  </Layout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/rooms"
+                              element={
+                                <ProtectedRoute roles={["admin"]}>
+                                  <Layout>
+                                    <RoomsPage />
+                                  </Layout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/guests"
+                              element={
+                                <ProtectedRoute>
+                                  <Layout>
+                                    <GuestsPage />
+                                  </Layout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/guests/:id"
+                              element={
+                                <ProtectedRoute>
+                                  <Layout>
+                                    <GuestDetailPage />
+                                  </Layout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/Discount"
+                              element={
+                                <ProtectedRoute>
+                                  <Layout>
+                                    <DiscountPage />
+                                  </Layout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/Inventory"
+                              element={
+                                <ProtectedRoute>
+                                  <Layout>
+                                    <InventoryPage />
+                                  </Layout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/Invoices"
+                              element={
+                                <ProtectedRoute>
+                                  <Layout>
+                                    <InvoicesPage />
+                                  </Layout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/Invoices/:id"
+                              element={
+                                <ProtectedRoute>
+                                  <Layout>
+                                    <InvoiceDetails />
+                                  </Layout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/Revenue"
+                              element={
+                                <ProtectedRoute>
+                                  <Layout>
+                                    <RevenuePage />
+                                  </Layout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route path="*" element={<NotFound />} />
+                          </Routes>
+                        </AppInitializer>
+                      </InvoiceProvider>
+                    </RevenueProvider>
+                  </DiscountProvider>
+                </InventoryProvider>
+              </ReservationProvider>
             </GuestProvider>
           </RoomProvider>
         </AuthProvider>

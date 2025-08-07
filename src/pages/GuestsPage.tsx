@@ -53,6 +53,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { format } from "date-fns";
 
 // Hooks & Contexts
 import { useToast } from "@/hooks/use-toast";
@@ -63,6 +64,8 @@ import {
   CreateGuestInput,
 } from "@/contexts/GuestContext";
 import { useAuth } from "@/contexts/AuthContext"; // Import auth context
+import { useReservationContext } from "../contexts/ReservationContext";
+// import { format } from "path";
 
 // --- Constants and Types ---
 const ROOM_CATEGORIES = ["Standard", "Deluxe", "Executive", "Presidential"];
@@ -100,11 +103,39 @@ const GuestsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [isCheckInDialogOpen, setIsCheckInDialogOpen] = useState(false);
+  const [IsOpenReservationDialog, setIsOpenReservationDialog] =
+    useState<boolean>(false);
   const [guestToDelete, setGuestToDelete] = useState<Guest | null>(null);
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 
+  const [ReservationFormData, setReservationFormData] =
+    useState<ReservationFormData>({
+      fullName: "",
+      address: "",
+      email: "",
+      phoneNo: "",
+      cnic: "",
+      roomNumber: "",
+      checkInDate: "",
+      checkOutDate: "",
+    });
+
+  console.log("Reversation data", ReservationFormData);
+  // console.log("Reservation date", ReservationFormData.checkInDate);
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setReservationFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("Form submitted:", ReservationFormData);
+    setIsOpenReservationDialog(false);
+  };
   // --- Data Fetching ---
   useEffect(() => {
     // Initial data fetch
@@ -170,6 +201,10 @@ const GuestsPage: React.FC = () => {
   const handleOpenCheckInDialog = useCallback(() => {
     setIsCheckInDialogOpen(true);
   }, []);
+  // Handle open dialog
+  // const OpenReservationDialog = () => {
+  //   setIsOpenReservationDialog(true);
+  // };
 
   const handleGuestDelete = useCallback((guest: Guest) => {
     setGuestToDelete(guest);
@@ -414,9 +449,21 @@ const GuestsPage: React.FC = () => {
           {/* Page Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <h1 className="text-3xl font-bold tracking-tight">Guests</h1>
-            <Button onClick={handleOpenCheckInDialog}>
-              <UserPlus className="mr-2 h-4 w-4" /> Check In Guest
-            </Button>
+
+            <div className="flex gap-2 ml-auto">
+              <Button
+                onClick={() => setIsOpenReservationDialog(true)}
+                className="bg-blue-800"
+              >
+                <UserPlus className="mr-2 h-4 w-4" />
+                Reservation Guest
+              </Button>
+
+              <Button onClick={handleOpenCheckInDialog}>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Check In Guest
+              </Button>
+            </div>
           </div>
 
           {/* Toolbar */}
@@ -505,6 +552,131 @@ const GuestsPage: React.FC = () => {
           </AlertDialog>
         </div>
       </div>
+      {/* dialog of reservation */}
+      {IsOpenReservationDialog && (
+        <Dialog>
+          <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+            <div className="relative bg-white rounded-lg shadow-lg w-full max-w-xl p-6 overflow-y-auto max-h-[90vh]">
+              <button
+                type="button"
+                onClick={() => setIsOpenReservationDialog(false)}
+                className="absolute top-3 right-3 text-gray-500 hover:text-black"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+              <h2 className="text-xl font-bold mb-4">Reservation Guest</h2>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    name="fullName"
+                    value={ReservationFormData.fullName}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="address">Address</Label>
+                  <Input
+                    id="address"
+                    name="address"
+                    value={ReservationFormData.address}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={ReservationFormData.email}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="phoneNo">Phone Number</Label>
+                  <Input
+                    id="phoneNo"
+                    name="phoneNo"
+                    value={ReservationFormData.phoneNo}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="cnic">CNIC</Label>
+                  <Input
+                    id="cnic"
+                    name="cnic"
+                    value={ReservationFormData.cnic}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="roomNumber">Room Number</Label>
+                  <Input
+                    id="roomNumber"
+                    name="roomNumber"
+                    value={ReservationFormData.roomNumber}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label>Check-In Date</Label>
+                  <Input
+                    id="checkInDate"
+                    name="checkInDate"
+                    type="date"
+                    value={ReservationFormData.checkInDate}
+                    onChange={handleChange}
+                    required
+                  />
+
+                  {ReservationFormData.checkInDate && (
+                    <p className="text-sm text-gray-500">
+                      {format(ReservationFormData.checkInDate, "PPP")}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <Label>Check-Out Date</Label>
+                  <Input
+                    id="checkOutDate"
+                    name="checkOutDate"
+                    type="date"
+                    value={ReservationFormData.checkOutDate}
+                    onChange={handleChange}
+                    required
+                  />
+
+                  {ReservationFormData.checkOutDate && (
+                    <p className="text-sm text-gray-500">
+                      {format(ReservationFormData.checkOutDate, "PPP")}
+                    </p>
+                  )}
+                </div>
+
+                <Button type="submit" className="w-full">
+                  Submit Reservation
+                </Button>
+              </form>
+            </div>
+          </div>
+        </Dialog>
+      )}
     </div>
   );
 };
@@ -580,6 +752,17 @@ interface CheckInFormDialogProps {
   setIsOpen: (open: boolean) => void;
   rooms: Room[];
   createGuest: (data: CreateGuestInput) => Promise<void>;
+}
+// create object for Reservation
+interface ReservationFormData {
+  fullName: string;
+  address: string;
+  email: string;
+  phoneNo: string;
+  cnic: string;
+  roomNumber: string;
+  checkInDate: string;
+  checkOutDate: string;
 }
 
 const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
@@ -660,12 +843,12 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto sm:max-h-[80vh] h-auto">
         <DialogHeader>
           <DialogTitle>New Guest Check-In</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+        <form onSubmit={handleSubmit} className="space-y-4 pt-4 ">
           <div className="space-y-2">
             <Label htmlFor="fullName">Full Name</Label>
             <Input
