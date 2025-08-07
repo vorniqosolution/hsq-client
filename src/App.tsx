@@ -30,23 +30,15 @@ import RevenuePage from "./pages/Revenue";
 
 const queryClient = new QueryClient();
 
-// FIX: Create a small component to legally call our hook.
-// This component will be placed inside all the providers.
 const AppInitializer = ({ children }) => {
-  // Now we are correctly calling the hook inside a function component.
   useLowStockNotifier();
 
-  // This component's only job is to call the hook and render its children.
   return <>{children}</>;
 };
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      {/* 
-        FIX: The invalid hook call has been removed from here.
-        useLowStockNotifier(); <-- This was incorrect.
-      */}
       <Toaster />
       <Sonner richColors position="top-right" />
       <BrowserRouter>
