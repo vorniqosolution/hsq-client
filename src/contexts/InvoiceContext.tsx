@@ -1,29 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import axios, { AxiosError, AxiosInstance } from 'axios';
-import { Room, Guest } from './GuestContext'; // Assuming GuestContext types are exported and available
+import { Room, Guest } from './GuestContext';
+import { useAuth } from '@/contexts/AuthContext';
 
-// --- Setup ---
-
-// Create a configured Axios instance to avoid repetition
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE,
   withCredentials: true,
 });
-
-// --- Type Definitions ---
-
-// Re-defining for clarity, but you can import from GuestContext if they are exported
-// interface Room {
-//   _id: string;
-//   roomNumber: string;
-// }
-
-// interface Guest {
-//   _id: string;
-//   fullName: string;
-//   room: Room;
-// }
 
 export interface InvoiceItem {
   _id: string;
@@ -89,6 +73,7 @@ const InvoiceContext = createContext<InvoiceContextType | undefined>(undefined);
 // --- Provider Component ---
 export const InvoiceProvider = ({ children }: { children: ReactNode }) => {
   // State
+  const { user } = useAuth(); 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [paginatedInvoices, setPaginatedInvoices] = useState<PaginatedInvoices | null>(null);
   const [currentInvoice, setCurrentInvoice] = useState<Invoice | null>(null);
@@ -215,9 +200,15 @@ export const InvoiceProvider = ({ children }: { children: ReactNode }) => {
   }, []);
   
   // Initial data load
+  // useEffect(() => {
+  //   fetchAllInvoices();
+  // }, [fetchAllInvoices]);
+
   useEffect(() => {
-    fetchAllInvoices();
-  }, [fetchAllInvoices]);
+      if (user) {                           // ← run only once `user` exists
+        fetchAllInvoices();
+      }
+    }, [fetchAllInvoices, user]); 
   
   // Memoize context value
   const contextValue = useMemo(() => ({

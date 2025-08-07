@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import {
   Users, Bed, Calendar, DollarSign, TrendingUp, TrendingDown, Settings,
   LogOut, Menu, X, Home, Crown, Star, CheckCircle, Wrench, Key, Filter,
-  Sparkles, Ticket, Archive, FileText,
+  Sparkles, Ticket, Archive, FileText, Percent 
 } from "lucide-react";
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
@@ -33,6 +33,7 @@ const Sidebar = ({
     { name: "Guests", href: "/guests", icon: Users },
     { name: "Rooms", href: "/rooms", icon: Bed },
     { name: "Discounts", href: "/Discount", icon: Ticket },
+    { name: "GST & Tax", href: "/Gst", icon: Percent },
     { name: "Inventory", href: "/Inventory", icon: Archive },
     { name: "Invoices", href: "/Invoices", icon: FileText },
     { name: "Revenue", href: "/Revenue", icon: FileText },

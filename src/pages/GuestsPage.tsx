@@ -20,6 +20,7 @@ import {
   FileText,
   Ticket,
   BarChart3,
+  Percent,
 } from "lucide-react";
 
 // Shadcn UI Components
@@ -180,6 +181,7 @@ const GuestsPage: React.FC = () => {
     { name: "Guests", href: "/guests", icon: Users },
     { name: "Rooms", href: "/rooms", icon: Bed },
     { name: "Discounts", href: "/Discount", icon: Ticket },
+    { name: "GST & Tax", href: "/Gst", icon: Percent },
     { name: "Inventory", href: "/Inventory", icon: Archive },
     { name: "Invoices", href: "/Invoices", icon: FileText },
     { name: "Revenue", href: "/Revenue", icon: FileText },

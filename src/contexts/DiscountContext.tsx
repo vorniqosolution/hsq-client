@@ -1,5 +1,14 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
-import axios, { AxiosError, AxiosInstance } from 'axios';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  ReactNode,
+} from "react";
+import axios, { AxiosError, AxiosInstance } from "axios";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Axios client setup
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
@@ -20,6 +29,17 @@ export interface Discount {
   updatedAt: string;
 }
 
+interface DiscountContextType {
+  discounts: Discount[];
+  currentDiscounts: Discount[];
+  loading: boolean;
+  error: string | null;
+  fetchDiscounts: () => Promise<void>;
+  fetchCurrentDiscounts: () => Promise<void>;
+  deleteDiscount: (id: string) => Promise<void>;
+  updateDiscount: (id: string, data: Partial<CreateDiscountInput>) => Promise<void>; // Added this
+}
+
 export interface CreateDiscountInput {
   title: string;
   percentage: number;
@@ -38,9 +58,13 @@ interface DiscountContextType {
   deleteDiscount: (id: string) => Promise<void>;
 }
 
-const DiscountContext = createContext<DiscountContextType | undefined>(undefined);
+const DiscountContext = createContext<DiscountContextType | undefined>(
+  undefined
+);
 
 export const DiscountProvider = ({ children }: { children: ReactNode }) => {
+  const { user } = useAuth();
+
   // State
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [currentDiscounts, setCurrentDiscounts] = useState<Discount[]>([]);
@@ -48,41 +72,51 @@ export const DiscountProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
 
   // Helper for API calls with loading/error handling
-  const apiCall = useCallback(async <T,>(
-    fn: () => Promise<T>,
-    onSuccess?: (data: T) => void,
-    errorMessage = 'An error occurred'
-  ): Promise<T> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await fn();
-      if (onSuccess) onSuccess(result);
-      return result;
-    } catch (err) {
-      let message = errorMessage;
-      if (axios.isAxiosError(err)) {
-        const axiosError = err as AxiosError<{ message?: string }>;
-        message = axiosError.response?.data?.message || axiosError.message || errorMessage;
-      } else if (err instanceof Error) {
-        message = err.message;
+  const apiCall = useCallback(
+    async <T,>(
+      fn: () => Promise<T>,
+      onSuccess?: (data: T) => void,
+      errorMessage = "An error occurred"
+    ): Promise<T> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await fn();
+        if (onSuccess) onSuccess(result);
+        return result;
+      } catch (err) {
+        let message = errorMessage;
+        if (axios.isAxiosError(err)) {
+          const axiosError = err as AxiosError<{ message?: string }>;
+          message =
+            axiosError.response?.data?.message ||
+            axiosError.message ||
+            errorMessage;
+        } else if (err instanceof Error) {
+          message = err.message;
+        }
+        setError(message);
+        throw err;
+      } finally {
+        setLoading(false);
       }
-      setError(message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    []
+  );
+
+  
 
   // Fetch all discounts
   const fetchDiscounts = useCallback(async () => {
     await apiCall(
       async () => {
-        const res = await apiClient.get<{ discounts: Discount[] }>('/api/discounts/get-Discounts');
+        const res = await apiClient.get<{ discounts: Discount[] }>(
+          "/api/discounts/get-Discounts"
+        );
         return res.data.discounts;
       },
       setDiscounts,
-      'Failed to fetch discounts'
+      "Failed to fetch discounts"
     );
   }, [apiCall]);
 
@@ -90,41 +124,65 @@ export const DiscountProvider = ({ children }: { children: ReactNode }) => {
   const fetchCurrentDiscounts = useCallback(async () => {
     await apiCall(
       async () => {
-        const res = await apiClient.get<{ discount: Discount[] }>('/api/discounts/currentdiscount');
+        const res = await apiClient.get<{ discount: Discount[] }>(
+          "/api/discounts/currentdiscount"
+        );
         return res.data.discount;
       },
       setCurrentDiscounts,
-      'Failed to fetch current discounts'
+      "Failed to fetch current discounts"
     );
   }, [apiCall]);
 
-  // Create a new discount
-  const createDiscount = useCallback(async (data: CreateDiscountInput) => {
+  const updateDiscount = useCallback(
+  async (id: string, data: Partial<CreateDiscountInput>) => {
     await apiCall(
       async () => {
-        await apiClient.post('/api/discounts/create-Discount', data);
+        await apiClient.patch(`/api/discounts/update-discount/${id}`, data);
       },
       async () => {
-        // Refresh both lists after creation
+        // Refresh both lists after update
         await Promise.all([fetchDiscounts(), fetchCurrentDiscounts()]);
       },
-      'Failed to create discount'
+      "Failed to update discount"
     );
-  }, [apiCall, fetchDiscounts, fetchCurrentDiscounts]);
+  },
+  [apiCall, fetchDiscounts, fetchCurrentDiscounts, ]
+);
+
+  // Create a new discount
+  const createDiscount = useCallback(
+    async (data: CreateDiscountInput) => {
+      await apiCall(
+        async () => {
+          await apiClient.post("/api/discounts/create-Discount", data);
+        },
+        async () => {
+          // Refresh both lists after creation
+          await Promise.all([fetchDiscounts(), fetchCurrentDiscounts()]);
+        },
+        "Failed to create discount"
+      );
+    },
+    [apiCall, fetchDiscounts, fetchCurrentDiscounts]
+  );
 
   // Delete a discount by ID
-  const deleteDiscount = useCallback(async (id: string) => {
-    await apiCall(
-      async () => {
-        await apiClient.delete(`/api/discounts/delete-discount/${id}`);
-      },
-      () => {
-        // Optimistic UI: remove locally
-        setDiscounts(prev => prev.filter(d => d._id !== id));
-      },
-      'Failed to delete discount'
-    );
-  }, [apiCall]);
+  const deleteDiscount = useCallback(
+    async (id: string) => {
+      await apiCall(
+        async () => {
+          await apiClient.delete(`/api/discounts/delete-discount/${id}`);
+        },
+        () => {
+          // Optimistic UI: remove locally
+          setDiscounts((prev) => prev.filter((d) => d._id !== id));
+        },
+        "Failed to delete discount"
+      );
+    },
+    [apiCall]
+  );
 
   // Initial load
   useEffect(() => {
@@ -132,17 +190,39 @@ export const DiscountProvider = ({ children }: { children: ReactNode }) => {
     fetchCurrentDiscounts();
   }, [fetchDiscounts, fetchCurrentDiscounts]);
 
+  useEffect(() => {
+    if (user) {
+      // ← run only once `user` exists
+      fetchDiscounts();
+      fetchCurrentDiscounts();
+    }
+  }, [fetchDiscounts, fetchCurrentDiscounts, user]);
+
   // Memoized context value
-  const value = useMemo(() => ({
-    discounts,
-    currentDiscounts,
-    loading,
-    error,
-    fetchDiscounts,
-    fetchCurrentDiscounts,
-    createDiscount,
-    deleteDiscount,
-  }), [discounts, currentDiscounts, loading, error, fetchDiscounts, fetchCurrentDiscounts, createDiscount, deleteDiscount]);
+  const value = useMemo(
+    () => ({
+      discounts,
+      currentDiscounts,
+      loading,
+      error,
+      fetchDiscounts,
+      fetchCurrentDiscounts,
+      createDiscount,
+      deleteDiscount,
+      updateDiscount,
+    }),
+    [
+      discounts,
+      currentDiscounts,
+      loading,
+      error,
+      fetchDiscounts,
+      fetchCurrentDiscounts,
+      createDiscount,
+      deleteDiscount,
+      updateDiscount,
+    ]
+  );
 
   return (
     <DiscountContext.Provider value={value}>
@@ -154,6 +234,7 @@ export const DiscountProvider = ({ children }: { children: ReactNode }) => {
 // Custom hook for consuming context
 export const useDiscountContext = () => {
   const context = useContext(DiscountContext);
-  if (!context) throw new Error('useDiscountContext must be used within DiscountProvider');
+  if (!context)
+    throw new Error("useDiscountContext must be used within DiscountProvider");
   return context;
 };

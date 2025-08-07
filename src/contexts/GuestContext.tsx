@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import axios, { AxiosError, AxiosInstance } from 'axios';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Create a configured Axios instance to avoid repetition
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
@@ -86,6 +87,8 @@ interface GuestContextType {
 const GuestContext = createContext<GuestContextType | undefined>(undefined);
 
 export const GuestProvider = ({ children }: { children: ReactNode }) => {
+  
+  const { user } = useAuth();
   // State
   const [guests, setGuests] = useState<Guest[]>([]);
   const [guest, setGuest] = useState<Guest | null>(null);
@@ -251,7 +254,7 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
 
   // Initial data loading
   useEffect(() => {
-    const loadInitialData = async () => {
+    if (user) {const loadInitialData = async () => {
       setLoading(true);
       try {
         await Promise.all([fetchGuests(), fetchAvailableRooms()]);
@@ -262,8 +265,11 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
       }
     };
     
-    loadInitialData();
-  }, [fetchGuests, fetchAvailableRooms]);
+    loadInitialData();}
+    
+  }, [fetchGuests, fetchAvailableRooms, user]);
+
+  
 
   // Memoized context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({

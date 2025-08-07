@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useDiscountContext, Discount, CreateDiscountInput } from '@/contexts/DiscountContext';
-import { useAuth } from '@/contexts/AuthContext'; // Import auth context
+import { useAuth } from '@/contexts/AuthContext';
 
 const DiscountsPage = () => {
   const {
@@ -45,12 +45,12 @@ const DiscountsPage = () => {
     loading,
     error,
     fetchDiscounts,
-    createDiscount,
-    deleteDiscount
+    deleteDiscount,
+    updateDiscount
   } = useDiscountContext();
   
-  const { user } = useAuth(); // Access the authenticated user
-  const isAdmin = user?.role === "admin"; // Check if user is admin
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -58,9 +58,10 @@ const DiscountsPage = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'expired' | 'scheduled'>('all');
   const location = useLocation();
 
-  // New discount dialog state
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [newDiscount, setNewDiscount] = useState<CreateDiscountInput>({
+  // Update discount dialog state
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
+  const [discountToUpdate, setDiscountToUpdate] = useState<Discount | null>(null);
+  const [updatedValues, setUpdatedValues] = useState<Partial<CreateDiscountInput>>({
     title: '',
     percentage: 0,
     startDate: '',
@@ -75,12 +76,25 @@ const DiscountsPage = () => {
     fetchDiscounts();
   }, [fetchDiscounts]);
 
+  // Set form values when discount to update changes
+  useEffect(() => {
+    if (discountToUpdate) {
+      setUpdatedValues({
+        title: discountToUpdate.title,
+        percentage: discountToUpdate.percentage,
+        startDate: discountToUpdate.startDate.split('T')[0], // Format date for input
+        endDate: discountToUpdate.endDate.split('T')[0]
+      });
+    }
+  }, [discountToUpdate]);
+
   // Sidebar navigation items
   const mainNavItems = [
       { name: "Dashboard", href: "/dashboard", icon: Home },
       { name: "Guests", href: "/guests", icon: Users },
       { name: "Rooms", href: "/rooms", icon: Bed },
       { name: "Discounts", href: "/Discount", icon: Ticket },
+      { name: "GST & Tax", href: "/Gst", icon: Percent },
       { name: "Inventory", href: "/Inventory", icon: Archive },
       { name: "Invoices", href: "/Invoices", icon: FileText },
       { name: "Revenue", href: "/Revenue", icon: FileText },
@@ -92,7 +106,6 @@ const DiscountsPage = () => {
   ];
 
   const isActive = (href: string) => {
-    // Exact match for dashboard, startsWith for others to keep parent active
     if (href === '/dashboard') {
         return location.pathname === href;
     }
@@ -189,32 +202,29 @@ const DiscountsPage = () => {
   // Form handlers
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setNewDiscount(prev => ({
+    setUpdatedValues(prev => ({
       ...prev,
       [name]: name === 'percentage' ? parseFloat(value) : value
     }));
   };
 
-  const handleCreateDiscount = async (e: React.FormEvent) => {
+  const handleUpdateDiscount = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!discountToUpdate) return;
+    
     try {
-      await createDiscount(newDiscount);
+      await updateDiscount(discountToUpdate._id, updatedValues);
       toast({
         title: "Success",
-        description: `Discount "${newDiscount.title}" has been created.`,
+        description: `Discount "${updatedValues.title}" has been updated.`,
       });
-      setIsCreateDialogOpen(false);
-      setNewDiscount({
-        title: '',
-        percentage: 0,
-        startDate: '',
-        endDate: ''
-      });
+      setIsUpdateDialogOpen(false);
+      setDiscountToUpdate(null);
     } catch (err) {
       toast({
         title: "Error",
-        description: "Failed to create the discount. Please try again.",
+        description: "Failed to update the discount. Please try again.",
         variant: "destructive",
       });
     }
@@ -292,9 +302,6 @@ const DiscountsPage = () => {
                 <div className="space-y-1">
                     {renderNavLinks(mainNavItems)}
                 </div>
-                
-                {/* Reports Section */}
-                
               </div>
               
               {/* Bottom Section */}
@@ -356,51 +363,10 @@ const DiscountsPage = () => {
                 <h1 className="text-4xl font-light text-slate-900 tracking-wide">Discounts</h1>
                 <p className="text-slate-600 mt-2 font-light">Manage promotional offers and discount codes</p>
               </div>
-              <div className="mt-4 md:mt-0">
-                <Button 
-                  className="bg-amber-500 hover:bg-amber-600 text-white"
-                  onClick={() => setIsCreateDialogOpen(true)}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Discount
-                </Button>
-              </div>
             </div>
 
             {/* Stats and Filters */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <Card className="md:col-span-3 border-0 shadow-lg bg-white">
-                <CardContent className="p-6">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="relative flex-grow max-w-md">
-                      <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                      <Input 
-                        placeholder="Search discounts..." 
-                        className="pl-9 bg-slate-50 border-slate-200"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                      />
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Filter className="h-4 w-4 text-slate-500" />
-                      <select 
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value as any)}
-                        className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                      >
-                        <option value="all">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="scheduled">Scheduled</option>
-                        <option value="expired">Expired</option>
-                      </select>
-                      <Button variant="outline" size="sm" className="ml-2">
-                        <Download className="h-4 w-4 mr-2" />
-                        Export
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
 
               <Card className="border-0 shadow-lg bg-white">
                 <CardContent className="p-6">
@@ -472,22 +438,37 @@ const DiscountsPage = () => {
                             {getStatusBadge(status)}
                           </td>
                           <td className="py-4 px-6 text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem 
-                                  className="cursor-pointer text-red-600"
-                                  onClick={() => setDiscountToDelete(discount)}
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <div className="flex items-center justify-end space-x-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
+                                onClick={() => {
+                                  setDiscountToUpdate(discount);
+                                  setIsUpdateDialogOpen(true);
+                                }}
+                              >
+                                <Edit2 className="h-4 w-4 mr-2" />
+                                Update
+                              </Button>
+                              
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem 
+                                    className="cursor-pointer text-red-600"
+                                    onClick={() => setDiscountToDelete(discount)}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -500,15 +481,6 @@ const DiscountsPage = () => {
                 <div className="py-12 text-center">
                   <Tag className="h-12 w-12 text-slate-300 mx-auto mb-3" />
                   <p className="text-slate-500 font-light">No discounts found</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-4"
-                    onClick={() => setIsCreateDialogOpen(true)}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create New Discount
-                  </Button>
                 </div>
               )}
 
@@ -528,22 +500,49 @@ const DiscountsPage = () => {
         </div>
       </div>
 
-      {/* Create Discount Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+      {/* Update Discount Dialog */}
+      <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Create New Discount</DialogTitle>
-            <DialogDescription>
-              Create a new discount code for guests to use during check-in.
-            </DialogDescription>
+          <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div>
+              <DialogTitle>Update Discount</DialogTitle>
+              <DialogDescription>
+                Modify the discount settings and preferences.
+              </DialogDescription>
+            </div>
+            <div className="flex space-x-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  setIsUpdateDialogOpen(false);
+                  setDiscountToUpdate(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                size="sm" 
+                form="update-discount-form"
+                className="bg-amber-500 hover:bg-amber-600"
+              >
+                Update
+              </Button>
+            </div>
           </DialogHeader>
-          <form onSubmit={handleCreateDiscount} className="space-y-4 py-4">
+          <form 
+            id="update-discount-form"
+            onSubmit={handleUpdateDiscount} 
+            className="space-y-4 py-4"
+          >
             <div className="space-y-2">
               <Label htmlFor="title">Discount Code</Label>
               <Input
                 id="title"
                 name="title"
-                value={newDiscount.title}
+                value={updatedValues.title}
                 onChange={handleInputChange}
                 placeholder="SUMMER25"
                 required
@@ -559,7 +558,7 @@ const DiscountsPage = () => {
                   type="number"
                   min="1"
                   max="100"
-                  value={newDiscount.percentage}
+                  value={updatedValues.percentage}
                   onChange={handleInputChange}
                   className="pr-8"
                   required
@@ -576,7 +575,7 @@ const DiscountsPage = () => {
                 id="startDate"
                 name="startDate"
                 type="date"
-                value={newDiscount.startDate}
+                value={updatedValues.startDate}
                 onChange={handleInputChange}
                 required
               />
@@ -588,27 +587,11 @@ const DiscountsPage = () => {
                 id="endDate"
                 name="endDate"
                 type="date"
-                value={newDiscount.endDate}
+                value={updatedValues.endDate}
                 onChange={handleInputChange}
                 required
               />
             </div>
-            
-            <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setIsCreateDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                className="bg-amber-500 hover:bg-amber-600"
-              >
-                Create Discount
-              </Button>
-            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
