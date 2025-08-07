@@ -249,10 +249,10 @@ const InvoicesPage = () => {
                   <CardDescription className="font-light text-slate-500">Manage and track all invoices</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                  <div className="relative">
+                  {/* <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                     <Input placeholder="Search name or invoice #" className="pl-9 bg-white border-slate-200 w-full sm:w-64" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-                  </div>
+                  </div> */}
                   <div className="flex items-center space-x-2">
                     <Filter className="h-4 w-4 text-slate-500" />
                     <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)} className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500">
@@ -286,7 +286,7 @@ const InvoicesPage = () => {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onSelect={() => navigate(`/invoices/${invoice._id}`)} className="cursor-pointer"><Eye className="h-4 w-4 mr-2" />View Details</DropdownMenuItem>
                               {invoice.status === 'pending' && <DropdownMenuItem onSelect={() => updateInvoiceStatus(invoice._id, 'paid')} className="cursor-pointer text-emerald-600"><CreditCard className="h-4 w-4 mr-2" />Mark as Paid</DropdownMenuItem>}
-                              <DropdownMenuItem onSelect={() => downloadInvoicePdf(invoice._id)} className="cursor-pointer"><Download className="h-4 w-4 mr-2" />Download PDF</DropdownMenuItem>
+                              {/* <DropdownMenuItem onSelect={() => downloadInvoicePdf(invoice._id)} className="cursor-pointer"><Download className="h-4 w-4 mr-2" />Download PDF</DropdownMenuItem> */}
                               <DropdownMenuItem onSelect={() => handleSendEmail(invoice._id)} className="cursor-pointer"><Mail className="h-4 w-4 mr-2" />Send via Email</DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onSelect={() => handleDelete(invoice._id)} className="cursor-pointer text-red-600"><Trash2 className="h-4 w-4 mr-2" />Delete Invoice</DropdownMenuItem>
