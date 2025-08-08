@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, ReactNod
 import axios from 'axios';
 import { useAuth } from '@/contexts/AuthContext';
 
-const POLL_INTERVAL = 5_000; // 5 seconds
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 export interface Room {
@@ -14,7 +14,7 @@ export interface Room {
   category: string;
   view: string;
   rate: number;
-  status: 'available' | 'booked' | 'occupied' | 'maintenance';
+  status: 'available' | 'reserved' | 'occupied' | 'maintenance';
   owner: string;
   dropdownLabel?: string;
 }
@@ -209,18 +209,7 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
     });
 
     // Silent polling every POLL_INTERVAL
-    const id = window.setInterval(() => {
-      if (initialFetchDone.current) {
-        fetchRoomsInternal(false);
-        
-        // Optionally refresh other data as well
-        // Uncommment if you want to auto-refresh these too
-        // fetchAvailableRooms();
-        // fetchPresidentialRooms();
-      }
-    }, POLL_INTERVAL);
-
-    return () => window.clearInterval(id);
+    
   }, []);
 
   const contextValue = {

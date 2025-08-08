@@ -56,6 +56,7 @@ import {
 import { format, parseISO, differenceInCalendarDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useReservationContext } from "@/contexts/ReservationContext";
+import { useGuestContext } from "@/contexts/GuestContext"; // Import GuestContext
 import { useAuth } from "@/contexts/AuthContext";
 import { useRoomContext } from "@/contexts/RoomContext";
 
@@ -71,11 +72,13 @@ const ReservationDetailsPage: React.FC = () => {
 
   const { 
     getReservationById, 
-    // updateReservationStatus,
+    updateReservationStatus,
     loading, 
     error 
   } = useReservationContext();
+  
   const { rooms } = useRoomContext();
+  const { allRooms } = useGuestContext(); // Get room data from GuestContext
 
   const [reservation, setReservation] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -105,35 +108,49 @@ const ReservationDetailsPage: React.FC = () => {
   }, [id, getReservationById, toast]);
 
   // Handle status update
-//   const handleStatusUpdate = async () => {
-//     if (!reservation || !newStatus) return;
+  const handleStatusUpdate = async () => {
+    if (!reservation || !newStatus) return;
     
-//     try {
-//       await updateReservationStatus(reservation._id, newStatus);
-//       // Update local state
-//       setReservation((prev: any) => ({
-//         ...prev,
-//         status: newStatus
-//       }));
-//       toast({
-//         title: "Success",
-//         description: `Reservation status updated to ${newStatus}`,
-//       });
-//       setIsUpdateStatusDialogOpen(false);
-//     } catch (err) {
-//       toast({
-//         title: "Error",
-//         description: "Failed to update reservation status",
-//         variant: "destructive",
-//       });
-//     }
-//   };
+    try {
+      await updateReservationStatus(reservation._id, newStatus);
+      // Update local state
+      setReservation((prev: any) => ({
+        ...prev,
+        status: newStatus
+      }));
+      toast({
+        title: "Success",
+        description: `Reservation status updated to ${newStatus}`,
+      });
+      setIsUpdateStatusDialogOpen(false);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to update reservation status",
+        variant: "destructive",
+      });
+    }
+  };
 
-  // Get room details
+  // Get room details from GuestContext
   const roomDetails = useMemo(() => {
-    if (!reservation || !rooms.length) return null;
-    return rooms.find(room => room.roomNumber === reservation.roomNumber);
-  }, [reservation, rooms]);
+    if (!reservation) return null;
+    
+    // Try to find room in allRooms from GuestContext first
+    if (allRooms && allRooms.length) {
+      const guestContextRoom = allRooms.find(
+        (room) => room.roomNumber === reservation.roomNumber
+      );
+      if (guestContextRoom) return guestContextRoom;
+    }
+    
+    // Fallback to RoomContext if not found
+    if (rooms && rooms.length) {
+      return rooms.find(room => room.roomNumber === reservation.roomNumber);
+    }
+    
+    return null;
+  }, [reservation, allRooms, rooms]);
 
   // Calculate duration and total price
   const reservationDetails = useMemo(() => {
@@ -144,12 +161,16 @@ const ReservationDetailsPage: React.FC = () => {
     const days = differenceInCalendarDays(endDate, startDate);
     
     let totalPrice = 0;
+    let roomRate = 0;
+    
     if (roomDetails) {
-      totalPrice = roomDetails.price * days;
+      roomRate = roomDetails.price || roomDetails.rate || 0;
+      totalPrice = roomRate * days;
     }
     
     return {
       days,
+      roomRate,
       totalPrice,
       formattedStartDate: format(startDate, "PPP"),
       formattedEndDate: format(endDate, "PPP"),
@@ -396,12 +417,6 @@ const ReservationDetailsPage: React.FC = () => {
                     <div>
                       {getStatusBadge(reservation.status)}
                     </div>
-                    <CardFooter className="bg-slate-50 border-t flex justify-between items-center p-4">
-                  <Button variant="outline" onClick={() => navigate(`/guests?reservation=${reservation._id}`)}>
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Check In Guest
-                  </Button>
-                </CardFooter>
                   </div>
                 </CardHeader>
                 <CardContent className="p-6 space-y-6">
@@ -450,7 +465,12 @@ const ReservationDetailsPage: React.FC = () => {
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Room Type</p>
-                        <p className="font-medium">{roomDetails?.category || "—"}</p>
+                        <p className="font-medium">
+                          {roomDetails?.category || 
+                           roomDetails?.type || 
+                           roomDetails?.roomType || 
+                           "—"}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Check-in Date</p>
@@ -467,11 +487,56 @@ const ReservationDetailsPage: React.FC = () => {
                       <div>
                         <p className="text-sm text-gray-500">Daily Rate</p>
                         <p className="font-medium">
-                          {roomDetails ? `Rs. ${roomDetails.room.price.toLocaleString()}` : "—"}
+                          {reservationDetails?.roomRate 
+                            ? `Rs. ${reservationDetails.roomRate.toLocaleString()}` 
+                            : "—"}
                         </p>
                       </div>
                     </div>
                   </div>
+
+                  {/* Room Details Section */}
+                  {roomDetails && (
+                    <>
+                      <Separator />
+                      <div>
+                        <h3 className="text-lg font-medium mb-3 flex items-center">
+                          <Bed className="mr-2 h-5 w-5 text-amber-500" />
+                          Room Details
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {roomDetails.capacity && (
+                            <div>
+                              <p className="text-sm text-gray-500">Capacity</p>
+                              <p className="font-medium">{roomDetails.capacity} Persons</p>
+                            </div>
+                          )}
+                          {roomDetails.bedType && (
+                            <div>
+                              <p className="text-sm text-gray-500">Bed Type</p>
+                              <p className="font-medium">{roomDetails.bedType}</p>
+                            </div>
+                          )}
+                          {roomDetails.amenities && (
+                            <div className="md:col-span-2">
+                              <p className="text-sm text-gray-500">Amenities</p>
+                              <p className="font-medium">
+                                {Array.isArray(roomDetails.amenities) 
+                                  ? roomDetails.amenities.join(", ") 
+                                  : roomDetails.amenities}
+                              </p>
+                            </div>
+                          )}
+                          {roomDetails.description && (
+                            <div className="md:col-span-2">
+                              <p className="text-sm text-gray-500">Description</p>
+                              <p className="font-medium">{roomDetails.description}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   <Separator />
 
@@ -538,18 +603,46 @@ const ReservationDetailsPage: React.FC = () => {
                     </div>
                   </div>
                 </CardContent>
-                
+                <CardFooter className="bg-slate-50 border-t flex justify-between items-center p-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate(`/guests?reservation=${reservation._id}`)}
+                    disabled={reservation.status === "checked-in" || reservation.status === "checked-out"}
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Check In Guest
+                  </Button>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline">
+                      <Printer className="mr-2 h-4 w-4" />
+                      Print Details
+                    </Button>
+                    
+                    <Button onClick={() => {
+                      setNewStatus(reservation.status);
+                      setIsUpdateStatusDialogOpen(true);
+                    }}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Update Status
+                    </Button>
+                  </div>
+                </CardFooter>
               </Card>
 
-            
-              {/* <Card className="shadow-md border-0 h-fit">
+              {/* Summary and payment card */}
+              <Card className="shadow-md border-0 h-fit">
                 <CardHeader className="bg-slate-50 border-b">
                   <CardTitle className="text-xl">Reservation Summary</CardTitle>
                 </CardHeader>
                 <CardContent className="p-6 space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Room {reservation.roomNumber}</span>
-                    <span>{roomDetails ? `Rs. ${roomDetails.price.toLocaleString()}` : "—"}</span>
+                    <span>
+                      {reservationDetails?.roomRate 
+                        ? `Rs. ${reservationDetails.roomRate.toLocaleString()}` 
+                        : "—"}
+                    </span>
                   </div>
                   
                   <div className="flex justify-between items-center">
@@ -559,7 +652,11 @@ const ReservationDetailsPage: React.FC = () => {
                   
                   <div className="flex justify-between items-center font-medium">
                     <span className="text-gray-900">Subtotal</span>
-                    <span>{reservationDetails ? `Rs. ${reservationDetails.totalPrice.toLocaleString()}` : "—"}</span>
+                    <span>
+                      {reservationDetails?.totalPrice 
+                        ? `Rs. ${reservationDetails.totalPrice.toLocaleString()}` 
+                        : "—"}
+                    </span>
                   </div>
                   
                   <div className="flex justify-between items-center text-gray-600">
@@ -571,7 +668,11 @@ const ReservationDetailsPage: React.FC = () => {
                   
                   <div className="flex justify-between items-center text-lg font-bold">
                     <span>Total</span>
-                    <span>{reservationDetails ? `Rs. ${reservationDetails.totalPrice.toLocaleString()}` : "—"}</span>
+                    <span>
+                      {reservationDetails?.totalPrice 
+                        ? `Rs. ${reservationDetails.totalPrice.toLocaleString()}` 
+                        : "—"}
+                    </span>
                   </div>
                 </CardContent>
                 <CardFooter className="bg-slate-50 border-t p-6">
@@ -589,7 +690,7 @@ const ReservationDetailsPage: React.FC = () => {
                     )}
                   </div>
                 </CardFooter>
-              </Card> */}
+              </Card>
             </div>
           )}
 
@@ -619,9 +720,9 @@ const ReservationDetailsPage: React.FC = () => {
                 <Button variant="outline" onClick={() => setIsUpdateStatusDialogOpen(false)}>
                   Cancel
                 </Button>
-                {/* <Button onClick={handleStatusUpdate}>
+                <Button onClick={handleStatusUpdate}>
                   Update Status
-                </Button> */}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -660,6 +761,18 @@ const ReservationDetailsSkeleton = () => (
           <Skeleton className="h-6 w-48 mb-3" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[...Array(6)].map((_, i) => (
+              <div key={i}>
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-5 w-36" />
+              </div>
+            ))}
+          </div>
+        </div>
+        <Skeleton className="h-px w-full" />
+        <div>
+          <Skeleton className="h-6 w-48 mb-3" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[...Array(4)].map((_, i) => (
               <div key={i}>
                 <Skeleton className="h-4 w-24 mb-2" />
                 <Skeleton className="h-5 w-36" />

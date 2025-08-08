@@ -227,6 +227,13 @@ const DashboardPage = () => {
   }, [fetchGuests]);
 
   // Filter rooms by status
+<<<<<<< HEAD
+  const availableRooms = rooms.filter(room => room.status === "available");
+  const occupiedRooms = rooms.filter(room => room.status === "occupied");
+  const maintenanceRooms = rooms.filter(room => room.status === "maintenance");
+  const reservedRooms = rooms.filter(room => room.status === "reserved");
+  
+=======
   const availableRooms = rooms.filter((room) => room.status === "available");
   const occupiedRooms = rooms.filter((room) => room.status === "occupied");
   const maintenanceRooms = rooms.filter(
@@ -234,6 +241,7 @@ const DashboardPage = () => {
   );
   const bookedRooms = rooms.filter((room) => room.status === "booked");
 
+>>>>>>> c8b555e920bb69f373bf5df1c1e030f32e9bdaf4
   // Calculate metrics
   const totalRooms = rooms.length;
   const availableRoomCount = availableRooms.length;
@@ -260,7 +268,7 @@ const DashboardPage = () => {
   const roomStatusData = [
     { name: "Available", value: availableRoomCount, color: "#10b981" },
     { name: "Occupied", value: occupiedRoomCount, color: "#f59e0b" },
-    { name: "Booked", value: bookedRooms.length, color: "#3b82f6" },
+    { name: "Reserved", value: reservedRooms.length, color: "#3b82f6" },
     { name: "Maintenance", value: maintenanceRoomCount, color: "#ef4444" },
   ];
 
@@ -282,11 +290,19 @@ const DashboardPage = () => {
   }));
 
   // Prepare occupancy by type data for bar chart
+<<<<<<< HEAD
+  const roomTypes = [...new Set(rooms.map(room => room.category))];
+  const occupancyByType = roomTypes.map(type => {
+    const roomsOfType = rooms.filter(room => room.category === type);
+    const occupiedOfType = roomsOfType.filter(room => 
+      room.status === "occupied" || room.status === "reserved"
+=======
   const roomTypes = [...new Set(rooms.map((room) => room.category))];
   const occupancyByType = roomTypes.map((type) => {
     const roomsOfType = rooms.filter((room) => room.category === type);
     const occupiedOfType = roomsOfType.filter(
       (room) => room.status === "occupied" || room.status === "booked"
+>>>>>>> c8b555e920bb69f373bf5df1c1e030f32e9bdaf4
     ).length;
     const totalOfType = roomsOfType.length;
     return {
@@ -334,14 +350,11 @@ const DashboardPage = () => {
       title: "Occupancy Rate",
       value:
         totalRooms > 0
-          ? `${Math.round(
-              ((occupiedRoomCount + bookedRooms.length) / totalRooms) * 100
-            )}%`
+          ? `${Math.round(((occupiedRoomCount + reservedRooms.length) / totalRooms) * 100)}%`
           : "0%",
-      change: `${
-        occupiedRoomCount + bookedRooms.length
-      } of ${totalRooms} occupied/booked`,
-      trend: occupiedRoomCount > availableRoomCount ? "up" : "down",
+      change: `${occupiedRoomCount + reservedRooms.length} of ${totalRooms} occupied/booked`,
+      trend:
+        occupiedRoomCount > availableRoomCount ? "up" : "down",
       icon: Users,
       gradient: "from-emerald-500 to-emerald-600",
     },
@@ -375,7 +388,7 @@ const DashboardPage = () => {
         return <CheckCircle className="w-4 h-4" />;
       case "occupied":
         return <Key className="w-4 h-4" />;
-      case "booked":
+      case "reserved":
         return <Calendar className="w-4 h-4" />;
       case "maintenance":
         return <Wrench className="w-4 h-4" />;
@@ -546,11 +559,11 @@ const DashboardPage = () => {
                       <div className="flex items-center space-x-3">
                         <Calendar className="w-5 h-5 text-blue-600" />
                         <span className="font-medium text-slate-700">
-                          Booked
+                          Reserved
                         </span>
                       </div>
                       <span className="text-xl font-light text-slate-900">
-                        {bookedRooms.length}
+                        {reservedRooms.length}
                       </span>
                     </div>
                     <div className="flex items-center justify-between p-3 rounded-lg bg-red-50">
@@ -612,7 +625,7 @@ const DashboardPage = () => {
                         <option value="all">All Rooms</option>
                         <option value="available">Available</option>
                         <option value="occupied">Occupied</option>
-                        <option value="booked">Booked</option>
+                        <option value="booked">Reserved</option>
                         <option value="maintenance">Maintenance</option>
                       </select>
                     </div>

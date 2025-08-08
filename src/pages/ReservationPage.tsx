@@ -61,7 +61,8 @@ import { format, isAfter, isBefore, parseISO } from "date-fns";
 // Hooks & Contexts
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRoomContext } from "@/contexts/RoomContext"; // For room selection
+import { useRoomContext } from "@/contexts/RoomContext";
+import { useGuestContext } from "@/contexts/GuestContext"; // Added GuestContext import
 import {
   useReservationContext,
   Reservation,
@@ -777,25 +778,34 @@ interface ReservationCardProps {
   reservation: Reservation;
   onDelete: () => void;
   onCheckIn: () => void;
-  onViewDetails: () => void; // New prop
+  onViewDetails: () => void;
   getStatus: (reservation: Reservation) => string;
   getStatusBadge: (status: string) => React.ReactNode;
 }
 
-// Memoized ReservationCard with deep equality check
+// Enhanced ReservationCard with room details
 const ReservationCard = React.memo(({
   reservation,
   onDelete,
   onCheckIn,
-  onViewDetails, // New prop
+  onViewDetails,
   getStatus,
   getStatusBadge,
 }: ReservationCardProps) => {
   const status = getStatus(reservation);
   const isCheckInEnabled = status === "upcoming" || status === "active";
+  
+  // Get room details from GuestContext
+  const { allRooms } = useGuestContext();
+  
+  // Find the room details for this reservation
+  const roomDetails = useMemo(() => {
+    if (!allRooms || !allRooms.length) return null;
+    return allRooms.find((room: { roomNumber: string; }) => room.roomNumber === reservation.roomNumber);
+  }, [allRooms, reservation.roomNumber]);
 
   return (
-    <Card className="hover:shadow transition-shadow duration-300 h-[120px]">
+    <Card className="hover:shadow transition-shadow duration-300 h-[140px]">
       <CardContent className="grid grid-cols-1 md:grid-cols-5 items-center gap-4 p-4 h-full">
         <div className="md:col-span-2 flex flex-col">
           <p className="font-bold text-lg truncate">{reservation.fullName}</p>
@@ -804,15 +814,36 @@ const ReservationCard = React.memo(({
             <p className="text-sm text-gray-500 truncate">{reservation.email}</p>
           )}
         </div>
+        
         <div className="flex flex-col">
-          <p className="text-sm font-medium">Room {reservation.roomNumber}</p>
-          <p className="text-xs text-gray-500">
+          <div className="flex items-center">
+            <Bed className="h-4 w-4 text-amber-500 mr-1" />
+            <p className="text-sm font-medium">Room {reservation.roomNumber}</p>
+          </div>
+          
+          {roomDetails && (
+            <div className="mt-1">
+              <p className="text-xs text-gray-600">
+                <span className="font-medium">{roomDetails.category}</span>
+                {roomDetails.bedType && (
+                  <span className="ml-1">• {roomDetails.bedType}</span>
+                )}
+              </p>
+              <p className="text-xs text-amber-600">
+                Rs. {roomDetails.rate.toLocaleString()}/night
+              </p>
+            </div>
+          )}
+          
+          <p className="text-xs text-gray-500 mt-1">
             {format(new Date(reservation.startAt), "MMM d, yyyy")} - {format(new Date(reservation.endAt), "MMM d, yyyy")}
           </p>
         </div>
+        
         <div className="flex justify-start md:justify-center">
           {getStatusBadge(status)}
         </div>
+        
         <div className="flex justify-start md:justify-end items-center gap-2">
           <Button variant="outline" size="sm" onClick={onViewDetails}>
             <Eye className="mr-2 h-4 w-4" /> Details
@@ -837,11 +868,11 @@ const ReservationCard = React.memo(({
   );
 });
 
-// Skeleton loader with fixed height matching the real cards
+// Skeleton loader with fixed height matching the new card height
 const ReservationListSkeleton: React.FC = () => (
   <div className="space-y-4">
     {[...Array(5)].map((_, i) => (
-      <Card key={i} className="h-[120px]">
+      <Card key={i} className="h-[140px]">
         <CardContent className="grid grid-cols-1 md:grid-cols-5 items-center gap-4 p-4 h-full">
           <div className="md:col-span-2 space-y-2">
             <Skeleton className="h-6 w-48" />
@@ -850,6 +881,7 @@ const ReservationListSkeleton: React.FC = () => (
           </div>
           <div className="space-y-2">
             <Skeleton className="h-5 w-24" />
+            <Skeleton className="h-4 w-32" />
             <Skeleton className="h-4 w-36" />
           </div>
           <div className="flex justify-start md:justify-center">
