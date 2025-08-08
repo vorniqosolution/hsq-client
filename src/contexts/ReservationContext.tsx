@@ -10,6 +10,16 @@ import React, {
 import axios, { AxiosError, AxiosInstance } from "axios";
 import { useAuth } from "./AuthContext";
 
+export interface Room {
+  _id: string;
+  roomNumber: string;
+  bedType: string;
+  category: string;
+  view: string;
+  rate: number;
+  status: "available" | "reserved" | "occupied" | "maintenance";
+}
+
 // Updated field names to match your controller
 export interface Reservation {
   _id: string;

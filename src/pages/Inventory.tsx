@@ -37,6 +37,7 @@ import {
   Layers,
   CornerDownRight,
   Percent,
+  Calendar,
 } from "lucide-react";
 import {
   Card,
@@ -192,16 +193,17 @@ const InventoryPage = () => {
   }, [categories]);
 
   // === SIDEBAR NAVIGATION ===
-  const mainNavItems = [
-    { name: "Dashboard", href: "/dashboard", icon: Home },
-    { name: "Guests", href: "/guests", icon: Users },
-    { name: "Rooms", href: "/rooms", icon: Bed },
-    { name: "Discounts", href: "/Discount", icon: Ticket },
-    { name: "GST & Tax", href: "/Gst", icon: Percent },
-    { name: "Inventory", href: "/Inventory", icon: Archive },
-    { name: "Invoices", href: "/Invoices", icon: FileText },
-    { name: "Revenue", href: "/Revenue", icon: FileText },
-  ];
+ const mainNavItems = [
+         { name: "Dashboard", href: "/dashboard", icon: Home },
+         { name: "Guests", href: "/guests", icon: Users },
+         { name: "Reservation", href: "/reservation", icon: Calendar },
+         { name: "Rooms", href: "/rooms", icon: Bed },
+         { name: "Discounts", href: "/Discount", icon: Ticket },
+         { name: "GST & Tax", href: "/Gst", icon: Percent },
+         { name: "Inventory", href: "/Inventory", icon: Archive },
+         { name: "Invoices", href: "/Invoices", icon: FileText },
+         { name: "Revenue", href: "/Revenue", icon: FileText },
+       ];
 
   // const reportNavItems = [{ name: 'Reports', href: '/reports', icon: BarChart3 }];
   const systemNavItems = [
@@ -1606,7 +1608,7 @@ const InventoryPage = () => {
               <Input
                 id="transactionQuantity"
                 type="number"
-                min="1"
+                min="0"
                 value={transactionForm.quantity}
                 onChange={(e) =>
                   setTransactionForm({

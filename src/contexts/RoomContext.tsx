@@ -6,6 +6,8 @@ const POLL_INTERVAL = 5_000; // 5 seconds
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 export interface Room {
+  room: any;
+  price: number;
   _id: string;
   roomNumber: string;
   bedType: string;

@@ -5,7 +5,9 @@ import {
   Plus, Edit, Trash2, DollarSign, Menu, X, 
   Users, Bed, Settings, LogOut, Home, Crown, Star, Sparkles,
   Archive, FileText, Ticket, Eye, Filter, Check, RefreshCw,
-  Percent
+  Percent,
+  LucideChartNoAxesColumnDecreasing,
+  Calendar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -232,15 +234,16 @@ const RoomsPage = () => {
 
   // --- Sidebar Navigation ---
   const mainNavItems = [
-    { name: "Dashboard", href: "/dashboard", icon: Home },
-    { name: "Guests", href: "/guests", icon: Users },
-    { name: "Rooms", href: "/rooms", icon: Bed },
-    { name: "Discounts", href: "/Discount", icon: Ticket },
-    { name: "GST & Tax", href: "/Gst", icon: Percent },
-    { name: "Inventory", href: "/Inventory", icon: Archive },
-    { name: "Invoices", href: "/Invoices", icon: FileText },
-    { name: "Revenue", href: "/Revenue", icon: FileText },
-  ];
+        { name: "Dashboard", href: "/dashboard", icon: Home },
+        { name: "Guests", href: "/guests", icon: Users },
+        { name: "Reservation", href: "/reservation", icon: Calendar },
+        { name: "Rooms", href: "/rooms", icon: Bed },
+        { name: "Discounts", href: "/Discount", icon: Ticket },
+        { name: "GST & Tax", href: "/Gst", icon: Percent },
+        { name: "Inventory", href: "/Inventory", icon: Archive },
+        { name: "Invoices", href: "/Invoices", icon: FileText },
+        { name: "Revenue", href: "/Revenue", icon: FileText },
+      ];
 
   const systemNavItems = [{ name: 'Settings', href: '/settings', icon: Settings }];
 
