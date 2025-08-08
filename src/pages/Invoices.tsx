@@ -4,7 +4,8 @@ import {
   Users, Bed, DollarSign, Settings, LogOut, Menu, X, Home, Crown, Star, Sparkles,
   FileText, Search, MoreVertical, Download, Filter, CreditCard, Clock, CheckCircle, 
   XCircle, Eye, Ticket, Archive, Mail, Trash2,
-  Percent
+  Percent,
+  Calendar
 } from 'lucide-react';
 
 // Import the context hook and types
@@ -31,15 +32,16 @@ import { Toaster } from "@/components/ui/toaster"
 const Sidebar = ({ sidebarOpen, setSidebarOpen }: { sidebarOpen: boolean, setSidebarOpen: (open: boolean) => void }) => {
   const location = useLocation();
   const mainNavItems = [
-    { name: "Dashboard", href: "/dashboard", icon: Home },
-    { name: "Guests", href: "/guests", icon: Users },
-    { name: "Rooms", href: "/rooms", icon: Bed },
-    { name: "Discounts", href: "/Discount", icon: Ticket },
-    { name: "GST & Tax", href: "/Gst", icon: Percent },
-    { name: "Inventory", href: "/Inventory", icon: Archive },
-    { name: "Invoices", href: "/Invoices", icon: FileText },
-    { name: "Revenue", href: "/Revenue", icon: FileText },
-  ];
+          { name: "Dashboard", href: "/dashboard", icon: Home },
+          { name: "Guests", href: "/guests", icon: Users },
+          { name: "Reservation", href: "/reservation", icon: Calendar },
+          { name: "Rooms", href: "/rooms", icon: Bed },
+          { name: "Discounts", href: "/Discount", icon: Ticket },
+          { name: "GST & Tax", href: "/Gst", icon: Percent },
+          { name: "Inventory", href: "/Inventory", icon: Archive },
+          { name: "Invoices", href: "/Invoices", icon: FileText },
+          { name: "Revenue", href: "/Revenue", icon: FileText },
+        ];
   const systemNavItems = [
     { name: 'Settings', href: '/settings', icon: Settings },
   ];

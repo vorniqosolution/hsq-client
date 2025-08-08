@@ -6,7 +6,8 @@ import {
   Users, Bed, DollarSign, Settings, LogOut, Menu, X, Home, Crown, Star, Sparkles,
   BarChart3, Download, Filter, ChevronDown, CreditCard, ArrowUpRight, ArrowDownRight, 
   FileSpreadsheet, PieChart, TrendingUp, ChevronRight, Printer, BookOpen, FileText, 
-  CalendarDays, Ticket, Archive, Percent, Layers
+  CalendarDays, Ticket, Archive, Percent, Layers,
+  Calendar
 } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -99,15 +100,16 @@ const RevenuePage = () => {
 
   // Sidebar navigation items
   const mainNavItems = [
-      { name: "Dashboard", href: "/dashboard", icon: Home },
-      { name: "Guests", href: "/guests", icon: Users },
-      { name: "Rooms", href: "/rooms", icon: Bed },
-      { name: "Discounts", href: "/Discount", icon: Ticket },
-      { name: "GST & Tax", href: "/Gst", icon: Percent },
-      { name: "Inventory", href: "/Inventory", icon: Archive },
-      { name: "Invoices", href: "/Invoices", icon: FileText },
-      { name: "Revenue", href: "/Revenue", icon: FileText },
-    ];
+        { name: "Dashboard", href: "/dashboard", icon: Home },
+        { name: "Guests", href: "/guests", icon: Users },
+        { name: "Reservation", href: "/reservation", icon: Calendar },
+        { name: "Rooms", href: "/rooms", icon: Bed },
+        { name: "Discounts", href: "/Discount", icon: Ticket },
+        { name: "GST & Tax", href: "/Gst", icon: Percent },
+        { name: "Inventory", href: "/Inventory", icon: Archive },
+        { name: "Invoices", href: "/Invoices", icon: FileText },
+        { name: "Revenue", href: "/Revenue", icon: FileText },
+      ];
   
   // System section
   const systemNavItems = [

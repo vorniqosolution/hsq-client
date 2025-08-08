@@ -133,15 +133,16 @@ const DiscountsPage = () => {
 
   // Sidebar navigation items
   const mainNavItems = [
-    { name: "Dashboard", href: "/dashboard", icon: Home },
-    { name: "Guests", href: "/guests", icon: Users },
-    { name: "Rooms", href: "/rooms", icon: Bed },
-    { name: "Discounts", href: "/Discount", icon: Ticket },
-    { name: "GST & Tax", href: "/Gst", icon: Percent },
-    { name: "Inventory", href: "/Inventory", icon: Archive },
-    { name: "Invoices", href: "/Invoices", icon: FileText },
-    { name: "Revenue", href: "/Revenue", icon: FileText },
-  ];
+          { name: "Dashboard", href: "/dashboard", icon: Home },
+          { name: "Guests", href: "/guests", icon: Users },
+          { name: "Reservation", href: "/reservation", icon: Calendar },
+          { name: "Rooms", href: "/rooms", icon: Bed },
+          { name: "Discounts", href: "/Discount", icon: Ticket },
+          { name: "GST & Tax", href: "/Gst", icon: Percent },
+          { name: "Inventory", href: "/Inventory", icon: Archive },
+          { name: "Invoices", href: "/Invoices", icon: FileText },
+          { name: "Revenue", href: "/Revenue", icon: FileText },
+        ];
 
   // System section
   const systemNavItems = [

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Search,
@@ -103,15 +103,64 @@ const ReservationsPage: React.FC = () => {
   const [formData, setFormData] = useState<CreateReservationInput>(INITIAL_FORM_STATE);
   const [reservationToDelete, setReservationToDelete] = useState<Reservation | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  
+  // Refs for stabilizing renders and API calls
+  const hasLoadedRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
-  // --- Data Fetching ---
+  // --- Data Fetching with stability improvements ---
   useEffect(() => {
+    // Prevent duplicate API calls during renders
+    if (hasLoadedRef.current && !loading) return;
+    
+    // Cancel any in-progress fetch
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    
+    const loadData = async () => {
+      try {
+        setIsInitialLoad(true);
+        // Use Promise.all to load data concurrently
+        await Promise.all([
+          fetchReservations(),
+          fetchRooms()
+        ]);
+        hasLoadedRef.current = true;
+      } catch (error) {
+        // Only handle non-abort errors
+        if (error.name !== 'AbortError') {
+          console.error('Failed to load data:', error);
+        }
+      } finally {
+        setIsInitialLoad(false);
+      }
+    };
+    
+    loadData();
+    
+    // Cleanup function
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [fetchReservations, fetchRooms, loading]);
+
+  // Manual refresh function - force refetch
+  const handleManualRefresh = useCallback(() => {
+    hasLoadedRef.current = false;
+    setIsInitialLoad(true);
     fetchReservations();
-    fetchRooms();
-  }, [fetchReservations, fetchRooms]);
+  }, [fetchReservations]);
 
   // --- Status helpers ---
   const getReservationStatus = useCallback((reservation: Reservation) => {
@@ -161,7 +210,6 @@ const ReservationsPage: React.FC = () => {
   const handleCreateReservation = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    console.log("Sending reservation data:", formData);
 
     try {
       await createReservation(formData);
@@ -206,17 +254,23 @@ const ReservationsPage: React.FC = () => {
     // Navigate to the Guest Check-In page with query params
     navigate(`/guests?reservation=${reservation._id}`);
   }, [navigate]);
+  
+  const viewReservationDetails = useCallback((reservation: Reservation) => {
+    // Navigate to the reservation details page
+    navigate(`/reservation/${reservation._id}`);
+  }, [navigate]);
 
   // --- Navigation Items ---
   const mainNavItems = [
     { name: "Dashboard", href: "/dashboard", icon: Home },
     { name: "Guests", href: "/guests", icon: Users },
+    { name: "Reservation", href: "/reservation", icon: Calendar },
     { name: "Rooms", href: "/rooms", icon: Bed },
-    { name: "Reservations", href: "/reservations", icon: Calendar },
     { name: "Discounts", href: "/Discount", icon: Ticket },
     { name: "GST & Tax", href: "/Gst", icon: Percent },
     { name: "Inventory", href: "/Inventory", icon: Archive },
     { name: "Invoices", href: "/Invoices", icon: FileText },
+    { name: "Revenue", href: "/Revenue", icon: FileText },
   ];
 
   const systemNavItems = [
@@ -286,21 +340,28 @@ const ReservationsPage: React.FC = () => {
     }
   };
 
-  // --- Render Logic ---
-  // Stable content container
-  const ContentContainer: React.FC<{ children: React.ReactNode }> = ({
-    children,
-  }) => <div className="relative min-h-[400px]">{children}</div>;
+  // --- Content container with fixed height ---
+  const ContentContainer = useCallback(({ children }: { children: React.ReactNode }) => (
+    <div 
+      ref={contentRef}
+      className="relative h-[600px] overflow-y-auto overflow-x-hidden"
+      style={{ willChange: 'transform' }} // Optimize for GPU acceleration
+    >
+      <div className="absolute inset-0">
+        {children}
+      </div>
+    </div>
+  ), []);
 
-  // Content renderer
-  const renderContent = () => {
-    if (loading) {
+  // --- Memoized content to prevent re-renders ---
+  const renderedContent = useMemo(() => {
+    if (isInitialLoad || loading) {
       return <ReservationListSkeleton />;
     }
 
     if (error) {
       return (
-        <div className="flex h-[400px] items-center justify-center">
+        <div className="flex h-full items-center justify-center">
           <div className="text-center text-red-500 p-6 rounded-lg">
             <p className="text-xl mb-2">Error</p>
             <p>{error}</p>
@@ -311,7 +372,7 @@ const ReservationsPage: React.FC = () => {
 
     if (filteredReservations.length === 0) {
       return (
-        <div className="flex h-[400px] items-center justify-center">
+        <div className="flex h-full items-center justify-center">
           <div className="text-center text-gray-500 p-6 rounded-lg">
             <p className="text-xl mb-2">No reservations found</p>
             <p>Try adjusting your search or filters</p>
@@ -337,106 +398,124 @@ const ReservationsPage: React.FC = () => {
             reservation={reservation}
             onDelete={() => setReservationToDelete(reservation)}
             onCheckIn={() => convertToCheckIn(reservation)}
+            onViewDetails={() => viewReservationDetails(reservation)}
             getStatus={getReservationStatus}
             getStatusBadge={getStatusBadge}
           />
         ))}
       </div>
     );
-  };
+  }, [
+    isInitialLoad, 
+    loading, 
+    error, 
+    filteredReservations, 
+    statusFilter, 
+    convertToCheckIn,
+    viewReservationDetails,
+    getReservationStatus, 
+    getStatusBadge
+  ]);
 
-  return (
-    <div className="min-h-screen bg-slate-50 flex">
-      {/* Sidebar for admin users only */}
-      {isAdmin && (
-        <>
-          {/* Mobile backdrop */}
-          {sidebarOpen && (
-            <div
-              className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-40 lg:hidden"
-              onClick={() => setSidebarOpen(false)}
-            />
-          )}
-
-          {/* Sidebar */}
+  // Memoized sidebar to prevent re-renders
+  const Sidebar = useMemo(() => {
+    if (!isAdmin) return null;
+    
+    return (
+      <>
+        {/* Mobile backdrop */}
+        {sidebarOpen && (
           <div
-            className={`
+            className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-40 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Sidebar */}
+        <aside
+          className={`
             fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-slate-900 to-slate-950 
             shadow-2xl transform transition-transform duration-300 ease-in-out
             lg:translate-x-0 lg:static lg:inset-0
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
           `}
-          >
-            {/* Logo Section */}
-            <div className="h-20 px-6 flex items-center border-b border-slate-800/50">
-              <div className="flex items-center space-x-3">
-                <div className="relative">
-                  <Crown className="h-9 w-9 text-amber-400" />
-                  <Sparkles className="h-4 w-4 text-amber-300 absolute -top-1 -right-1" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-light tracking-wider text-white">
-                    HSQ ADMIN
-                  </h1>
-                  <p className="text-xs text-amber-400/80 tracking-widest uppercase">
-                    Management Panel
-                  </p>
-                </div>
+        >
+          {/* Logo Section */}
+          <div className="h-20 px-6 flex items-center border-b border-slate-800/50">
+            <div className="flex items-center space-x-3">
+              <div className="relative">
+                <Crown className="h-9 w-9 text-amber-400" />
+                <Sparkles className="h-4 w-4 text-amber-300 absolute -top-1 -right-1" />
               </div>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="lg:hidden ml-auto p-1.5 rounded-lg hover:bg-slate-800/50 transition-colors"
-              >
-                <X className="h-5 w-5 text-slate-400" />
-              </button>
+              <div>
+                <h1 className="text-xl font-light tracking-wider text-white">
+                  HSQ ADMIN
+                </h1>
+                <p className="text-xs text-amber-400/80 tracking-widest uppercase">
+                  Management Panel
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="lg:hidden ml-auto p-1.5 rounded-lg hover:bg-slate-800/50 transition-colors"
+            >
+              <X className="h-5 w-5 text-slate-400" />
+            </button>
+          </div>
+
+          {/* Navigation */}
+          <nav className="mt-8 px-4 flex flex-col h-[calc(100%-80px)]">
+            <div className="flex-grow">
+              <div className="space-y-1">{renderNavLinks(mainNavItems)}</div>
             </div>
 
-            {/* Navigation */}
-            <nav className="mt-8 px-4 flex flex-col h-[calc(100%-80px)]">
-              <div className="flex-grow">
-                <div className="space-y-1">{renderNavLinks(mainNavItems)}</div>
+            {/* Bottom Section */}
+            <div className="flex-shrink-0">
+              <div className="my-4 px-4">
+                <div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
               </div>
-
-              {/* Bottom Section */}
-              <div className="flex-shrink-0">
-                <div className="my-4 px-4">
-                  <div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
-                </div>
-                <div className="space-y-1">
-                  {renderNavLinks(systemNavItems)}
-                  <button className="group flex items-center px-4 py-3 text-sm text-slate-300 rounded-lg hover:text-white hover:bg-slate-800/50 w-full transition-all duration-200">
-                    <LogOut className="mr-3 h-5 w-5 text-slate-400 group-hover:text-slate-300" />
-                    <span className="font-light tracking-wide">Sign Out</span>
-                  </button>
-                </div>
+              <div className="space-y-1">
+                {renderNavLinks(systemNavItems)}
+                <button className="group flex items-center px-4 py-3 text-sm text-slate-300 rounded-lg hover:text-white hover:bg-slate-800/50 w-full transition-all duration-200">
+                  <LogOut className="mr-3 h-5 w-5 text-slate-400 group-hover:text-slate-300" />
+                  <span className="font-light tracking-wide">Sign Out</span>
+                </button>
               </div>
-            </nav>
+            </div>
+          </nav>
 
-            {/* User Profile */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-slate-800/50 bg-slate-950">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-lg">
-                  <span className="text-sm font-medium text-slate-900">AM</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-light text-white truncate">
-                    Admin Manager
-                  </p>
-                  <p className="text-xs text-slate-400 truncate">
-                    {user?.email || "admin@hsqtowers.com"}
-                  </p>
-                </div>
+          {/* User Profile */}
+          <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-slate-800/50 bg-slate-950">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-lg">
+                <span className="text-sm font-medium text-slate-900">AM</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-light text-white truncate">
+                  Admin Manager
+                </p>
+                <p className="text-xs text-slate-400 truncate">
+                  {user?.email || "admin@hsqtowers.com"}
+                </p>
               </div>
             </div>
           </div>
-        </>
-      )}
+        </aside>
+      </>
+    );
+  }, [isAdmin, sidebarOpen, user?.email, renderNavLinks, mainNavItems, systemNavItems]);
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex overflow-hidden">
+      {/* Sidebar */}
+      {Sidebar}
 
       {/* Main content */}
-      <div className={`flex-1 ${isAdmin ? "lg:ml-0" : ""}`}>
+      <div className="flex-1 w-full h-screen overflow-y-auto flex flex-col">
         {/* Mobile header - only for admin */}
         {isAdmin && (
-          <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4">
+          <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4 flex-shrink-0">
             <div className="flex items-center justify-between">
               <button
                 onClick={() => setSidebarOpen(true)}
@@ -455,10 +534,10 @@ const ReservationsPage: React.FC = () => {
           </div>
         )}
 
-        {/* Main content */}
-        <div className="container mx-auto p-4 md:p-6 lg:p-8">
-          {/* Page Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        {/* Main content area */}
+        <div className="container mx-auto p-4 md:p-6 lg:p-8 flex-grow">
+          {/* Page Header - fixed height */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 h-[60px]">
             <h1 className="text-3xl font-bold tracking-tight">Reservations</h1>
 
             <div className="flex gap-2 ml-auto">
@@ -469,8 +548,8 @@ const ReservationsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Toolbar */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50">
+          {/* Toolbar - fixed height */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50 h-[80px]">
             <div className="md:col-span-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
@@ -506,7 +585,7 @@ const ReservationsPage: React.FC = () => {
                 Clear
               </Button>
               <Button
-                onClick={() => fetchReservations()}
+                onClick={handleManualRefresh}
                 variant="outline"
                 className="w-full sm:col-span-1"
               >
@@ -516,12 +595,15 @@ const ReservationsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Content Area */}
-          <ContentContainer>{renderContent()}</ContentContainer>
+          {/* Content Area - stable container */}
+          <ContentContainer>{renderedContent}</ContentContainer>
 
           {/* Create Reservation Dialog */}
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto sm:max-h-[80vh] h-auto">
+          <Dialog 
+            open={isCreateDialogOpen} 
+            onOpenChange={setIsCreateDialogOpen}
+          >
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto sm:max-h-[80vh]">
               <DialogHeader>
                 <DialogTitle>New Reservation</DialogTitle>
               </DialogHeader>
@@ -695,28 +777,31 @@ interface ReservationCardProps {
   reservation: Reservation;
   onDelete: () => void;
   onCheckIn: () => void;
+  onViewDetails: () => void; // New prop
   getStatus: (reservation: Reservation) => string;
   getStatusBadge: (status: string) => React.ReactNode;
 }
 
-const ReservationCard: React.FC<ReservationCardProps> = ({
+// Memoized ReservationCard with deep equality check
+const ReservationCard = React.memo(({
   reservation,
   onDelete,
   onCheckIn,
+  onViewDetails, // New prop
   getStatus,
   getStatusBadge,
-}) => {
+}: ReservationCardProps) => {
   const status = getStatus(reservation);
   const isCheckInEnabled = status === "upcoming" || status === "active";
 
   return (
-    <Card className="hover:shadow transition-shadow duration-300">
-      <CardContent className="grid grid-cols-1 md:grid-cols-5 items-center gap-4 p-4">
+    <Card className="hover:shadow transition-shadow duration-300 h-[120px]">
+      <CardContent className="grid grid-cols-1 md:grid-cols-5 items-center gap-4 p-4 h-full">
         <div className="md:col-span-2 flex flex-col">
-          <p className="font-bold text-lg">{reservation.fullName}</p>
-          <p className="text-sm text-gray-500">{reservation.phone}</p>
+          <p className="font-bold text-lg truncate">{reservation.fullName}</p>
+          <p className="text-sm text-gray-500 truncate">{reservation.phone}</p>
           {reservation.email && (
-            <p className="text-sm text-gray-500">{reservation.email}</p>
+            <p className="text-sm text-gray-500 truncate">{reservation.email}</p>
           )}
         </div>
         <div className="flex flex-col">
@@ -729,6 +814,9 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
           {getStatusBadge(status)}
         </div>
         <div className="flex justify-start md:justify-end items-center gap-2">
+          <Button variant="outline" size="sm" onClick={onViewDetails}>
+            <Eye className="mr-2 h-4 w-4" /> Details
+          </Button>
           {isCheckInEnabled && (
             <Button variant="outline" size="sm" onClick={onCheckIn}>
               <CheckCircle2 className="mr-2 h-4 w-4" /> Check In
@@ -741,14 +829,20 @@ const ReservationCard: React.FC<ReservationCardProps> = ({
       </CardContent>
     </Card>
   );
-};
+}, (prevProps, nextProps) => {
+  // Advanced equality check to prevent unnecessary re-renders
+  return (
+    prevProps.reservation._id === nextProps.reservation._id &&
+    prevProps.getStatus(prevProps.reservation) === nextProps.getStatus(nextProps.reservation)
+  );
+});
 
-// Skeleton loader
+// Skeleton loader with fixed height matching the real cards
 const ReservationListSkeleton: React.FC = () => (
   <div className="space-y-4">
-    {[...Array(3)].map((_, i) => (
-      <Card key={i}>
-        <CardContent className="grid grid-cols-1 md:grid-cols-5 items-center gap-4 p-4">
+    {[...Array(5)].map((_, i) => (
+      <Card key={i} className="h-[120px]">
+        <CardContent className="grid grid-cols-1 md:grid-cols-5 items-center gap-4 p-4 h-full">
           <div className="md:col-span-2 space-y-2">
             <Skeleton className="h-6 w-48" />
             <Skeleton className="h-4 w-32" />
@@ -762,6 +856,7 @@ const ReservationListSkeleton: React.FC = () => (
             <Skeleton className="h-6 w-24 rounded-full" />
           </div>
           <div className="flex justify-start md:justify-end items-center gap-2">
+            <Skeleton className="h-9 w-24 rounded" />
             <Skeleton className="h-9 w-24 rounded" />
             <Skeleton className="h-9 w-9 rounded" />
           </div>
