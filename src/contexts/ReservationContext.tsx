@@ -8,30 +8,35 @@ import React, {
   ReactNode,
 } from "react";
 import axios, { AxiosError, AxiosInstance } from "axios";
+import { useAuth } from "./AuthContext";
 
+// Updated field names to match your controller
 export interface Reservation {
   _id: string;
-  guestName: string;
+  fullName: string; // Changed from guestName
   address: string;
   email: string;
-  phoneNo: string;
+  phone: string; // Changed from phoneNo
   cnic: string;
-  roomNumber: string;
-  startDate: string;
-  endDate: string;
-  status: "reserved" | "cancelled" | "confirmed";
+  room: string; // This refers to the room ID
+  roomNumber: string; // Added to store the room number
+  startAt: string; // Changed from startDate
+  endAt: string; // Changed from endDate
+  status: "reserved" | "cancelled" | "confirmed" | "checked-in";
   createdAt: string;
+  createdBy: string; // Added to match your model
 }
 
+// Updated input interface to match your controller
 export interface CreateReservationInput {
-  guestName: string;
+  fullName: string; // Changed from guestName
   address: string;
-  email?: string;
-  phoneNo: string;
+  email: string;
+  phone: string; // Changed from phoneNo
   cnic: string;
-  roomNumber: string;
-  startDate: string;
-  endDate: string;
+  roomNumber: string; // We'll use this to find the room
+  checkin: string; // Changed from startDate
+  checkout: string; // Changed from endDate
 }
 
 // Setup Axios
@@ -61,6 +66,8 @@ export const ReservationProvider = ({ children }: { children: ReactNode }) => {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { user } = useAuth();
 
   const apiCall = useCallback(
     async <T,>(
@@ -94,57 +101,72 @@ export const ReservationProvider = ({ children }: { children: ReactNode }) => {
     []
   );
 
+  // Updated to match your API response format
   const fetchReservations = useCallback(async () => {
     await apiCall(
       async () => {
-        const res = await apiClient.get<{ reservations: Reservation[] }>(
-          "/api/reservations"
-        );
-        return res.data.reservations;
+        const res = await apiClient.get<{
+          success: boolean;
+          count: number;
+          data: Reservation[];
+        }>("/api/reservation/get-reservations");
+        return res.data.data || [];
       },
       (data) => setReservations(data),
       "Failed to fetch reservations"
     );
   }, [apiCall]);
 
+  // Updated to match your controller
   const createReservation = useCallback(
-    async (data: CreateReservationInput) => {
-      await apiCall(
-        async () => {
-          await apiClient.post("/api/reservations", data);
-        },
-        async () => {
-          await fetchReservations();
-        },
-        "Failed to create reservation"
-      );
-    },
-    [apiCall, fetchReservations]
-  );
+  async (data: CreateReservationInput) => {
+    await apiCall(
+      async () => {
+        const res = await apiClient.post<{
+          success: boolean;
+          data: Reservation;
+        }>("/api/reservation/create-reservation", data);
+        return res.data.data;
+      },
+      (newReservation) => {
+        // Just add the new reservation to state instead of refetching
+        setReservations(prev => [...prev, newReservation]);
+      },
+      "Failed to create reservation"
+    );
+  },
+  [apiCall]
+);
 
+  // Updated to match your controller's endpoint
   const deleteReservation = useCallback(
     async (id: string) => {
       await apiCall(
         async () => {
-          await apiClient.delete(`/api/reservations/${id}`);
+          await apiClient.delete(
+            `/api/reservation/cancel-reservation/${id}/cancel`
+          );
+          return true;
         },
         async () => {
           setReservations((prev) => prev.filter((r) => r._id !== id));
         },
-        "Failed to delete reservation"
+        "Failed to cancel reservation"
       );
     },
     [apiCall]
   );
 
+  // Updated to match your controller's response format
   const getReservationById = useCallback(
     async (id: string): Promise<Reservation | null> => {
       return await apiCall(
         async () => {
-          const res = await apiClient.get<{ reservation: Reservation }>(
-            `/api/reservations/${id}`
-          );
-          return res.data.reservation;
+          const res = await apiClient.get<{
+            success: boolean;
+            data: Reservation;
+          }>(`/api/reservation/get-reservation/${id}`);
+          return res.data.data || null;
         },
         undefined,
         "Failed to fetch reservation"
@@ -154,8 +176,10 @@ export const ReservationProvider = ({ children }: { children: ReactNode }) => {
   );
 
   useEffect(() => {
-    fetchReservations();
-  }, [fetchReservations]);
+    if (user) {
+      fetchReservations();
+    }
+  }, [fetchReservations, user]);
 
   const contextValue = useMemo(
     () => ({

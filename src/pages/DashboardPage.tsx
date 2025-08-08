@@ -31,6 +31,7 @@ const Sidebar = ({
   const mainNavItems = [
     { name: "Dashboard", href: "/dashboard", icon: Home },
     { name: "Guests", href: "/guests", icon: Users },
+    { name: "Reservation", href: "/reservation", icon: Users },
     { name: "Rooms", href: "/rooms", icon: Bed },
     { name: "Discounts", href: "/Discount", icon: Ticket },
     { name: "GST & Tax", href: "/Gst", icon: Percent },

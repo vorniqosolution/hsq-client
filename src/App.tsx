@@ -29,6 +29,7 @@ import InvoicesPage from "./pages/Invoices";
 import InvoiceDetails from "./pages/InvoiceDetailsPage";
 import RevenuePage from "./pages/Revenue";
 import GstPage from "./pages/GstPage";
+import ReservationPage from "./pages/ReservationPage";
 
 const queryClient = new QueryClient();
 
@@ -101,6 +102,16 @@ const App = () => (
                                       <ProtectedRoute>
                                         <Layout>
                                           <GuestDetailPage />
+                                        </Layout>
+                                      </ProtectedRoute>
+                                    }
+                                  />
+                                  <Route
+                                    path="/reservation"
+                                    element={
+                                      <ProtectedRoute>
+                                        <Layout>
+                                          <ReservationPage />
                                         </Layout>
                                       </ProtectedRoute>
                                     }
