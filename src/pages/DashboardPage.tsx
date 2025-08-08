@@ -1,29 +1,61 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
-  Users, Bed, Calendar, DollarSign, TrendingUp, TrendingDown, Settings,
-  LogOut, Menu, X, Home, Crown, Star, CheckCircle, Wrench, Key, Filter,
-  Sparkles, Ticket, Archive, FileText, Percent 
+  Users,
+  Bed,
+  Calendar,
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  Settings,
+  LogOut,
+  Menu,
+  X,
+  Home,
+  Crown,
+  Star,
+  CheckCircle,
+  Wrench,
+  Key,
+  Filter,
+  Sparkles,
+  Ticket,
+  Archive,
+  FileText,
+  Percent,
+  Calendar1,
 } from "lucide-react";
 import {
-  Card, CardContent, CardDescription, CardHeader, CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import {
-  ChartContainer, ChartTooltip, ChartTooltipContent,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
 } from "@/components/ui/chart";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
-  LineChart, Line, PieChart, Pie, Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { useRoomContext } from "@/contexts/RoomContext"; // Import the room context
 import { useGuestContext } from "@/contexts/GuestContext"; // Import the guest context
 
 // Sidebar component (unchanged)
-const Sidebar = ({
-  isOpen,
-  onClose,
-}) => {
+const Sidebar = ({ isOpen, onClose }) => {
   // Sidebar implementation unchanged
   const location = useLocation();
 
@@ -31,7 +63,7 @@ const Sidebar = ({
   const mainNavItems = [
     { name: "Dashboard", href: "/dashboard", icon: Home },
     { name: "Guests", href: "/guests", icon: Users },
-    { name: "Reservation", href: "/reservation", icon: Users },
+    { name: "Reservation", href: "/reservation", icon: Calendar1 },
     { name: "Rooms", href: "/rooms", icon: Bed },
     { name: "Discounts", href: "/Discount", icon: Ticket },
     { name: "GST & Tax", href: "/Gst", icon: Percent },
@@ -183,7 +215,7 @@ const DashboardPage = () => {
 
   // Use the room context (auto-refreshing every 5 seconds)
   const { rooms, loading: roomsLoading, fetchRooms } = useRoomContext();
-  
+
   // Use the guest context
   const { guests, loading: guestsLoading, fetchGuests } = useGuestContext();
 
@@ -195,11 +227,13 @@ const DashboardPage = () => {
   }, [fetchGuests]);
 
   // Filter rooms by status
-  const availableRooms = rooms.filter(room => room.status === "available");
-  const occupiedRooms = rooms.filter(room => room.status === "occupied");
-  const maintenanceRooms = rooms.filter(room => room.status === "maintenance");
-  const bookedRooms = rooms.filter(room => room.status === "booked");
-  
+  const availableRooms = rooms.filter((room) => room.status === "available");
+  const occupiedRooms = rooms.filter((room) => room.status === "occupied");
+  const maintenanceRooms = rooms.filter(
+    (room) => room.status === "maintenance"
+  );
+  const bookedRooms = rooms.filter((room) => room.status === "booked");
+
   // Calculate metrics
   const totalRooms = rooms.length;
   const availableRoomCount = availableRooms.length;
@@ -208,14 +242,19 @@ const DashboardPage = () => {
 
   // Get today's check-ins
   const today = new Date().toISOString().split("T")[0];
-  const todayCheckIns = guests ? guests.filter((guest) => 
-    new Date(guest.checkInAt).toISOString().split("T")[0] === today
-  ).length : 0;
+  const todayCheckIns = guests
+    ? guests.filter(
+        (guest) =>
+          new Date(guest.checkInAt).toISOString().split("T")[0] === today
+      ).length
+    : 0;
 
   // Calculate total revenue from current guests
-  const totalRevenue = guests ? guests
-    .filter((guest) => guest.status === "checked-in")
-    .reduce((sum, guest) => sum + guest.totalRent, 0) : 0;
+  const totalRevenue = guests
+    ? guests
+        .filter((guest) => guest.status === "checked-in")
+        .reduce((sum, guest) => sum + guest.totalRent, 0)
+    : 0;
 
   // Prepare room status data for pie chart
   const roomStatusData = [
@@ -226,27 +265,28 @@ const DashboardPage = () => {
   ];
 
   // Filter rooms based on selected filter
-  const filteredRooms = roomFilter === "all" 
-    ? rooms 
-    : rooms.filter(room => room.status === roomFilter);
+  const filteredRooms =
+    roomFilter === "all"
+      ? rooms
+      : rooms.filter((room) => room.status === roomFilter);
 
   // Prepare formatted rooms for display
-  const formattedRooms = filteredRooms.map(room => ({
+  const formattedRooms = filteredRooms.map((room) => ({
     id: room._id,
     roomNumber: room.roomNumber,
     type: room.category.toLowerCase(),
     rate: room.rate,
     status: room.status,
     bedType: room.bedType,
-    view: room.view
+    view: room.view,
   }));
 
   // Prepare occupancy by type data for bar chart
-  const roomTypes = [...new Set(rooms.map(room => room.category))];
-  const occupancyByType = roomTypes.map(type => {
-    const roomsOfType = rooms.filter(room => room.category === type);
-    const occupiedOfType = roomsOfType.filter(room => 
-      room.status === "occupied" || room.status === "booked"
+  const roomTypes = [...new Set(rooms.map((room) => room.category))];
+  const occupancyByType = roomTypes.map((type) => {
+    const roomsOfType = rooms.filter((room) => room.category === type);
+    const occupiedOfType = roomsOfType.filter(
+      (room) => room.status === "occupied" || room.status === "booked"
     ).length;
     const totalOfType = roomsOfType.length;
     return {
@@ -264,11 +304,14 @@ const DashboardPage = () => {
     return date;
   });
 
-  const dailyCheckIns = last7Days.map(date => {
+  const dailyCheckIns = last7Days.map((date) => {
     const dateStr = date.toISOString().split("T")[0];
-    const checkIns = guests ? guests.filter(guest =>
-      new Date(guest.checkInAt).toISOString().split("T")[0] === dateStr
-    ).length : 0;
+    const checkIns = guests
+      ? guests.filter(
+          (guest) =>
+            new Date(guest.checkInAt).toISOString().split("T")[0] === dateStr
+        ).length
+      : 0;
     return {
       date: date.toLocaleDateString("en-US", {
         month: "short",
@@ -291,11 +334,14 @@ const DashboardPage = () => {
       title: "Occupancy Rate",
       value:
         totalRooms > 0
-          ? `${Math.round(((occupiedRoomCount + bookedRooms.length) / totalRooms) * 100)}%`
+          ? `${Math.round(
+              ((occupiedRoomCount + bookedRooms.length) / totalRooms) * 100
+            )}%`
           : "0%",
-      change: `${occupiedRoomCount + bookedRooms.length} of ${totalRooms} occupied/booked`,
-      trend:
-        occupiedRoomCount > availableRoomCount ? "up" : "down",
+      change: `${
+        occupiedRoomCount + bookedRooms.length
+      } of ${totalRooms} occupied/booked`,
+      trend: occupiedRoomCount > availableRoomCount ? "up" : "down",
       icon: Users,
       gradient: "from-emerald-500 to-emerald-600",
     },
@@ -359,7 +405,9 @@ const DashboardPage = () => {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-amber-500 border-t-transparent"></div>
-          <p className="mt-4 text-slate-600 font-light">Loading dashboard data...</p>
+          <p className="mt-4 text-slate-600 font-light">
+            Loading dashboard data...
+          </p>
         </div>
       </div>
     );
@@ -593,7 +641,7 @@ const DashboardPage = () => {
                         </div>
                       </div>
                     ))}
-                    
+
                     {formattedRooms.length === 0 && (
                       <div className="col-span-full text-center py-8">
                         <Bed className="h-12 w-12 text-slate-300 mx-auto mb-3" />
@@ -710,55 +758,58 @@ const DashboardPage = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {guests && guests
-                    .filter((guest) => guest.status === "checked-in")
-                    .slice(0, 5)
-                    .map((guest) => (
-                      <div
-                        key={guest._id}
-                        className="group flex items-center justify-between p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-all duration-200"
-                      >
-                        <div className="flex items-center space-x-4">
-                          <div className="relative">
-                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                            <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                  {guests &&
+                    guests
+                      .filter((guest) => guest.status === "checked-in")
+                      .slice(0, 5)
+                      .map((guest) => (
+                        <div
+                          key={guest._id}
+                          className="group flex items-center justify-between p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-all duration-200"
+                        >
+                          <div className="flex items-center space-x-4">
+                            <div className="relative">
+                              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                              <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-slate-900">
+                                {guest.fullName}
+                              </p>
+                              <p className="text-sm text-slate-500 font-light">
+                                {guest.room?.category
+                                  ? `${guest.room.category} Suite`
+                                  : "Suite"}{" "}
+                                • Room {guest.room?.roomNumber || "Pending"}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium text-slate-900">
-                              {guest.fullName}
+                          <div className="text-right">
+                            <p className="text-sm font-light text-slate-700">
+                              {new Date(guest.checkInAt).toLocaleDateString(
+                                "en-US",
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                }
+                              )}
                             </p>
-                            <p className="text-sm text-slate-500 font-light">
-                              {guest.room?.category 
-                                ? `${guest.room.category} Suite` 
-                                : "Suite"} • 
-                              Room {guest.room?.roomNumber || "Pending"}
+                            <p className="text-xs text-slate-400 font-light mt-0.5">
+                              {new Date(guest.checkInAt).toLocaleTimeString(
+                                "en-US",
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                }
+                              )}
                             </p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-light text-slate-700">
-                            {new Date(guest.checkInAt).toLocaleDateString(
-                              "en-US",
-                              {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              }
-                            )}
-                          </p>
-                          <p className="text-xs text-slate-400 font-light mt-0.5">
-                            {new Date(guest.checkInAt).toLocaleTimeString(
-                              "en-US",
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              }
-                            )}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  {(!guests || guests.filter((guest) => guest.status === "checked-in").length === 0) && (
+                      ))}
+                  {(!guests ||
+                    guests.filter((guest) => guest.status === "checked-in")
+                      .length === 0) && (
                     <div className="text-center py-12">
                       <Users className="h-12 w-12 text-slate-300 mx-auto mb-3" />
                       <p className="text-slate-500 font-light">
@@ -795,4 +846,3 @@ const DashboardPage = () => {
 };
 
 export default DashboardPage;
-
