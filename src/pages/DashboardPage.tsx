@@ -227,21 +227,13 @@ const DashboardPage = () => {
   }, [fetchGuests]);
 
   // Filter rooms by status
-<<<<<<< HEAD
-  const availableRooms = rooms.filter(room => room.status === "available");
-  const occupiedRooms = rooms.filter(room => room.status === "occupied");
-  const maintenanceRooms = rooms.filter(room => room.status === "maintenance");
-  const reservedRooms = rooms.filter(room => room.status === "reserved");
-  
-=======
   const availableRooms = rooms.filter((room) => room.status === "available");
   const occupiedRooms = rooms.filter((room) => room.status === "occupied");
   const maintenanceRooms = rooms.filter(
     (room) => room.status === "maintenance"
   );
-  const bookedRooms = rooms.filter((room) => room.status === "booked");
+  const reservedRooms = rooms.filter((room) => room.status === "reserved");
 
->>>>>>> c8b555e920bb69f373bf5df1c1e030f32e9bdaf4
   // Calculate metrics
   const totalRooms = rooms.length;
   const availableRoomCount = availableRooms.length;
@@ -290,19 +282,11 @@ const DashboardPage = () => {
   }));
 
   // Prepare occupancy by type data for bar chart
-<<<<<<< HEAD
-  const roomTypes = [...new Set(rooms.map(room => room.category))];
-  const occupancyByType = roomTypes.map(type => {
-    const roomsOfType = rooms.filter(room => room.category === type);
-    const occupiedOfType = roomsOfType.filter(room => 
-      room.status === "occupied" || room.status === "reserved"
-=======
   const roomTypes = [...new Set(rooms.map((room) => room.category))];
   const occupancyByType = roomTypes.map((type) => {
     const roomsOfType = rooms.filter((room) => room.category === type);
     const occupiedOfType = roomsOfType.filter(
-      (room) => room.status === "occupied" || room.status === "booked"
->>>>>>> c8b555e920bb69f373bf5df1c1e030f32e9bdaf4
+      (room) => room.status === "occupied" || room.status === "reserved"
     ).length;
     const totalOfType = roomsOfType.length;
     return {
