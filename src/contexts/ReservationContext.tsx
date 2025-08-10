@@ -250,23 +250,65 @@ export interface Room {
   status: "available" | "reserved" | "occupied" | "maintenance";
 }
 
+// export interface PopulatedRoom {
+//   _id: string;
+//   roomNumber: string;
+//   category: string;
+//   rate: number;
+//   status: "available" | "reserved" | "occupied" | "maintenance";
+//   // Add any other fields you're populating from your controller
+//   bedType?: string;
+//   view?: string;
+// }
+
 // Updated field names to match your controller
+// export interface Reservation {
+//   _id: string;
+//   fullName: string; // Changed from guestName
+//   address: string;
+//   email: string;
+//   phone: string; // Changed from phoneNo
+//   cnic: string;
+//   room: string; // This refers to the room ID
+//   roomNumber: string; // Added to store the room number
+//   startAt: string; // Changed from startDate
+//   endAt: string; // Changed from endDate
+//   status: "reserved" | "cancelled" | "confirmed" | "checked-in" | "checked-out";
+//   createdAt: string;
+//   updatedAt: string;
+//   isPaid?: boolean;
+//   createdBy: string; // Added to match your model
+// }
+
 export interface Reservation {
   _id: string;
-  fullName: string; // Changed from guestName
+  fullName: string;
   address: string;
   email: string;
-  phone: string; // Changed from phoneNo
+  phone: string;
   cnic: string;
-  room: string; // This refers to the room ID
-  roomNumber: string; // Added to store the room number
-  startAt: string; // Changed from startDate
-  endAt: string; // Changed from endDate
+  // Make room a union type to handle both string ID and populated object
+  room: string | {
+    _id: string;
+    roomNumber: string;
+    category: string;
+    rate: number;
+    status: string;
+    bedType?: string;
+    view?: string;
+  };
+  roomNumber: string;
+  startAt: string;
+  endAt: string;
   status: "reserved" | "cancelled" | "confirmed" | "checked-in" | "checked-out";
   createdAt: string;
   updatedAt: string;
   isPaid?: boolean;
-  createdBy: string; // Added to match your model
+  createdBy: string | {
+    _id: string;
+    name: string;
+    email: string;
+  };
 }
 
 // Updated input interface to match your controller
