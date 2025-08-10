@@ -65,9 +65,48 @@ import { useRoomContext } from "@/contexts/RoomContext";
 import { useGuestContext } from "@/contexts/GuestContext"; // Added GuestContext import
 import {
   useReservationContext,
-  Reservation,
   CreateReservationInput,
 } from "@/contexts/ReservationContext";
+
+// --- Type definitions ---
+// Define PopulatedRoom interface for room data
+interface PopulatedRoom {
+  _id: string;
+  roomNumber: string;
+  category: string;
+  rate: number;
+  status: string;
+  bedType?: string;
+  view?: string;
+}
+
+// Updated Reservation interface to handle populated room data
+interface Reservation {
+  _id: string;
+  fullName: string;
+  address: string;
+  email: string;
+  phone: string;
+  cnic: string;
+  room: string | PopulatedRoom; // Can be either string ID or populated object
+  roomNumber: string;
+  startAt: string;
+  endAt: string;
+  status: "reserved" | "cancelled" | "confirmed" | "checked-in" | "checked-out";
+  createdAt: string;
+  updatedAt: string;
+  isPaid?: boolean;
+  createdBy: string | {
+    _id: string;
+    name: string;
+    email: string;
+  };
+}
+
+// Helper function to check if room is populated
+const isPopulatedRoom = (room: any): room is PopulatedRoom => {
+  return typeof room === 'object' && room !== null && room.roomNumber !== undefined;
+};
 
 // --- Constants and Types ---
 const INITIAL_FORM_STATE: CreateReservationInput = {
@@ -796,13 +835,30 @@ const ReservationCard = React.memo(({
   const isCheckInEnabled = status === "upcoming" || status === "active";
   
   // Get room details from GuestContext
-  const { allRooms } = useGuestContext();
+  const { rooms } = useGuestContext();
   
-  // Find the room details for this reservation
+  // Find the room details using multiple strategies
   const roomDetails = useMemo(() => {
-    if (!allRooms || !allRooms.length) return null;
-    return allRooms.find((room: { roomNumber: string; }) => room.roomNumber === reservation.roomNumber);
-  }, [allRooms, reservation.roomNumber]);
+    // First check if room is already populated
+    if (isPopulatedRoom(reservation.room)) {
+      return reservation.room;
+    }
+    
+    // Fallback to finding room in allRooms array
+    if (rooms && rooms.length) {
+      return rooms.find((room) => room.roomNumber === reservation.roomNumber);
+    }
+    
+    return null;
+  }, [reservation.room, reservation.roomNumber, rooms]);
+
+  // Get the room number safely
+  const getRoomNumber = () => {
+    if (isPopulatedRoom(reservation.room)) {
+      return reservation.room.roomNumber;
+    }
+    return reservation.roomNumber;
+  };
 
   return (
     <Card className="hover:shadow transition-shadow duration-300 h-[140px]">
@@ -818,7 +874,7 @@ const ReservationCard = React.memo(({
         <div className="flex flex-col">
           <div className="flex items-center">
             <Bed className="h-4 w-4 text-amber-500 mr-1" />
-            <p className="text-sm font-medium">Room {reservation.roomNumber}</p>
+            <p className="text-sm font-medium">Room {getRoomNumber()}</p>
           </div>
           
           {roomDetails && (

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Link, useLocation } from "react-router-dom";
+// import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { parseISO, differenceInCalendarDays } from "date-fns";
 import {
   Search,
   Eye,
@@ -67,7 +69,6 @@ import {
 } from "@/contexts/GuestContext";
 import { useAuth } from "@/contexts/AuthContext"; // Import auth context
 import { useReservationContext } from "../contexts/ReservationContext";
-// import { format } from "path";
 
 // --- Constants and Types ---
 const ROOM_CATEGORIES = ["Standard", "Deluxe", "Executive", "Presidential"];
@@ -111,6 +112,15 @@ const GuestsPage: React.FC = () => {
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const { getReservationById } = useReservationContext();
+
+  const roomsLoaded = rooms.length > 0;
+  const [pendingOpen, setPendingOpen] = useState(false);
+
+  const [prefill, setPrefill] = useState<Partial<CreateGuestInput> | null>(
+    null
+  );
 
   const [ReservationFormData, setReservationFormData] =
     useState<ReservationFormData>({
@@ -124,8 +134,83 @@ const GuestsPage: React.FC = () => {
       checkOutDate: "",
     });
 
-  console.log("Reversation data", ReservationFormData);
-  // console.log("Reservation date", ReservationFormData.checkInDate);
+  // console.log("Reversation data", ReservationFormData);
+  type MaybeRoom = string | { _id: string; roomNumber: string };
+
+  interface ReservationLite {
+    _id: string;
+    fullName: string;
+    address: string;
+    email?: string;
+    phone: string;
+    cnic: string;
+    room: MaybeRoom;
+    roomNumber: string;
+    startAt: string; // ISO
+    endAt: string; // ISO
+  }
+
+  const buildPrefillFromReservation = (
+    r: ReservationLite
+  ): Partial<CreateGuestInput> => {
+    const start = parseISO(r.startAt);
+    const end = parseISO(r.endAt);
+    const days = Math.max(1, differenceInCalendarDays(end, start));
+
+    const roomNum =
+      typeof r.room === "object" && r.room !== null && "roomNumber" in r.room
+        ? r.room.roomNumber
+        : r.roomNumber;
+
+    return {
+      fullName: r.fullName || "",
+      address: r.address || "",
+      phone: r.phone || "",
+      cnic: r.cnic || "",
+      email: r.email || "",
+      roomNumber: roomNum || "",
+      stayDuration: days,
+      paymentMethod: "cash",
+      applyDiscount: false,
+      additionaldiscount: 0,
+    };
+  };
+
+  useEffect(() => {
+    const statePrefill = (location as any)?.state
+      ?.prefill as Partial<CreateGuestInput> | undefined;
+    const qpId = searchParams.get("reservation");
+
+    if (statePrefill) {
+      setPrefill(statePrefill);
+      // if rooms are not loaded yet, mark pending open
+      if (!roomsLoaded) setPendingOpen(true);
+      else setIsCheckInDialogOpen(true);
+      return;
+    }
+
+    if (qpId) {
+      (async () => {
+        try {
+          const r = (await getReservationById(qpId)) as any;
+          if (r) {
+            setPrefill(buildPrefillFromReservation(r));
+            if (!roomsLoaded) setPendingOpen(true);
+            else setIsCheckInDialogOpen(true);
+          }
+        } catch {}
+      })();
+    }
+  }, [location, searchParams, getReservationById, roomsLoaded]);
+
+  // open the dialog as soon as rooms finish loading (prevents shaking)
+  useEffect(() => {
+    if (pendingOpen && roomsLoaded) {
+      setIsCheckInDialogOpen(true);
+      setPendingOpen(false);
+    }
+  }, [pendingOpen, roomsLoaded]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -203,26 +288,22 @@ const GuestsPage: React.FC = () => {
   const handleOpenCheckInDialog = useCallback(() => {
     setIsCheckInDialogOpen(true);
   }, []);
-  // Handle open dialog
-  // const OpenReservationDialog = () => {
-  //   setIsOpenReservationDialog(true);
-  // };
 
   const handleGuestDelete = useCallback((guest: Guest) => {
     setGuestToDelete(guest);
   }, []);
 
   const mainNavItems = [
-        { name: "Dashboard", href: "/dashboard", icon: Home },
-        { name: "Guests", href: "/guests", icon: Users },
-        { name: "Reservation", href: "/reservation", icon: Calendar },
-        { name: "Rooms", href: "/rooms", icon: Bed },
-        { name: "Discounts", href: "/Discount", icon: Ticket },
-        { name: "GST & Tax", href: "/Gst", icon: Percent },
-        { name: "Inventory", href: "/Inventory", icon: Archive },
-        { name: "Invoices", href: "/Invoices", icon: FileText },
-        { name: "Revenue", href: "/Revenue", icon: FileText },
-      ];
+    { name: "Dashboard", href: "/dashboard", icon: Home },
+    { name: "Guests", href: "/guests", icon: Users },
+    { name: "Reservation", href: "/reservation", icon: Calendar },
+    { name: "Rooms", href: "/rooms", icon: Bed },
+    { name: "Discounts", href: "/Discount", icon: Ticket },
+    { name: "GST & Tax", href: "/Gst", icon: Percent },
+    { name: "Inventory", href: "/Inventory", icon: Archive },
+    { name: "Invoices", href: "/Invoices", icon: FileText },
+    { name: "Revenue", href: "/Revenue", icon: FileText },
+  ];
 
   // const reportNavItems = [{ name: 'Reports', href: '/reports', icon: BarChart3 }];
   const systemNavItems = [
@@ -524,6 +605,7 @@ const GuestsPage: React.FC = () => {
             setIsOpen={setIsCheckInDialogOpen}
             rooms={rooms}
             createGuest={createGuest}
+            prefill={prefill}
           />
 
           {/* Delete Confirmation Dialog */}
@@ -650,7 +732,7 @@ const GuestsPage: React.FC = () => {
 
                   {ReservationFormData.checkInDate && (
                     <p className="text-sm text-gray-500">
-                      {format(ReservationFormData.checkInDate, "PPP")}
+                      {format(new Date(ReservationFormData.checkInDate), "PPP")}
                     </p>
                   )}
                 </div>
@@ -668,7 +750,7 @@ const GuestsPage: React.FC = () => {
 
                   {ReservationFormData.checkOutDate && (
                     <p className="text-sm text-gray-500">
-                      {format(ReservationFormData.checkOutDate, "PPP")}
+                      {format(new Date(ReservationFormData.checkOutDate), "PPP")}
                     </p>
                   )}
                 </div>
@@ -756,6 +838,7 @@ interface CheckInFormDialogProps {
   setIsOpen: (open: boolean) => void;
   rooms: Room[];
   createGuest: (data: CreateGuestInput) => Promise<void>;
+  prefill?: Partial<CreateGuestInput> | null;
 }
 // create object for Reservation
 interface ReservationFormData {
@@ -774,38 +857,93 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
   setIsOpen,
   rooms,
   createGuest,
+  prefill,
 }) => {
   const [formData, setFormData] =
     useState<CreateGuestInput>(INITIAL_FORM_STATE);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  // Reset form when dialog opens/closes
   useEffect(() => {
     if (!isOpen) {
-      // Small delay to make sure the animation completes before resetting
       const timeout = setTimeout(() => {
         setFormData(INITIAL_FORM_STATE);
         setIsSubmitting(false);
       }, 300);
       return () => clearTimeout(timeout);
+    } else if (prefill) {
+      setFormData((prev) => ({ ...prev, ...prefill }));
     }
-  }, [isOpen]);
+  }, [isOpen, prefill]);
 
   const handleFormChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const { name, value, type, checked } = e.target;
+
+      // keep types correct for TS (numbers/booleans)
+      if (name === "stayDuration") {
+        setFormData((prev) => ({ ...prev, stayDuration: Number(value) }));
+        return;
+      }
+      if (name === "additionaldiscount") {
+        setFormData((prev) => ({ ...prev, additionaldiscount: Number(value) }));
+        return;
+      }
+      if (name === "applyDiscount") {
+        setFormData((prev) => ({ ...prev, applyDiscount: checked }));
+        return;
+      }
+
       setFormData((prev) => ({
         ...prev,
-        [name]: type === "checkbox" ? checked : value,
-      }));
+        [name]: value,
+      } as unknown as CreateGuestInput));
     },
     []
   );
 
-  const handleSelectChange = useCallback((name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  }, []);
+  const handleSelectChange = useCallback(
+    (name: "roomNumber" | "paymentMethod", value: string) => {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    },
+    []
+  );
+
+  // Find the prefilled room (if any)
+  const prefilledRoom = useMemo(() => {
+    if (!formData.roomNumber) return null;
+    return rooms.find((r) => r.roomNumber === formData.roomNumber) || null;
+  }, [rooms, formData.roomNumber]);
+
+  // If rooms not loaded yet but we have a prefilled roomNumber, create a temporary option
+  const pseudoPrefillRoom = useMemo(() => {
+    if (rooms.length > 0 || !formData.roomNumber) return null;
+    return {
+      _id: "prefill",
+      roomNumber: formData.roomNumber,
+      bedType: "—",
+      rate: 0,
+      category: "—",
+      status: "reserved",
+    } as unknown as Room;
+  }, [rooms.length, formData.roomNumber]);
+
+  // Build the list for the Select:
+  // - include all "available" rooms
+  // - include the prefilled room (even if it's not available), or pseudo while loading
+  const selectableRooms = useMemo(() => {
+    const avail = rooms.filter((r) => r.status === "available");
+    if (
+      prefilledRoom &&
+      !avail.some((r) => r.roomNumber === prefilledRoom.roomNumber)
+    ) {
+      return [prefilledRoom, ...avail];
+    }
+    if (!prefilledRoom && pseudoPrefillRoom) {
+      return [pseudoPrefillRoom];
+    }
+    return avail;
+  }, [rooms, prefilledRoom, pseudoPrefillRoom]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -839,18 +977,20 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
     }
   };
 
-  // Filter only available rooms for selection
-  const availableRooms = useMemo(
-    () => rooms.filter((r) => r.status === "available"),
-    [rooms]
-  );
-
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto sm:max-h-[80vh] h-auto">
         <DialogHeader>
           <DialogTitle>New Guest Check-In</DialogTitle>
         </DialogHeader>
+
+        {prefilledRoom && prefilledRoom.status !== "available" && (
+          <div className="text-sm mb-2 rounded border border-amber-300 bg-amber-50 p-2 text-amber-700">
+            Room {prefilledRoom.roomNumber} is currently{" "}
+            <b>{prefilledRoom.status}</b>. Proceed only if this room is reserved
+            for this guest; otherwise pick another available room.
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-4 ">
           <div className="space-y-2">
@@ -946,15 +1086,21 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
                 <SelectValue placeholder="Select an available room" />
               </SelectTrigger>
               <SelectContent>
-                {availableRooms.length === 0 ? (
-                  <div className="px-2 py-4 text-center text-gray-500">
-                    No rooms available
-                  </div>
+                {selectableRooms.length === 0 ? (
+                  rooms.length === 0 ? (
+                    <div className="px-2 py-4">
+                      <div className="h-6 w-full rounded bg-gray-100 animate-pulse" />
+                    </div>
+                  ) : (
+                    <div className="px-2 py-4 text-center text-gray-500">
+                      No rooms available
+                    </div>
+                  )
                 ) : (
-                  availableRooms.map((r) => (
+                  selectableRooms.map((r) => (
                     <SelectItem key={r._id} value={r.roomNumber}>
                       Room {r.roomNumber} — {r.bedType} — (Rs{r.rate}/night) —{" "}
-                      {r.category}
+                      {r.category} — [{r.status}]
                     </SelectItem>
                   ))
                 )}
