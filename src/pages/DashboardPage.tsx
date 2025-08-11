@@ -902,11 +902,32 @@ import {
   Cell,
 } from "recharts";
 import { Button } from "@/components/ui/button";
-import { useRoomContext } from "@/contexts/RoomContext";
+import { useRoomContext, ReservedRoomByDate } from "@/contexts/RoomContext";
 import { useGuestContext } from "@/contexts/GuestContext";
 
-// Sidebar component (unchanged)
-const Sidebar = memo(({ isOpen, onClose }) => {
+// Define prop types for components
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+interface StatCardProps {
+  stat: {
+    title: string;
+    value: string;
+    change: string;
+    trend: "up" | "down" | "neutral";
+    icon: React.ElementType;
+    gradient: string;
+  };
+}
+
+interface ReservationTableProps {
+  reservedRoomsByDate: ReservedRoomByDate[];
+}
+
+// Sidebar component with typed props
+const Sidebar = memo<SidebarProps>(({ isOpen, onClose }) => {
   // Sidebar implementation unchanged
   const location = useLocation();
 
@@ -929,7 +950,7 @@ const Sidebar = memo(({ isOpen, onClose }) => {
     { name: "Settings", href: "/settings", icon: Settings },
   ];
 
-  const isActive = (href) => {
+  const isActive = (href: string) => {
     if (href === "/dashboard") {
       return location.pathname === href;
     }
@@ -937,7 +958,7 @@ const Sidebar = memo(({ isOpen, onClose }) => {
   };
 
   // Helper function to render navigation links
-  const renderNavLinks = (items) => {
+  const renderNavLinks = (items: Array<{ name: string; href: string; icon: React.ElementType }>) => {
     return items.map((item) => {
       const Icon = item.icon;
       const active = isActive(item.href);
@@ -998,7 +1019,7 @@ const Sidebar = memo(({ isOpen, onClose }) => {
         {/* Logo Section */}
         <div className="h-20 px-6 flex items-center border-b border-slate-800/50">
           <div className="flex items-center space-x-3">
-            <img className="w-8 h-8  rounded-lg " src={HSQ} alt={HSQ} />
+            <img className="w-8 h-8 rounded-lg" src={HSQ} alt="HSQ" />
             <div>
               <h1 className="text-xl font-light tracking-wider text-white">
                 HSQ ADMIN
@@ -1058,10 +1079,9 @@ const Sidebar = memo(({ isOpen, onClose }) => {
   );
 });
 
-// Memoized Stats Card Component
-const StatCard = memo(({ stat }) => (
+// Memoized Stats Card Component with proper types
+const StatCard = memo<StatCardProps>(({ stat }) => (
   <Card
-    key={stat.title}
     className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white relative overflow-hidden group"
   >
     <div
@@ -1110,8 +1130,8 @@ const StatCard = memo(({ stat }) => (
   </Card>
 ));
 
-// Memoized Reservation Table Component
-const ReservationTable = memo(({ reservedRoomsByDate }) => (
+// Memoized Reservation Table Component with proper types
+const ReservationTable = memo<ReservationTableProps>(({ reservedRoomsByDate }) => (
   <div className="h-[300px] overflow-hidden">
     <div className="w-full h-full overflow-y-auto">
       <table className="w-full text-sm text-left">
@@ -1148,7 +1168,7 @@ const ReservationTable = memo(({ reservedRoomsByDate }) => (
             ))
           ) : (
             <tr>
-              <td colSpan="4" className="text-center py-8 text-slate-500">
+              <td colSpan={4} className="text-center py-8 text-slate-500">
                 <Calendar className="h-12 w-12 text-slate-300 mx-auto mb-3" />
                 <p className="font-light">No reservations found for this month</p>
               </td>
@@ -1208,7 +1228,7 @@ const DashboardPage = () => {
   }, [selectedMonth, selectedYear, fetchReservedRoomsByDate]);
 
   // Handle month change without re-rendering the entire page
-  const handleMonthChange = useCallback((e) => {
+  const handleMonthChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedMonth(parseInt(e.target.value, 10));
   }, []);
 
@@ -1273,7 +1293,7 @@ const DashboardPage = () => {
         title: "Total Rooms",
         value: totalRooms.toString(),
         change: `${availableRoomCount} available`,
-        trend: "neutral",
+        trend: "neutral" as const,
         icon: Bed,
         gradient: "from-blue-500 to-blue-600",
       },
@@ -1288,7 +1308,7 @@ const DashboardPage = () => {
         change: `${
           occupiedRoomCount + reservedRoomCount
         } of ${totalRooms} occupied/reserved`,
-        trend: occupiedRoomCount > availableRoomCount ? "up" : "down",
+        trend: occupiedRoomCount > availableRoomCount ? "up" as const : "down" as const,
         icon: Users,
         gradient: "from-emerald-500 to-emerald-600",
       },
@@ -1296,7 +1316,7 @@ const DashboardPage = () => {
         title: "Arrivals Today",
         value: todayCheckIns.toString(),
         change: "New guests",
-        trend: "up",
+        trend: "up" as const,
         icon: Calendar,
         gradient: "from-purple-500 to-purple-600",
       },
@@ -1304,7 +1324,7 @@ const DashboardPage = () => {
         title: "Daily Revenue",
         value: `${totalRevenue.toLocaleString()}`,
         change: "Active bookings",
-        trend: "up",
+        trend: "up" as const,
         icon: DollarSign,
         gradient: "from-amber-500 to-amber-600",
       },
@@ -1323,7 +1343,7 @@ const DashboardPage = () => {
   }, [filteredRooms]);
 
   // Icons and colors for room statuses
-  const getStatusIcon = useCallback((status) => {
+  const getStatusIcon = useCallback((status: string) => {
     switch (status) {
       case "available": return <CheckCircle className="w-4 h-4" />;
       case "occupied": return <Key className="w-4 h-4" />;
@@ -1333,7 +1353,7 @@ const DashboardPage = () => {
     }
   }, []);
 
-  const getStatusColor = useCallback((status) => {
+  const getStatusColor = useCallback((status: string) => {
     switch (status) {
       case "available": return "bg-emerald-100 text-emerald-700 border-emerald-200";
       case "occupied": return "bg-amber-100 text-amber-700 border-amber-200";
@@ -1621,7 +1641,7 @@ const DashboardPage = () => {
                 </CardHeader>
                 <CardContent className="h-[calc(100%-80px)] flex flex-col">
                   {/* Memoized Reservation Table */}
-                  <ReservationTable reservedRoomsByDate={reservedRoomsByDate} />
+                  <ReservationTable reservedRoomsByDate={reservedRoomsByDate || []} />
                   
                   <div className="mt-4 flex justify-end">
                     <Link to="/reservation">
