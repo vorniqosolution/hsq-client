@@ -336,7 +336,7 @@ const DashboardPage = () => {
         totalRooms > 0
           ? `${Math.round(((occupiedRoomCount + reservedRooms.length) / totalRooms) * 100)}%`
           : "0%",
-      change: `${occupiedRoomCount + reservedRooms.length} of ${totalRooms} occupied/booked`,
+      change: `${occupiedRoomCount + reservedRooms.length} of ${totalRooms} occupied/reserved`,
       trend:
         occupiedRoomCount > availableRoomCount ? "up" : "down",
       icon: Users,
@@ -387,7 +387,7 @@ const DashboardPage = () => {
         return "bg-emerald-100 text-emerald-700 border-emerald-200";
       case "occupied":
         return "bg-amber-100 text-amber-700 border-amber-200";
-      case "booked":
+      case "reserved":
         return "bg-blue-100 text-blue-700 border-blue-200";
       case "maintenance":
         return "bg-red-100 text-red-700 border-red-200";
@@ -609,7 +609,7 @@ const DashboardPage = () => {
                         <option value="all">All Rooms</option>
                         <option value="available">Available</option>
                         <option value="occupied">Occupied</option>
-                        <option value="booked">Reserved</option>
+                        <option value="reserved">Reserved</option>
                         <option value="maintenance">Maintenance</option>
                       </select>
                     </div>
