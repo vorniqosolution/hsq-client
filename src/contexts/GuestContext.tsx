@@ -64,6 +64,19 @@ export interface Invoice {
   pdfPath?: string;
 }
 
+// export interface CreateGuestInput {
+//   fullName: string;
+//   address: string;
+//   phone: string;
+//   cnic: string;
+//   email?: string;
+//   roomNumber: string;
+//   stayDuration: number;
+//   paymentMethod: "cash" | "card" | "online";
+//   applyDiscount: boolean;
+//   additionaldiscount: number;
+// }
+
 export interface CreateGuestInput {
   fullName: string;
   address: string;
@@ -75,6 +88,7 @@ export interface CreateGuestInput {
   paymentMethod: "cash" | "card" | "online";
   applyDiscount: boolean;
   additionaldiscount: number;
+  reservationId?: string; // <-- NEW
 }
 
 interface GuestContextType {
@@ -214,6 +228,7 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
       await apiCall(
         async () => {
           await apiClient.post("/api/guests/create-guest", data);
+          
           // We'll return nothing here
         },
         async () => {

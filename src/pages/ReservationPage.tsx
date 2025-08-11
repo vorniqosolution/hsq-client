@@ -581,7 +581,7 @@ const ReservationsPage: React.FC = () => {
             <h1 className="text-3xl font-bold tracking-tight">Reservations</h1>
 
             <div className="flex gap-2 ml-auto">
-              <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Button onClick={() => setIsCreateDialogOpen(true)} className="bg-amber-500 hover:bg-amber-600">
                 <Calendar className="mr-2 h-4 w-4" />
                 New Reservation
               </Button>
@@ -905,7 +905,7 @@ const ReservationCard = React.memo(({
             <Eye className="mr-2 h-4 w-4" /> Details
           </Button>
           {isCheckInEnabled && (
-            <Button variant="outline" size="sm" onClick={onCheckIn}>
+            <Button className="bg-blue-900 hover:bg-blue-900 text-white" variant="outline" size="sm" onClick={onCheckIn}>
               <CheckCircle2 className="mr-2 h-4 w-4" /> Check In
             </Button>
           )}
