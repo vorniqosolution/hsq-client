@@ -70,6 +70,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { name: "Inventory", href: "/Inventory", icon: Archive },
     { name: "Invoices", href: "/Invoices", icon: FileText },
     { name: "Revenue", href: "/Revenue", icon: FileText },
+    { name: "Setting", href: "/settings", icon: Settings },
   ];
 
   // System section
@@ -334,11 +335,14 @@ const DashboardPage = () => {
       title: "Occupancy Rate",
       value:
         totalRooms > 0
-          ? `${Math.round(((occupiedRoomCount + reservedRooms.length) / totalRooms) * 100)}%`
+          ? `${Math.round(
+              ((occupiedRoomCount + reservedRooms.length) / totalRooms) * 100
+            )}%`
           : "0%",
-      change: `${occupiedRoomCount + reservedRooms.length} of ${totalRooms} occupied/reserved`,
-      trend:
-        occupiedRoomCount > availableRoomCount ? "up" : "down",
+      change: `${
+        occupiedRoomCount + reservedRooms.length
+      } of ${totalRooms} occupied/reserved`,
+      trend: occupiedRoomCount > availableRoomCount ? "up" : "down",
       icon: Users,
       gradient: "from-emerald-500 to-emerald-600",
     },
