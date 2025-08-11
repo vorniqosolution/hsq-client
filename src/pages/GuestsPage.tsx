@@ -177,8 +177,9 @@ const GuestsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    const statePrefill = (location as any)?.state
-      ?.prefill as Partial<CreateGuestInput> | undefined;
+    const statePrefill = (location as any)?.state?.prefill as
+      | Partial<CreateGuestInput>
+      | undefined;
     const qpId = searchParams.get("reservation");
 
     if (statePrefill) {
@@ -461,29 +462,21 @@ const GuestsPage: React.FC = () => {
             <nav className="mt-8 px-4 flex flex-col h-[calc(100%-80px)]">
               <div className="flex-grow">
                 <div className="space-y-1">{renderNavLinks(mainNavItems)}</div>
-
-                {/* Reports Section */}
-                {/* <div className="mt-6">
-                    <p className="px-4 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Analysis</p>
-                    <div className="space-y-1">
-                        {renderNavLinks(reportNavItems)}
-                    </div>
-                </div> */}
               </div>
 
               {/* Bottom Section */}
-              <div className="flex-shrink-0">
-                <div className="my-4 px-4">
-                  <div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
-                </div>
-                <div className="space-y-1">
+              {/* <div className="flex-shrink-0"> */}
+              {/* <div className="my-4 px-4"> */}
+              {/* <div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" /> */}
+              {/* </div> */}
+              {/* <div className="space-y-1">
                   {renderNavLinks(systemNavItems)}
                   <button className="group flex items-center px-4 py-3 text-sm text-slate-300 rounded-lg hover:text-white hover:bg-slate-800/50 w-full transition-all duration-200">
                     <LogOut className="mr-3 h-5 w-5 text-slate-400 group-hover:text-slate-300" />
                     <span className="font-light tracking-wide">Sign Out</span>
                   </button>
-                </div>
-              </div>
+                </div> */}
+              {/* </div> */}
             </nav>
 
             {/* User Profile */}
@@ -750,7 +743,10 @@ const GuestsPage: React.FC = () => {
 
                   {ReservationFormData.checkOutDate && (
                     <p className="text-sm text-gray-500">
-                      {format(new Date(ReservationFormData.checkOutDate), "PPP")}
+                      {format(
+                        new Date(ReservationFormData.checkOutDate),
+                        "PPP"
+                      )}
                     </p>
                   )}
                 </div>
@@ -894,10 +890,13 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
         return;
       }
 
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      } as unknown as CreateGuestInput));
+      setFormData(
+        (prev) =>
+          ({
+            ...prev,
+            [name]: value,
+          } as unknown as CreateGuestInput)
+      );
     },
     []
   );
