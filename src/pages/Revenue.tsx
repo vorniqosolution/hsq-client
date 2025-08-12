@@ -715,7 +715,7 @@ const RevenuePage = () => {
                               <div className="text-xs text-slate-500">{guest.roomCategory}</div>
                             </td>
                             <td className="px-4 py-3">
-                              <div className="font-medium text-amber-600">{guest.additionaldiscount}%</div>
+                              <div className="font-medium text-amber-600">{guest.additionaldiscount}</div>
                               <div className="text-xs">{guest.discountTitle}</div>
                             </td>
                             <td className="px-4 py-3 font-medium">
