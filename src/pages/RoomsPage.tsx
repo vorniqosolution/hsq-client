@@ -92,7 +92,7 @@ const RoomsPage = () => {
     category: "Standard",
     view: "Lobby Facing",
     rate: 0,
-    status: "available" as "available" | "booked" | "occupied" | "maintenance",
+    status: "available" as "available" | "reserved" | "occupied" | "maintenance",
     owner: "admin",
   });
   
@@ -507,7 +507,7 @@ const RoomsPage = () => {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="Standard">Standard</SelectItem>
-                              <SelectItem value="Dulux plus">Dulux plus</SelectItem>
+                              <SelectItem value="Duluxe-Plus">Duluxe-Plus</SelectItem>
                               <SelectItem value="Deluxe">Deluxe</SelectItem>
                               <SelectItem value="Executive">Executive</SelectItem>
                               <SelectItem value="Presidential">
@@ -562,7 +562,7 @@ const RoomsPage = () => {
                           <Select
                             value={formData.status}
                             onValueChange={(val) =>
-                              setFormData({ ...formData, status: val as "available" | "booked" | "occupied" | "maintenance" })
+                              setFormData({ ...formData, status: val as "available" | "reserved" | "occupied" | "maintenance" })
                             }
                           >
                             <SelectTrigger>
@@ -572,7 +572,7 @@ const RoomsPage = () => {
                               <SelectItem value="available">Available</SelectItem>
                               <SelectItem value="occupied">Occupied</SelectItem>
                               <SelectItem value="maintenance">Maintenance</SelectItem>
-                              <SelectItem value="booked">Booked</SelectItem>
+                              <SelectItem value="reserved">reserved</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -751,7 +751,7 @@ const RoomsPage = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Standard">Standard</SelectItem>
-                          <SelectItem value="Dulux plus">Dulux plus</SelectItem>
+                          <SelectItem value="Duluxe-Plus">Duluxe-Plus</SelectItem>
                           <SelectItem value="Deluxe">Deluxe</SelectItem>
                           <SelectItem value="Executive">Executive</SelectItem>
                           <SelectItem value="Presidential">
@@ -806,7 +806,7 @@ const RoomsPage = () => {
                       <Select
                         value={formData.status}
                         onValueChange={(val) =>
-                          setFormData({ ...formData, status: val as "available" | "booked" | "occupied" | "maintenance" })
+                          setFormData({ ...formData, status: val as "available" | "reserved" | "occupied" | "maintenance" })
                         }
                       >
                         <SelectTrigger>
@@ -816,7 +816,7 @@ const RoomsPage = () => {
                           <SelectItem value="available">Available</SelectItem>
                           <SelectItem value="occupied">Occupied</SelectItem>
                           <SelectItem value="maintenance">Maintenance</SelectItem>
-                          <SelectItem value="booked">Booked</SelectItem>
+                          <SelectItem value="reserved">reserved</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
