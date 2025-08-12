@@ -73,7 +73,7 @@ const LoginPage = () => {
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: `radial-gradient(circle at 25px 25px, rgba(59, 130, 246, 0.1) 2px, transparent 0), 
+            backgroundImage: `radial-gradient(circle at 25px 25px, rgba(59, 130, 246, 0.1) 2px, transparent 0),
                            radial-gradient(circle at 75px 75px, rgba(16, 185, 129, 0.1) 2px, transparent 0)`,
             backgroundSize: "100px 100px",
           }}
@@ -205,7 +205,7 @@ const LoginPage = () => {
         {/* Footer */}
         <div className="text-center mt-8 animate-fade-in">
           <p className="text-slate-500 text-sm">
-            © 2025 HSQ Hotels. All rights reserved.
+            © 2025 Vorqino solutions. All rights reserved.
           </p>
         </div>
       </div>
