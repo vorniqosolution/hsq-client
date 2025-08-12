@@ -28,7 +28,6 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/use-toast";
 import axios from "axios";
-
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 type Receptionist = {
   _id: string;
@@ -38,13 +37,6 @@ type Receptionist = {
   message: string;
 };
 
-type UpdatePassword = {
-  message: string;
-};
-const dummyReceptionists: Receptionist[] = [
-  // { id: "1", name: "Amit Sharma", email: "amit@clinic.com" },
-  // { id: "2", name: "Priya Singh", email: "priya@clinic.com" },
-];
 // function for check strong password
 function getPasswordStrength(password: string) {
   if (password.length > 8 && /[A-Z]/.test(password) && /\d/.test(password)) {
@@ -62,11 +54,9 @@ export default function SettingsPage() {
   const [adminPasswordLoading, setAdminPasswordLoading] = useState(false);
   const [showAdminPassword, setShowAdminPassword] = useState(false);
 
-  //show Receptionist
+  //Show Receptionist
   const [receptionists, setReceptionists] = useState<Receptionist[]>([]);
 
-  const [error, setError] = useState<string | null>(null);
-  useState<Receptionist | null>(null);
   // Receptionist password
   const [selectedRecep, setSelectedRecep] = useState<Receptionist | null>(null);
   const [recepPassword, setRecepPassword] = useState("");
@@ -79,15 +69,16 @@ export default function SettingsPage() {
   // HandleGetALLReceptionists my changes
   useEffect(() => {
     const HandleGetALLReceptionists = async () => {
-      setError(null);
       try {
         const response = await axios.get(
-          `${BASE_URL}/api/admin/viewrecepcient`,
+          `${BASE_URL}/api/admin/view-receptionist`,
           { withCredentials: true }
         );
         setReceptionists(response.data.data);
       } catch (err: any) {
-        setError("Failed to fetch receptionists");
+        toast({
+          description: err.response.data.message,
+        });
       }
     };
 
@@ -120,7 +111,6 @@ export default function SettingsPage() {
       setAdminPassword("");
       setadminprevPassword("");
     } catch (err: any) {
-      setError(err.response.data.message);
       toast({
         description: err.response.data.message,
       });
@@ -129,45 +119,51 @@ export default function SettingsPage() {
     }
   };
 
-  // console.log("recep", receptionists.data[0].name);
-  useState<Receptionist[]>(dummyReceptionists);
-
-  // Handle Adminpassword
-  const handleAdminPasswordUpdate = (e: React.FormEvent) => {
-    e.preventDefault();
-    setAdminPasswordLoading(true);
-    setTimeout(() => {
-      setAdminPasswordLoading(false);
-      setAdminPassword("");
-      toast({
-        title: "Password Updated",
-        description: "Your password has been updated.",
-      });
-    }, 1200);
-  };
   // HandleRecepPassword
-  const handleRecepPasswordUpdate = (e: React.FormEvent) => {
+  const handleRecepPasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setRecepPasswordLoading(true);
-    setTimeout(() => {
-      setRecepPasswordLoading(false);
+    try {
+      setRecepPasswordLoading(true);
+      const response = await axios.post(
+        `${BASE_URL}/api/admin/update-receptionist-password/${selectedRecep._id}`,
+        {
+          newPassword: recepPassword,
+        },
+        { withCredentials: true }
+      );
       setRecepPassword("");
-      setSelectedRecep(null);
+      setRecepPasswordLoading(false);
       toast({
-        title: "Receptionist Password Updated",
-        description: "Password updated successfully.",
+        title: "Update Receptionist",
+        description: response.data.message,
       });
-    }, 1200);
+      setSelectedRecep(null);
+    } catch (err: any) {
+      toast({
+        description: err.response.data.message,
+      });
+      setRecepPassword("");
+    } finally {
+      setRecepPasswordLoading(false);
+    }
   };
 
   // HandleDeleteRecep
-  const handleDeleteRecep = () => {
-    if (deleteRecep) {
-      // setReceptionists((prev) => prev.filter((r) => r.id !== deleteRecep.id));
-      setDeleteRecep(null);
+  const handleDeleteRecep = async (id?: string) => {
+    try {
+      const response = await axios.delete(
+        `${BASE_URL}/api/admin/delete-receptionist/${id}`,
+        { withCredentials: true }
+      );
       toast({
-        title: "Receptionist Deleted",
-        description: "Receptionist has been removed.",
+        title: "Delete Receptionist",
+        description: response.data.message,
+      });
+      setDeleteRecep(null);
+    } catch (err: any) {
+      toast({
+        title: "Error occur",
+        description: err.response.data.message,
       });
     }
   };
@@ -178,7 +174,6 @@ export default function SettingsPage() {
         <Settings className="w-8 h-8 text-primary" />
         <h1 className="text-3xl font-bold">Settings</h1>
       </div>
-
       {/* Responsive 2-column layout */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Left Sidebar: Admin Settings */}
@@ -314,37 +309,47 @@ export default function SettingsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {receptionists.map((data) => (
-                    <TableRow key={data._id}>
-                      <TableCell>{data.name}</TableCell>
-                      <TableCell>{data.email}</TableCell>
-                      <TableCell className="flex gap-2 justify-end">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          // onClick={() => setSelectedRecep(data)}
-                          title="Update Password"
-                        >
-                          <KeyRound className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          // onClick={() => setDeleteRecep(data)}
-                          title="Delete Receptionist"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                  {receptionists.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={3}
+                        className="text-center py-6 text-gray-500"
+                      >
+                        No Receptionist Found
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    receptionists.map((data) => (
+                      <TableRow key={data._id}>
+                        <TableCell>{data.name}</TableCell>
+                        <TableCell>{data.email}</TableCell>
+                        <TableCell className="flex gap-2 justify-end">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setSelectedRecep(data)}
+                            title="Update Password"
+                          >
+                            <KeyRound className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => setDeleteRecep(data)}
+                            title="Delete Receptionist"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
         </div>
       </div>
-
       {/* Update Receptionist Password Dialog */}
       <Dialog
         open={!!selectedRecep}
@@ -448,7 +453,7 @@ export default function SettingsPage() {
             <Button
               type="button"
               variant="destructive"
-              onClick={handleDeleteRecep}
+              onClick={() => handleDeleteRecep(deleteRecep?._id)}
             >
               Delete
             </Button>

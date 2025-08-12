@@ -4,6 +4,7 @@ import HSQ from "../../public/HSQ.png";
 import { LayoutDashboard, Users, LogOut, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import Footer from "./Footer.tsx";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -88,9 +89,9 @@ const Layout = ({ children }: LayoutProps) => {
           </div>
         </div>
       </nav>
-
       {/* Main Content */}
       <main>{children}</main>
+      <Footer />
     </div>
   );
 };
