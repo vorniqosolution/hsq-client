@@ -13,6 +13,11 @@ import { RevenueProvider } from "./contexts/revenueContext";
 import { InvoiceProvider } from "./contexts/InvoiceContext";
 import { TaxProvider } from "./contexts/TaxContext";
 import { ReservationProvider } from "./contexts/ReservationContext";
+
+import SessionPopup from "@/components/SessionPopup";
+
+
+
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import LoginPage from "./pages/LoginPage";
@@ -59,6 +64,8 @@ const App = () => (
                             <InvoiceProvider>
                               {/* <SettingProvider> */}
                               <AppInitializer>
+                                <SessionPopup />
+
                                 <Routes>
                                   <Route
                                     path="/"
