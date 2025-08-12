@@ -1,13 +1,31 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { 
-  Plus, Edit, Trash2, DollarSign, Menu, X, 
-  Users, Bed, Settings, LogOut, Home, Crown, Star, Sparkles,
-  Archive, FileText, Ticket, Eye, Filter, Check, RefreshCw,
+import HSQ from "../../public/HSQ.png";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  DollarSign,
+  Menu,
+  X,
+  Users,
+  Bed,
+  Settings,
+  LogOut,
+  Home,
+  Crown,
+  Star,
+  Sparkles,
+  Archive,
+  FileText,
+  Ticket,
+  Eye,
+  Filter,
+  Check,
+  RefreshCw,
   Percent,
   LucideChartNoAxesColumnDecreasing,
-  Calendar
+  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +34,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter
+  CardFooter,
 } from "@/components/ui/card";
 import {
   Dialog,
@@ -26,7 +44,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
-  DialogClose
+  DialogClose,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -52,32 +70,27 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Room, useRoomContext } from "../contexts/RoomContext";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const RoomsPage = () => {
   // Enhanced context destructuring with all room management methods
-  const { 
-    rooms, 
+  const {
+    rooms,
     availableRooms,
-    currentRoom, 
-    loading, 
+    currentRoom,
+    loading,
     error,
-    createRoom, 
+    createRoom,
     fetchRooms,
     fetchAvailableRooms,
     fetchRoomById,
     updateRoom,
-    deleteRoom
+    deleteRoom,
   } = useRoomContext();
-  
+
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
-  
+
   // State management
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -85,17 +98,21 @@ const RoomsPage = () => {
   const [roomToDelete, setRoomToDelete] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("all");
   const [displayedRooms, setDisplayedRooms] = useState<Room[]>([]);
-  
+
   const [formData, setFormData] = useState<Partial<Room>>({
     roomNumber: "",
     bedType: "One Bed",
     category: "Standard",
     view: "Lobby Facing",
     rate: 0,
-    status: "available" as "available" | "reserved" | "occupied" | "maintenance",
+    status: "available" as
+      | "available"
+      | "reserved"
+      | "occupied"
+      | "maintenance",
     owner: "admin",
   });
-  
+
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
@@ -157,7 +174,7 @@ const RoomsPage = () => {
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!createRoom) return;
-    
+
     const success = await createRoom(formData);
     if (success) {
       toast({
@@ -179,7 +196,7 @@ const RoomsPage = () => {
   const handleUpdateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!updateRoom || !formData._id) return;
-    
+
     const success = await updateRoom(formData._id, formData);
     if (success) {
       toast({
@@ -200,7 +217,7 @@ const RoomsPage = () => {
   // Handle room deletion
   const handleDeleteRoom = async () => {
     if (!deleteRoom || !roomToDelete) return;
-    
+
     const success = await deleteRoom(roomToDelete);
     if (success) {
       toast({
@@ -234,23 +251,25 @@ const RoomsPage = () => {
 
   // --- Sidebar Navigation ---
   const mainNavItems = [
-        { name: "Dashboard", href: "/dashboard", icon: Home },
-        { name: "Guests", href: "/guests", icon: Users },
-        { name: "Reservation", href: "/reservation", icon: Calendar },
-        { name: "Rooms", href: "/rooms", icon: Bed },
-        { name: "Discounts", href: "/Discount", icon: Ticket },
-        { name: "GST & Tax", href: "/Gst", icon: Percent },
-        { name: "Inventory", href: "/Inventory", icon: Archive },
-        { name: "Invoices", href: "/Invoices", icon: FileText },
-        { name: "Revenue", href: "/Revenue", icon: FileText },
-      ];
+    { name: "Dashboard", href: "/dashboard", icon: Home },
+    { name: "Guests", href: "/guests", icon: Users },
+    { name: "Reservation", href: "/reservation", icon: Calendar },
+    { name: "Rooms", href: "/rooms", icon: Bed },
+    { name: "Discounts", href: "/Discount", icon: Ticket },
+    { name: "GST & Tax", href: "/Gst", icon: Percent },
+    { name: "Inventory", href: "/Inventory", icon: Archive },
+    { name: "Invoices", href: "/Invoices", icon: FileText },
+    { name: "Revenue", href: "/Revenue", icon: FileText },
+  ];
 
-  const systemNavItems = [{ name: 'Settings', href: '/settings', icon: Settings }];
+  const systemNavItems = [
+    { name: "Settings", href: "/settings", icon: Settings },
+  ];
 
   const isActive = (href: string) => {
-    if (href === '/dashboard') return location.pathname === href;
+    if (href === "/dashboard") return location.pathname === href;
     return location.pathname.startsWith(href);
-  }
+  };
 
   // Helper function to render navigation links
   const renderNavLinks = (items: typeof mainNavItems) => {
@@ -265,27 +284,32 @@ const RoomsPage = () => {
           className={`
             group flex items-center px-4 py-3 text-sm rounded-lg
             transition-all duration-200 relative overflow-hidden
-            ${active
-              ? 'bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-400 shadow-lg shadow-amber-500/10'
-              : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
+            ${
+              active
+                ? "bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-400 shadow-lg shadow-amber-500/10"
+                : "text-slate-300 hover:text-white hover:bg-slate-800/50"
             }
           `}
         >
           {active && (
             <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-amber-600" />
           )}
-          <Icon className={`
+          <Icon
+            className={`
             mr-3 h-5 w-5 transition-all duration-200
-            ${active ? 'text-amber-400' : 'text-slate-400 group-hover:text-slate-300'}
-          `} />
+            ${
+              active
+                ? "text-amber-400"
+                : "text-slate-400 group-hover:text-slate-300"
+            }
+          `}
+          />
           <span className="font-light tracking-wide">{item.name}</span>
-          {active && (
-            <Star className="ml-auto h-3 w-3 text-amber-400/60" />
-          )}
+          {active && <Star className="ml-auto h-3 w-3 text-amber-400/60" />}
         </Link>
       );
     });
-  }
+  };
 
   // Loading state
   if (loading) {
@@ -324,26 +348,32 @@ const RoomsPage = () => {
         <>
           {/* Mobile backdrop */}
           {sidebarOpen && (
-            <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+            <div
+              className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-40 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
           )}
 
           {/* Sidebar */}
-          <div className={`
+          <div
+            className={`
             fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-slate-900 to-slate-950 
             shadow-2xl transform transition-transform duration-300 ease-in-out
             lg:translate-x-0 lg:static lg:inset-0
-            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          `}>
+            ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          `}
+          >
             {/* Logo Section */}
             <div className="h-20 px-6 flex items-center border-b border-slate-800/50">
               <div className="flex items-center space-x-3">
-                <div className="relative">
-                  <Crown className="h-9 w-9 text-amber-400" />
-                  <Sparkles className="h-4 w-4 text-amber-300 absolute -top-1 -right-1" />
-                </div>
+                <img className="w-8 h-8 rounded-lg" src={HSQ} alt="HSQ" />
                 <div>
-                  <h1 className="text-xl font-light tracking-wider text-white">HSQ ADMIN</h1>
-                  <p className="text-xs text-amber-400/80 tracking-widest uppercase">Management Panel</p>
+                  <h1 className="text-xl font-light tracking-wider text-white">
+                    HSQ ADMIN
+                  </h1>
+                  <p className="text-xs text-amber-400/80 tracking-widest uppercase">
+                    Management Panel
+                  </p>
                 </div>
               </div>
               <button
@@ -357,19 +387,19 @@ const RoomsPage = () => {
             {/* Navigation */}
             <nav className="mt-8 px-4 flex flex-col h-[calc(100%-80px)]">
               <div className="flex-grow">
-                <div className="space-y-1">
-                    {renderNavLinks(mainNavItems)}
-                </div>
+                <div className="space-y-1">{renderNavLinks(mainNavItems)}</div>
               </div>
-              
+
               {/* Bottom Section */}
               <div className="flex-shrink-0">
-                <div className="my-4 px-4"><div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" /></div>
+                <div className="my-4 px-4">
+                  <div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
+                </div>
                 <div className="space-y-1">
                   {renderNavLinks(systemNavItems)}
                   <button className="group flex items-center px-4 py-3 text-sm text-slate-300 rounded-lg hover:text-white hover:bg-slate-800/50 w-full transition-all duration-200">
-                      <LogOut className="mr-3 h-5 w-5 text-slate-400 group-hover:text-slate-300" />
-                      <span className="font-light tracking-wide">Sign Out</span>
+                    <LogOut className="mr-3 h-5 w-5 text-slate-400 group-hover:text-slate-300" />
+                    <span className="font-light tracking-wide">Sign Out</span>
                   </button>
                 </div>
               </div>
@@ -382,8 +412,12 @@ const RoomsPage = () => {
                   <span className="text-sm font-medium text-slate-900">AM</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-light text-white truncate">Admin Manager</p>
-                  <p className="text-xs text-slate-400 truncate">{user?.email || 'admin@hsqtowers.com'}</p>
+                  <p className="text-sm font-light text-white truncate">
+                    Admin Manager
+                  </p>
+                  <p className="text-xs text-slate-400 truncate">
+                    {user?.email || "admin@hsqtowers.com"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -392,7 +426,7 @@ const RoomsPage = () => {
       )}
 
       {/* Main content */}
-      <div className={`flex-1 ${isAdmin ? 'lg:ml-0' : ''}`}>
+      <div className={`flex-1 ${isAdmin ? "lg:ml-0" : ""}`}>
         {/* Mobile header - only for admin */}
         {isAdmin && (
           <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4">
@@ -405,7 +439,9 @@ const RoomsPage = () => {
               </button>
               <div className="flex items-center space-x-2">
                 <Crown className="h-6 w-6 text-amber-500" />
-                <span className="font-light tracking-wider text-slate-900">HSQ ADMIN</span>
+                <span className="font-light tracking-wider text-slate-900">
+                  HSQ ADMIN
+                </span>
               </div>
               <div className="w-9" />
             </div>
@@ -425,8 +461,8 @@ const RoomsPage = () => {
 
               <div className="flex space-x-3">
                 {/* Room filtering tabs */}
-                <Tabs 
-                  value={activeTab} 
+                <Tabs
+                  value={activeTab}
                   onValueChange={setActiveTab}
                   className="w-[260px]"
                 >
@@ -468,7 +504,10 @@ const RoomsPage = () => {
                             id="roomNumber"
                             value={formData.roomNumber}
                             onChange={(e) =>
-                              setFormData({ ...formData, roomNumber: e.target.value })
+                              setFormData({
+                                ...formData,
+                                roomNumber: e.target.value,
+                              })
                             }
                             placeholder="101"
                             required
@@ -507,9 +546,13 @@ const RoomsPage = () => {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="Standard">Standard</SelectItem>
-                              <SelectItem value="Duluxe-Plus">Duluxe-Plus</SelectItem>
+                              <SelectItem value="Duluxe-Plus">
+                                Duluxe-Plus
+                              </SelectItem>
                               <SelectItem value="Deluxe">Deluxe</SelectItem>
-                              <SelectItem value="Executive">Executive</SelectItem>
+                              <SelectItem value="Executive">
+                                Executive
+                              </SelectItem>
                               <SelectItem value="Presidential">
                                 Presidential
                               </SelectItem>
@@ -534,7 +577,9 @@ const RoomsPage = () => {
                               <SelectItem value="Terrace View">
                                 Terrace View
                               </SelectItem>
-                              <SelectItem value="Valley View">Valley View</SelectItem>
+                              <SelectItem value="Valley View">
+                                Valley View
+                              </SelectItem>
                               <SelectItem value="Corner">Corner</SelectItem>
                             </SelectContent>
                           </Select>
@@ -562,22 +607,36 @@ const RoomsPage = () => {
                           <Select
                             value={formData.status}
                             onValueChange={(val) =>
-                              setFormData({ ...formData, status: val as "available" | "reserved" | "occupied" | "maintenance" })
+                              setFormData({
+                                ...formData,
+                                status: val as
+                                  | "available"
+                                  | "reserved"
+                                  | "occupied"
+                                  | "maintenance",
+                              })
                             }
                           >
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="available">Available</SelectItem>
+                              <SelectItem value="available">
+                                Available
+                              </SelectItem>
                               <SelectItem value="occupied">Occupied</SelectItem>
-                              <SelectItem value="maintenance">Maintenance</SelectItem>
+                              <SelectItem value="maintenance">
+                                Maintenance
+                              </SelectItem>
                               <SelectItem value="reserved">reserved</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                       </div>
-                      <Button type="submit" className="w-full bg-amber-500 hover:bg-amber-600">
+                      <Button
+                        type="submit"
+                        className="w-full bg-amber-500 hover:bg-amber-600"
+                      >
                         Create Room
                       </Button>
                     </form>
@@ -589,14 +648,18 @@ const RoomsPage = () => {
             {/* Room Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {displayedRooms.map((room) => (
-                <Card key={room._id} className="hover:shadow-lg transition-shadow">
+                <Card
+                  key={room._id}
+                  className="hover:shadow-lg transition-shadow"
+                >
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-xl">
                         Room {room.roomNumber}
                       </CardTitle>
                       <Badge className={getStatusColor(room.status)}>
-                        {room.status.charAt(0).toUpperCase() + room.status.slice(1)}
+                        {room.status.charAt(0).toUpperCase() +
+                          room.status.slice(1)}
                       </Badge>
                     </div>
                     <CardDescription>
@@ -612,30 +675,30 @@ const RoomsPage = () => {
                   </CardContent>
                   <CardFooter className="flex justify-end pt-2 gap-2">
                     {/* View Room Details */}
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => handleViewRoom(room._id)}
                     >
                       <Eye className="h-4 w-4 mr-1" />
                       View
                     </Button>
-                    
+
                     {/* Edit Room */}
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => handleEditRoom(room)}
                     >
                       <Edit className="h-4 w-4 mr-1" />
                       Edit
                     </Button>
-                    
+
                     {/* Delete Room */}
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           className="text-red-600 border-red-200 hover:bg-red-50"
                           onClick={() => setRoomToDelete(room._id)}
@@ -646,17 +709,21 @@ const RoomsPage = () => {
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Room {room.roomNumber}?</AlertDialogTitle>
+                          <AlertDialogTitle>
+                            Delete Room {room.roomNumber}?
+                          </AlertDialogTitle>
                           <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the room
-                            and all associated data.
+                            This action cannot be undone. This will permanently
+                            delete the room and all associated data.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel onClick={() => setRoomToDelete(null)}>
+                          <AlertDialogCancel
+                            onClick={() => setRoomToDelete(null)}
+                          >
                             Cancel
                           </AlertDialogCancel>
-                          <AlertDialogAction 
+                          <AlertDialogAction
                             onClick={handleDeleteRoom}
                             className="bg-red-600 hover:bg-red-700"
                           >
@@ -675,14 +742,14 @@ const RoomsPage = () => {
               <div className="text-center py-12 bg-white rounded-lg shadow-sm border">
                 <Bed className="h-12 w-12 text-slate-300 mx-auto mb-3" />
                 <p className="text-gray-500 text-lg">
-                  {activeTab === "available" 
-                    ? "No available rooms found." 
+                  {activeTab === "available"
+                    ? "No available rooms found."
                     : "No rooms found. Create your first room to get started."}
                 </p>
                 {activeTab === "available" && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="mt-4"
                     onClick={() => setActiveTab("all")}
                   >
@@ -691,12 +758,9 @@ const RoomsPage = () => {
                 )}
               </div>
             )}
-            
+
             {/* Edit Room Dialog */}
-            <Dialog
-              open={isEditDialogOpen}
-              onOpenChange={setIsEditDialogOpen}
-            >
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Edit Room {formData.roomNumber}</DialogTitle>
@@ -712,7 +776,10 @@ const RoomsPage = () => {
                         id="edit-roomNumber"
                         value={formData.roomNumber}
                         onChange={(e) =>
-                          setFormData({ ...formData, roomNumber: e.target.value })
+                          setFormData({
+                            ...formData,
+                            roomNumber: e.target.value,
+                          })
                         }
                         placeholder="101"
                         required
@@ -751,7 +818,9 @@ const RoomsPage = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Standard">Standard</SelectItem>
-                          <SelectItem value="Duluxe-Plus">Duluxe-Plus</SelectItem>
+                          <SelectItem value="Duluxe-Plus">
+                            Duluxe-Plus
+                          </SelectItem>
                           <SelectItem value="Deluxe">Deluxe</SelectItem>
                           <SelectItem value="Executive">Executive</SelectItem>
                           <SelectItem value="Presidential">
@@ -778,7 +847,9 @@ const RoomsPage = () => {
                           <SelectItem value="Terrace View">
                             Terrace View
                           </SelectItem>
-                          <SelectItem value="Valley View">Valley View</SelectItem>
+                          <SelectItem value="Valley View">
+                            Valley View
+                          </SelectItem>
                           <SelectItem value="Corner">Corner</SelectItem>
                         </SelectContent>
                       </Select>
@@ -806,7 +877,14 @@ const RoomsPage = () => {
                       <Select
                         value={formData.status}
                         onValueChange={(val) =>
-                          setFormData({ ...formData, status: val as "available" | "reserved" | "occupied" | "maintenance" })
+                          setFormData({
+                            ...formData,
+                            status: val as
+                              | "available"
+                              | "reserved"
+                              | "occupied"
+                              | "maintenance",
+                          })
                         }
                       >
                         <SelectTrigger>
@@ -815,7 +893,9 @@ const RoomsPage = () => {
                         <SelectContent>
                           <SelectItem value="available">Available</SelectItem>
                           <SelectItem value="occupied">Occupied</SelectItem>
-                          <SelectItem value="maintenance">Maintenance</SelectItem>
+                          <SelectItem value="maintenance">
+                            Maintenance
+                          </SelectItem>
                           <SelectItem value="reserved">reserved</SelectItem>
                         </SelectContent>
                       </Select>
@@ -823,16 +903,21 @@ const RoomsPage = () => {
                   </div>
                   <DialogFooter>
                     <DialogClose asChild>
-                      <Button variant="outline" type="button">Cancel</Button>
+                      <Button variant="outline" type="button">
+                        Cancel
+                      </Button>
                     </DialogClose>
-                    <Button type="submit" className="bg-amber-500 hover:bg-amber-600">
+                    <Button
+                      type="submit"
+                      className="bg-amber-500 hover:bg-amber-600"
+                    >
                       Save Changes
                     </Button>
                   </DialogFooter>
                 </form>
               </DialogContent>
             </Dialog>
-            
+
             {/* View Room Details Dialog */}
             <Dialog
               open={isViewDialogOpen && currentRoom !== null}
@@ -840,21 +925,24 @@ const RoomsPage = () => {
             >
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Room {currentRoom?.roomNumber} Details</DialogTitle>
+                  <DialogTitle>
+                    Room {currentRoom?.roomNumber} Details
+                  </DialogTitle>
                   <DialogDescription>
                     Complete information about this room
                   </DialogDescription>
                 </DialogHeader>
-                
+
                 {currentRoom && (
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <h3 className="text-lg font-medium">Room Information</h3>
                       <Badge className={getStatusColor(currentRoom.status)}>
-                        {currentRoom.status.charAt(0).toUpperCase() + currentRoom.status.slice(1)}
+                        {currentRoom.status.charAt(0).toUpperCase() +
+                          currentRoom.status.slice(1)}
                       </Badge>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                       <div>
                         <p className="text-sm text-gray-500">Room Number</p>
@@ -874,19 +962,21 @@ const RoomsPage = () => {
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Rate per Night</p>
-                        <p className="font-medium text-amber-600">Rs {currentRoom.rate.toLocaleString()}</p>
+                        <p className="font-medium text-amber-600">
+                          Rs {currentRoom.rate.toLocaleString()}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Owner</p>
                         <p className="font-medium">{currentRoom.owner}</p>
                       </div>
                     </div>
-                    
+
                     <div className="pt-4 flex justify-end space-x-2">
                       <DialogClose asChild>
                         <Button variant="outline">Close</Button>
                       </DialogClose>
-                      <Button 
+                      <Button
                         className="bg-amber-500 hover:bg-amber-600"
                         onClick={() => {
                           setIsViewDialogOpen(false);

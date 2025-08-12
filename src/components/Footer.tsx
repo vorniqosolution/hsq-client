@@ -1,3 +1,4 @@
+import vorniqologo from "../../public/vorniqologo.png";
 export default function Footer() {
   return (
     <>
@@ -7,80 +8,10 @@ export default function Footer() {
             <div className="container  flex flex-col mx-auto">
               <div className="flex flex-col items-center w-full my-20">
                 <span className="mb-8">
-                  <svg
-                    width="140"
-                    viewBox="0 0 419 150"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <text
-                      x="100"
-                      y="70"
-                      fontSize="40"
-                      fontWeight="bold"
-                      fill="#1A31A7"
-                    >
-                      Vorqino Solutions
-                    </text>
-                    <path
-                      d="M34.2138 5.86107C34.7122 4.28095 36.3972 3.40401 37.9773 3.90239L76.9347 16.1896C78.5148 16.688 79.3917 18.373 78.8934 19.9531L72.8993 38.9574C72.2692 40.9554 69.8371 41.7086 68.188 40.4165L52.7882 28.3503C52.2168 27.9025 51.5023 27.6772 50.7773 27.7161L31.2415 28.7635C29.1495 28.8757 27.5896 26.8634 28.2198 24.8654L34.2138 5.86107Z"
-                      fill="url(#paint1_linear_1001_3)"
-                    />
-                    <path
-                      d="M13.3226 80.1965C11.7071 80.5642 10.0994 79.5527 9.73164 77.9371L0.665552 38.1067C0.297829 36.4912 1.30938 34.8834 2.92491 34.5157L22.3551 30.093C24.3979 29.6281 26.2761 31.347 25.9936 33.4229L23.3549 52.808C23.2569 53.5274 23.4232 54.2578 23.8228 54.864L34.5917 71.1973C35.7449 72.9464 34.7957 75.3089 32.7529 75.7738L13.3226 80.1965Z"
-                      fill="url(#paint2_linear_1001_3)"
-                    />
-                    <path
-                      d="M87.9774 60.8205C89.0945 62.0441 89.008 63.9417 87.7843 65.0587L57.6148 92.5988C56.3911 93.7158 54.4936 93.6294 53.3766 92.4057L39.9419 77.6883C38.5294 76.141 39.0976 73.6592 41.0426 72.8806L59.2053 65.6098C59.8793 65.34 60.4326 64.835 60.7626 64.1883L69.6548 46.762C70.6071 44.8959 73.1303 44.5557 74.5427 46.103L87.9774 60.8205Z"
-                      fill="url(#paint3_linear_1001_3)"
-                    />
-                    <defs>
-                      <linearGradient
-                        id="paint0_linear_1001_3"
-                        x1="268"
-                        y1="0"
-                        x2="268"
-                        y2="86"
-                        gradientUnits="userSpaceOnUse"
-                      >
-                        <stop stop-color="#1A31A7" />
-                        <stop offset="1" stop-color="#7C3AED" />
-                      </linearGradient>
-                      <linearGradient
-                        id="paint1_linear_1001_3"
-                        x1="62.4802"
-                        y1="11.9181"
-                        x2="43.6919"
-                        y2="47.2867"
-                        gradientUnits="userSpaceOnUse"
-                      >
-                        <stop stop-color="#1A31A7" />
-                        <stop offset="1" stop-color="#7C3AED" />
-                      </linearGradient>
-                      <linearGradient
-                        id="paint2_linear_1001_3"
-                        x1="4.27748"
-                        y1="52.74"
-                        x2="44.293"
-                        y2="51.0974"
-                        gradientUnits="userSpaceOnUse"
-                      >
-                        <stop stop-color="#1A31A7" />
-                        <stop offset="1" stop-color="#7C3AED" />
-                      </linearGradient>
-                      <linearGradient
-                        id="paint3_linear_1001_3"
-                        x1="68.56"
-                        y1="82.2363"
-                        x2="47.3853"
-                        y2="48.2426"
-                        gradientUnits="userSpaceOnUse"
-                      >
-                        <stop stop-color="#1A31A7" />
-                        <stop offset="1" stop-color="#7C3AED" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
+                  <div className="flex items-center">
+                    <img className="w-20 h-15" src={vorniqologo} alt="" />
+                    {/* <h1 className="font-bold text-sm">Vorniqo solutions</h1> */}
+                  </div>
                 </span>
                 <div className="flex flex-col items-center gap-6 mb-8">
                   <div className="flex flex-wrap items-center justify-center gap-5 lg:gap-12 gap-y-3 lg:flex-nowrap text-dark-grey-900">

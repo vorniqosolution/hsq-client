@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { parseISO, differenceInCalendarDays } from "date-fns";
+import HSQ from "../../public/HSQ.png";
 import {
   Search,
   Eye,
@@ -423,10 +424,7 @@ const GuestsPage: React.FC = () => {
           >
             <div className="h-20 px-6 flex items-center border-b border-slate-800/50">
               <div className="flex items-center space-x-3">
-                <div className="relative">
-                  <Crown className="h-9 w-9 text-amber-400" />
-                  <Sparkles className="h-4 w-4 text-amber-300 absolute -top-1 -right-1" />
-                </div>
+                <img className="w-8 h-8 rounded-lg" src={HSQ} alt="HSQ" />
                 <div>
                   <h1 className="text-xl font-light tracking-wider text-white">
                     HSQ ADMIN
@@ -848,47 +846,47 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
   }, [isOpen, prefill]);
 
   const handleFormChange = useCallback(
-  (e: React.ChangeEvent<HTMLInputElement>) => {
-    const input = e.currentTarget;
-    const { name, type, value } = input; // Add value here
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const input = e.currentTarget;
+      const { name, type, value } = input; // Add value here
 
-    if (name === "stayDuration") {
-      const n = input.valueAsNumber;
-      setFormData((prev) => ({
-        ...prev,
-        stayDuration: Number.isNaN(n) ? 1 : Math.max(1, Math.floor(n)),
-      }));
-      return;
-    }
-
-    if (name === "additionaldiscount") {
-      const n = input.valueAsNumber; // NaN when cleared
-      setFormData((prev) => ({
-        ...prev,
-        // store 0 when empty; UI renders "" so zero is removable
-        additionaldiscount: Number.isNaN(n) ? 0 : Math.max(0, Math.floor(n)),
-      }));
-      return;
-    }
-
-    if (name === "applyDiscount") {
-      setFormData((prev) => ({
-        ...prev,
-        applyDiscount: (input as any).checked,
-      }));
-      return;
-    }
-
-    setFormData(
-      (prev) =>
-        ({
+      if (name === "stayDuration") {
+        const n = input.valueAsNumber;
+        setFormData((prev) => ({
           ...prev,
-          [name]: value, // Now value is defined
-        } as unknown as CreateGuestInput)
-    );
-  },
-  []
-);
+          stayDuration: Number.isNaN(n) ? 1 : Math.max(1, Math.floor(n)),
+        }));
+        return;
+      }
+
+      if (name === "additionaldiscount") {
+        const n = input.valueAsNumber; // NaN when cleared
+        setFormData((prev) => ({
+          ...prev,
+          // store 0 when empty; UI renders "" so zero is removable
+          additionaldiscount: Number.isNaN(n) ? 0 : Math.max(0, Math.floor(n)),
+        }));
+        return;
+      }
+
+      if (name === "applyDiscount") {
+        setFormData((prev) => ({
+          ...prev,
+          applyDiscount: (input as any).checked,
+        }));
+        return;
+      }
+
+      setFormData(
+        (prev) =>
+          ({
+            ...prev,
+            [name]: value, // Now value is defined
+          } as unknown as CreateGuestInput)
+      );
+    },
+    []
+  );
 
   const handleSelectChange = useCallback(
     (name: "roomNumber" | "paymentMethod", value: string) => {
