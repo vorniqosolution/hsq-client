@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTax } from '@/contexts/TaxContext';
 import { useAuth } from '@/contexts/AuthContext';
+import HSQ from "../../public/HSQ.png";
 import {
   Users,
   Bed,
@@ -176,8 +177,7 @@ const TaxSettingsPage: React.FC = () => {
             <div className="h-20 px-6 flex items-center border-b border-slate-800/50">
               <div className="flex items-center space-x-3">
                 <div className="relative">
-                  <Crown className="h-9 w-9 text-amber-400" />
-                  <Sparkles className="h-4 w-4 text-amber-300 absolute -top-1 -right-1" />
+                  <img className="w-8 h-8 rounded-lg" src={HSQ} alt="HSQ" />
                 </div>
                 <div>
                   <h1 className="text-xl font-light tracking-wider text-white">
