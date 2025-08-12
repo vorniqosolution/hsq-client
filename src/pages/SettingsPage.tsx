@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/use-toast";
 import axios from "axios";
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 type Receptionist = {
   _id: string;
@@ -37,11 +38,13 @@ type Receptionist = {
   message: string;
 };
 
+type UpdatePassword = {
+  message: string;
+};
 const dummyReceptionists: Receptionist[] = [
   // { id: "1", name: "Amit Sharma", email: "amit@clinic.com" },
   // { id: "2", name: "Priya Singh", email: "priya@clinic.com" },
 ];
-
 // function for check strong password
 function getPasswordStrength(password: string) {
   if (password.length > 8 && /[A-Z]/.test(password) && /\d/.test(password)) {
@@ -52,14 +55,16 @@ function getPasswordStrength(password: string) {
   }
   return "Weak";
 }
-
 export default function SettingsPage() {
   // Admin password
   const [adminPassword, setAdminPassword] = useState("");
+  const [adminprevPassword, setadminprevPassword] = useState("");
   const [adminPasswordLoading, setAdminPasswordLoading] = useState(false);
   const [showAdminPassword, setShowAdminPassword] = useState(false);
 
+  //show Receptionist
   const [receptionists, setReceptionists] = useState<Receptionist[]>([]);
+
   const [error, setError] = useState<string | null>(null);
   useState<Receptionist | null>(null);
   // Receptionist password
@@ -70,7 +75,8 @@ export default function SettingsPage() {
 
   // Delete confirmation
   const [deleteRecep, setDeleteRecep] = useState<Receptionist | null>(null);
-  // HandleGetALLReceptionists
+
+  // HandleGetALLReceptionists my changes
   useEffect(() => {
     const HandleGetALLReceptionists = async () => {
       setError(null);
@@ -82,12 +88,47 @@ export default function SettingsPage() {
         setReceptionists(response.data.data);
       } catch (err: any) {
         setError("Failed to fetch receptionists");
-      } finally {
       }
     };
 
     HandleGetALLReceptionists();
   }, []);
+  // Admin updatepassword my change
+  const Handle_Admin_Update_Password = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (!adminPassword || !adminprevPassword) {
+        toast({
+          description: "Please enter complete details",
+        });
+        return;
+      }
+      const response = await axios.post(
+        `${BASE_URL}/api/admin/updatepassword`,
+        {
+          prevpassword: adminprevPassword,
+          newpassword: adminPassword,
+        },
+        { withCredentials: true }
+      );
+      console.log("response", response.data.message);
+      toast({
+        title: "Update Password",
+        description: response.data.message,
+      });
+
+      setAdminPassword("");
+      setadminprevPassword("");
+    } catch (err: any) {
+      setError(err.response.data.message);
+      toast({
+        description: err.response.data.message,
+      });
+      setAdminPassword("");
+      setadminprevPassword("");
+    }
+  };
+
   // console.log("recep", receptionists.data[0].name);
   useState<Receptionist[]>(dummyReceptionists);
 
@@ -151,9 +192,38 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
               <form
-                onSubmit={handleAdminPasswordUpdate}
+                onSubmit={Handle_Admin_Update_Password}
                 className="flex flex-col gap-4"
               >
+                {/* PREVIOUS PASSWORD INPUT-FIELD */}
+                <Label htmlFor="prev-admin-password" className="font-semibold">
+                  Prev Password
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="prev-admin-password"
+                    type={showAdminPassword ? "text" : "password"}
+                    value={adminprevPassword}
+                    onChange={(e) => setadminprevPassword(e.target.value)}
+                    required
+                    placeholder="Enter previous password"
+                    className="pr-10 pl-10"
+                  />
+                  <LockKeyhole className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    onClick={() => setShowAdminPassword((v) => !v)}
+                    tabIndex={-1}
+                  >
+                    {showAdminPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+                {/* NEW PASSWORD INPUT-FIELD */}
                 <Label htmlFor="admin-password" className="font-semibold">
                   New Password
                 </Label>
