@@ -22,6 +22,7 @@ import {
   Filter,
   Tag,
   DollarSign,
+  Banknote,
   Users,
 } from "lucide-react";
 
@@ -143,7 +144,7 @@ const RevenuePage = () => {
       case "daily": return <Calendar className="h-5 w-5 text-amber-500" />;
       case "categories": return <Tag className="h-5 w-5 text-amber-500" />;
       case "guests": return <Users className="h-5 w-5 text-amber-500" />;
-      case "all-time": return <DollarSign className="h-5 w-5 text-amber-500" />;
+      case "all-time": return <Banknote className="h-5 w-5 text-amber-500" />;
       default: return <FileText className="h-5 w-5 text-amber-500" />;
     }
   };
@@ -346,7 +347,7 @@ const RevenuePage = () => {
                 </div>
               </div>
               <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
-                <div className="text-sm text-slate-500 mb-1">Total Reservations</div>
+                <div className="text-sm text-slate-500 mb-1">Total Guests</div>
                 <div className="text-2xl font-light text-slate-900">
                   {data.monthlyrevenue.totalReservations.toLocaleString()}
                 </div>
@@ -385,7 +386,7 @@ const RevenuePage = () => {
                 </div>
               </div>
               <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
-                <div className="text-sm text-slate-500 mb-1">Total Reservations</div>
+                <div className="text-sm text-slate-500 mb-1">Total Guests</div>
                 <div className="text-2xl font-light text-slate-900">
                   {data.weeklyrevenue.totalReservations.toLocaleString()}
                 </div>
@@ -433,7 +434,7 @@ const RevenuePage = () => {
                     <div className="text-lg font-medium text-slate-900">Rs: {' '}{cat.totalRevenue.toLocaleString()}</div>
                   </div>
                   <div className="bg-slate-50 p-3 rounded">
-                    <div className="text-xs text-slate-500">Total Reservations</div>
+                    <div className="text-xs text-slate-500">Total Guests</div>
                     <div className="text-lg font-medium text-slate-900">{cat.totalReservations.toLocaleString()}</div>
                   </div>
                 </div>
@@ -540,7 +541,7 @@ const RevenuePage = () => {
                 </div>
               </div>
               <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
-                <div className="text-sm text-slate-500 mb-1">Total Reservations</div>
+                <div className="text-sm text-slate-500 mb-1">Total Guests</div>
                 <div className="text-2xl font-light text-slate-900">
                   {data.totalReservations.toLocaleString()}
                 </div>
@@ -599,7 +600,7 @@ const RevenuePage = () => {
         <div>
           <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200">
             <div className="flex items-center space-x-2">
-              <DollarSign className="h-5 w-5 text-amber-500" />
+              
               <h3 className="text-lg font-light text-slate-900">
                 All-Time Revenue
               </h3>
@@ -622,7 +623,7 @@ const RevenuePage = () => {
                 </div>
               </div>
               <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
-                <div className="text-sm text-slate-500 mb-1">Total Reservations</div>
+                <div className="text-sm text-slate-500 mb-1">Total Guests</div>
                 <div className="text-2xl font-light text-slate-900">
                   {data.totalReservations.toLocaleString()}
                 </div>
