@@ -611,7 +611,7 @@ const RevenuePage = () => {
                     </p>
                     {!loading && dailyRevenue && (
                       <div className="text-sm text-slate-600">
-                        {dailyRevenue.totalReservations} reservations
+                        {dailyRevenue.totalReservations} Guests
                       </div>
                     )}
                   </div>
