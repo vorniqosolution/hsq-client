@@ -194,22 +194,22 @@ const InventoryPage = () => {
   }, [categories]);
 
   // === SIDEBAR NAVIGATION ===
- const mainNavItems = [
-         { name: "Dashboard", href: "/dashboard", icon: Home },
-         { name: "Guests", href: "/guests", icon: Users },
-         { name: "Reservation", href: "/reservation", icon: Calendar },
-         { name: "Rooms", href: "/rooms", icon: Bed },
-         { name: "Discounts", href: "/Discount", icon: Ticket },
-         { name: "GST & Tax", href: "/Gst", icon: Percent },
-         { name: "Inventory", href: "/Inventory", icon: Archive },
-         { name: "Invoices", href: "/Invoices", icon: FileText },
-         { name: "Revenue", href: "/Revenue", icon: FileText },
-       ];
+//  const mainNavItems = [
+//          { name: "Dashboard", href: "/dashboard", icon: Home },
+//          { name: "Guests", href: "/guests", icon: Users },
+//          { name: "Reservation", href: "/reservation", icon: Calendar },
+//          { name: "Rooms", href: "/rooms", icon: Bed },
+//          { name: "Discounts", href: "/Discount", icon: Ticket },
+//          { name: "GST & Tax", href: "/Gst", icon: Percent },
+//          { name: "Inventory", href: "/Inventory", icon: Archive },
+//          { name: "Invoices", href: "/Invoices", icon: FileText },
+//          { name: "Revenue", href: "/Revenue", icon: FileText },
+//        ];
 
   // const reportNavItems = [{ name: 'Reports', href: '/reports', icon: BarChart3 }];
-  const systemNavItems = [
-    { name: "Settings", href: "/settings", icon: Settings },
-  ];
+  // const systemNavItems = [
+  //   { name: "Settings", href: "/settings", icon: Settings },
+  // ];
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return location.pathname === href;
@@ -217,44 +217,44 @@ const InventoryPage = () => {
   };
 
   // Helper function to render navigation links
-  const renderNavLinks = (items: typeof mainNavItems) => {
-    return items.map((item) => {
-      const Icon = item.icon;
-      const active = isActive(item.href);
-      return (
-        <Link
-          key={item.name}
-          to={item.href}
-          onClick={() => setSidebarOpen(false)}
-          className={`
-              group flex items-center px-4 py-3 text-sm rounded-lg
-              transition-all duration-200 relative overflow-hidden
-              ${
-                active
-                  ? "bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-400 shadow-lg shadow-amber-500/10"
-                  : "text-slate-300 hover:text-white hover:bg-slate-800/50"
-              }
-            `}
-        >
-          {active && (
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-amber-600" />
-          )}
-          <Icon
-            className={`
-              mr-3 h-5 w-5 transition-all duration-200
-              ${
-                active
-                  ? "text-amber-400"
-                  : "text-slate-400 group-hover:text-slate-300"
-              }
-            `}
-          />
-          <span className="font-light tracking-wide">{item.name}</span>
-          {active && <Star className="ml-auto h-3 w-3 text-amber-400/60" />}
-        </Link>
-      );
-    });
-  };
+  // const renderNavLinks = (items: typeof mainNavItems) => {
+  //   return items.map((item) => {
+  //     const Icon = item.icon;
+  //     const active = isActive(item.href);
+  //     return (
+  //       <Link
+  //         key={item.name}
+  //         to={item.href}
+  //         onClick={() => setSidebarOpen(false)}
+  //         className={`
+  //             group flex items-center px-4 py-3 text-sm rounded-lg
+  //             transition-all duration-200 relative overflow-hidden
+  //             ${
+  //               active
+  //                 ? "bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-400 shadow-lg shadow-amber-500/10"
+  //                 : "text-slate-300 hover:text-white hover:bg-slate-800/50"
+  //             }
+  //           `}
+  //       >
+  //         {active && (
+  //           <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-amber-600" />
+  //         )}
+  //         <Icon
+  //           className={`
+  //             mr-3 h-5 w-5 transition-all duration-200
+  //             ${
+  //               active
+  //                 ? "text-amber-400"
+  //                 : "text-slate-400 group-hover:text-slate-300"
+  //             }
+  //           `}
+  //         />
+  //         <span className="font-light tracking-wide">{item.name}</span>
+  //         {active && <Star className="ml-auto h-3 w-3 text-amber-400/60" />}
+  //       </Link>
+  //     );
+  //   });
+  // };
 
   // Stock level chart data
   const stockChartData = [
@@ -511,16 +511,16 @@ const InventoryPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Mobile backdrop */}
-      {sidebarOpen && (
+      
+      {/* {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
-      )}
+      )} */}
 
       {/* Sidebar */}
-      <div
+      {/* <div
         className={`
         fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-slate-900 to-slate-950 
         shadow-2xl transform transition-transform duration-300 ease-in-out
@@ -528,7 +528,7 @@ const InventoryPage = () => {
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
       `}
       >
-        {/* Logo Section */}
+        
         <div className="h-20 px-6 flex items-center border-b border-slate-800/50">
           <div className="flex items-center space-x-3">
             <div className="relative">
@@ -551,21 +551,13 @@ const InventoryPage = () => {
           </button>
         </div>
 
-        {/* Navigation */}
+        
         <nav className="mt-8 px-4 flex flex-col h-[calc(100%-80px)]">
           <div className="flex-grow">
             <div className="space-y-1">{renderNavLinks(mainNavItems)}</div>
-
-            {/* Reports Section */}
-            {/* <div className="mt-6">
-                <p className="px-4 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Analysis</p>
-                <div className="space-y-1">
-                    {renderNavLinks(reportNavItems)}
-                </div>
-            </div> */}
           </div>
 
-          {/* Bottom Section */}
+          
           <div className="flex-shrink-0">
             <div className="my-4 px-4">
               <div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
@@ -580,7 +572,7 @@ const InventoryPage = () => {
           </div>
         </nav>
 
-        {/* User Profile */}
+       
         <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-slate-800/50 bg-slate-950">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-lg">
@@ -596,12 +588,12 @@ const InventoryPage = () => {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
-      {/* Main content */}
+      
       <div className="flex-1 lg:ml-0">
-        {/* Mobile header */}
-        <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4">
+        
+        {/* <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -617,9 +609,8 @@ const InventoryPage = () => {
             </div>
             <div className="w-9" />
           </div>
-        </div>
-
-        {/* Inventory content */}
+        </div> */}
+        
         <div className="p-8">
           <div className="max-w-7xl mx-auto">
             {/* Header */}
@@ -1193,64 +1184,6 @@ const InventoryPage = () => {
                     New Transaction
                   </Button>
                 </div>
-
-                {/* <div className="overflow-hidden bg-white shadow-lg rounded-lg">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Item</TableHead>
-                        <TableHead>Transaction Type</TableHead>
-                        <TableHead className="text-right">Quantity</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Reason</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {transactions.slice(0, 30).map(transaction => (
-                        <TableRow key={transaction._id}>
-                          <TableCell className="font-medium">
-                            {(items.category as InventoryCategory)?.name ?? 'Uncategorized'}
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={
-                              transaction.transactionType === 'issue' ? 'bg-red-100 text-red-800' :
-                              transaction.transactionType === 'return' ? 'bg-green-100 text-green-800' :
-                              transaction.transactionType === 'adjustment' ? 'bg-blue-100 text-blue-800' :
-                              'bg-amber-100 text-amber-800'
-                            }>
-                              {transaction.transactionType.charAt(0).toUpperCase() + transaction.transactionType.slice(1)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            {transaction.quantity}
-                          </TableCell>
-                          <TableCell>
-                            {formatDate(transaction.createdAt)}
-                          </TableCell>
-                          <TableCell>
-                            {transaction.reason || 'N/A'}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  
-                  {transactions.length === 0 && (
-                    <div className="py-12 text-center">
-                      <Layers className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                      <p className="text-slate-500 font-light">No transactions found</p>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="mt-4"
-                        onClick={() => handleAddTransaction()}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create New Transaction
-                      </Button>
-                    </div>
-                  )}
-                </div> */}
                 <div className="overflow-hidden bg-white shadow-lg rounded-lg">
                   <Table>
                     <TableHeader>

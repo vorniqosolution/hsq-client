@@ -250,17 +250,17 @@ const RoomsPage = () => {
   };
 
   // --- Sidebar Navigation ---
-  const mainNavItems = [
-    { name: "Dashboard", href: "/dashboard", icon: Home },
-    { name: "Guests", href: "/guests", icon: Users },
-    { name: "Reservation", href: "/reservation", icon: Calendar },
-    { name: "Rooms", href: "/rooms", icon: Bed },
-    { name: "Discounts", href: "/Discount", icon: Ticket },
-    { name: "GST & Tax", href: "/Gst", icon: Percent },
-    { name: "Inventory", href: "/Inventory", icon: Archive },
-    { name: "Invoices", href: "/Invoices", icon: FileText },
-    { name: "Revenue", href: "/Revenue", icon: FileText },
-  ];
+  // const mainNavItems = [
+  //   { name: "Dashboard", href: "/dashboard", icon: Home },
+  //   { name: "Guests", href: "/guests", icon: Users },
+  //   { name: "Reservation", href: "/reservation", icon: Calendar },
+  //   { name: "Rooms", href: "/rooms", icon: Bed },
+  //   { name: "Discounts", href: "/Discount", icon: Ticket },
+  //   { name: "GST & Tax", href: "/Gst", icon: Percent },
+  //   { name: "Inventory", href: "/Inventory", icon: Archive },
+  //   { name: "Invoices", href: "/Invoices", icon: FileText },
+  //   { name: "Revenue", href: "/Revenue", icon: FileText },
+  // ];
 
   const systemNavItems = [
     { name: "Settings", href: "/settings", icon: Settings },
@@ -272,44 +272,44 @@ const RoomsPage = () => {
   };
 
   // Helper function to render navigation links
-  const renderNavLinks = (items: typeof mainNavItems) => {
-    return items.map((item) => {
-      const Icon = item.icon;
-      const active = isActive(item.href);
-      return (
-        <Link
-          key={item.name}
-          to={item.href}
-          onClick={() => setSidebarOpen(false)}
-          className={`
-            group flex items-center px-4 py-3 text-sm rounded-lg
-            transition-all duration-200 relative overflow-hidden
-            ${
-              active
-                ? "bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-400 shadow-lg shadow-amber-500/10"
-                : "text-slate-300 hover:text-white hover:bg-slate-800/50"
-            }
-          `}
-        >
-          {active && (
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-amber-600" />
-          )}
-          <Icon
-            className={`
-            mr-3 h-5 w-5 transition-all duration-200
-            ${
-              active
-                ? "text-amber-400"
-                : "text-slate-400 group-hover:text-slate-300"
-            }
-          `}
-          />
-          <span className="font-light tracking-wide">{item.name}</span>
-          {active && <Star className="ml-auto h-3 w-3 text-amber-400/60" />}
-        </Link>
-      );
-    });
-  };
+  // const renderNavLinks = (items: typeof mainNavItems) => {
+  //   return items.map((item) => {
+  //     const Icon = item.icon;
+  //     const active = isActive(item.href);
+  //     return (
+  //       <Link
+  //         key={item.name}
+  //         to={item.href}
+  //         onClick={() => setSidebarOpen(false)}
+  //         className={`
+  //           group flex items-center px-4 py-3 text-sm rounded-lg
+  //           transition-all duration-200 relative overflow-hidden
+  //           ${
+  //             active
+  //               ? "bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-400 shadow-lg shadow-amber-500/10"
+  //               : "text-slate-300 hover:text-white hover:bg-slate-800/50"
+  //           }
+  //         `}
+  //       >
+  //         {active && (
+  //           <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-amber-600" />
+  //         )}
+  //         <Icon
+  //           className={`
+  //           mr-3 h-5 w-5 transition-all duration-200
+  //           ${
+  //             active
+  //               ? "text-amber-400"
+  //               : "text-slate-400 group-hover:text-slate-300"
+  //           }
+  //         `}
+  //         />
+  //         <span className="font-light tracking-wide">{item.name}</span>
+  //         {active && <Star className="ml-auto h-3 w-3 text-amber-400/60" />}
+  //       </Link>
+  //     );
+  //   });
+  // };
 
   // Loading state
   if (loading) {
@@ -343,10 +343,10 @@ const RoomsPage = () => {
   // Render with or without sidebar based on admin role
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Sidebar for admin users only */}
-      {isAdmin && (
+      
+      {/* {isAdmin && (
         <>
-          {/* Mobile backdrop */}
+          
           {sidebarOpen && (
             <div
               className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-40 lg:hidden"
@@ -354,7 +354,7 @@ const RoomsPage = () => {
             />
           )}
 
-          {/* Sidebar */}
+         
           <div
             className={`
             fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-slate-900 to-slate-950 
@@ -363,7 +363,7 @@ const RoomsPage = () => {
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
           `}
           >
-            {/* Logo Section */}
+            
             <div className="h-20 px-6 flex items-center border-b border-slate-800/50">
               <div className="flex items-center space-x-3">
                 <img className="w-8 h-8 rounded-lg" src={HSQ} alt="HSQ" />
@@ -384,13 +384,13 @@ const RoomsPage = () => {
               </button>
             </div>
 
-            {/* Navigation */}
+           
             <nav className="mt-8 px-4 flex flex-col h-[calc(100%-80px)]">
               <div className="flex-grow">
                 <div className="space-y-1">{renderNavLinks(mainNavItems)}</div>
               </div>
 
-              {/* Bottom Section */}
+              
               <div className="flex-shrink-0">
                 <div className="my-4 px-4">
                   <div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
@@ -405,7 +405,7 @@ const RoomsPage = () => {
               </div>
             </nav>
 
-            {/* User Profile */}
+            
             <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-slate-800/50 bg-slate-950">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-lg">
@@ -423,12 +423,12 @@ const RoomsPage = () => {
             </div>
           </div>
         </>
-      )}
+      )} */}
 
       {/* Main content */}
       <div className={`flex-1 ${isAdmin ? "lg:ml-0" : ""}`}>
         {/* Mobile header - only for admin */}
-        {isAdmin && (
+        {/* {isAdmin && (
           <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4">
             <div className="flex items-center justify-between">
               <button
@@ -446,7 +446,7 @@ const RoomsPage = () => {
               <div className="w-9" />
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Room content - enhanced with tabs and CRUD operations */}
         <div className="p-6">
