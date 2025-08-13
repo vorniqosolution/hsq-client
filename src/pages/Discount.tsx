@@ -73,6 +73,7 @@ import {
   CreateDiscountInput,
 } from "@/contexts/DiscountContext";
 import { useAuth } from "@/contexts/AuthContext";
+import Sidebar from "@/components/Sidebar";
 
 const DiscountsPage = () => {
   const {
@@ -89,7 +90,8 @@ const DiscountsPage = () => {
   const isAdmin = user?.role === "admin";
 
   const { toast } = useToast();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  // FOR SIDE_BAR PASSING PROS
+  const [isOpen, setIsOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "all" | "active" | "expired" | "scheduled"
@@ -271,7 +273,25 @@ const DiscountsPage = () => {
   }
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      <div className="flex-1">
+      <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)}></Sidebar>
+      <div className="flex-1 ">
+        <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4">
+          <div className="flex">
+            <button
+              onClick={() => setIsOpen(true)}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <Menu className="h-5 w-5 text-slate-700" />
+            </button>
+            <div className="flex items-center justify-center space-x-2">
+              <Crown className="h-6 w-6 text-amber-500" />
+              <span className="font-light  tracking-wider text-slate-900">
+                HSQ ADMIN
+              </span>
+            </div>
+            <div className="w-9" />
+          </div>
+        </div>
         {/* Discounts content */}
         <div className="p-8">
           <div className="max-w-7xl mx-auto">

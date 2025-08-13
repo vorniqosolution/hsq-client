@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { useTax } from '@/contexts/TaxContext';
-import { useAuth } from '@/contexts/AuthContext';
-import HSQ from "../../public/HSQ.png";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { useTax } from "@/contexts/TaxContext";
+import { useAuth } from "@/contexts/AuthContext";
+// import HSQ from "../../public/HSQ.png";
 import {
   Users,
   Bed,
@@ -18,11 +18,9 @@ import {
   Search,
   MoreVertical,
   Tag,
-  
   Calendar,
   Edit2,
   Trash2,
-
   XCircle,
   Filter,
   Download,
@@ -32,35 +30,36 @@ import {
   FileText,
   BarChart3,
   Link as LinkIcon,
-  Percent, 
-  Save, 
-  CheckCircle
+  Percent,
+  Save,
+  CheckCircle,
 } from "lucide-react";
-import { 
+import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription, 
+  CardDescription,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import Sidebar from "@/components/Sidebar";
 
 const TaxSettingsPage: React.FC = () => {
   const { user } = useAuth();
   const { settings, loading, error, fetchSettings, updateSettings } = useTax();
   const location = useLocation();
-  
+
   const [taxRate, setTaxRate] = useState<number>(0);
   const [currencySymbol, setCurrencySymbol] = useState<string>("Rs");
   const [hotelName, setHotelName] = useState<string>("HSQ Towers");
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  
+  const [isOpen, setIsOpen] = useState(true);
+
   useEffect(() => {
     if (settings) {
       setTaxRate(settings.taxRate);
@@ -68,17 +67,17 @@ const TaxSettingsPage: React.FC = () => {
       setHotelName(settings.hotelName);
     }
   }, [settings]);
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       await updateSettings({
         taxRate,
         currencySymbol,
-        hotelName
+        hotelName,
       });
-      
+
       setIsEditing(false);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
@@ -86,31 +85,21 @@ const TaxSettingsPage: React.FC = () => {
       console.error("Failed to update settings:", err);
     }
   };
-  
-  const isAdmin = user?.role === 'admin';
 
-  const systemNavItems = [
-      { name: "Settings", href: "/settings", icon: Settings },
-    ];
-  
-  const isActive = (href: string) => {
-    if (href === "/dashboard") {
-      return location.pathname === href;
-    }
-    return location.pathname.startsWith(href);
-  };
+  const isAdmin = user?.role === "admin";
 
-  
   return (
     <div className="min-h-screen bg-slate-50 flex">
+      {/* SIDE_BAR COMPONENT */}
+      <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)} />
       {/* Main content */}
-      <div className={`flex-1 ${isAdmin ? "lg:ml-0" : ""}`}>
+      <div className="flex-1  lg:ml-0">
         {/* Mobile header - only for admin */}
         {isAdmin && (
           <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4">
             <div className="flex items-center justify-between">
               <button
-                onClick={() => setSidebarOpen(true)}
+                onClick={() => setIsOpen(true)}
                 className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <Menu className="h-5 w-5 text-slate-700" />
@@ -125,7 +114,6 @@ const TaxSettingsPage: React.FC = () => {
             </div>
           </div>
         )}
-      
         <div className="p-8">
           <div className="max-w-4xl mx-auto">
             <div className="mb-8">
@@ -137,10 +125,10 @@ const TaxSettingsPage: React.FC = () => {
                 Manage tax rates and currency settings for your hotel
               </p>
             </div>
-            
+
             <Card className="border-0 shadow-lg bg-white relative overflow-hidden">
               <div className="absolute top-0 right-0 h-24 w-48 bg-gradient-to-bl from-amber-100/40 to-transparent -z-0" />
-              
+
               <CardHeader className="pb-3">
                 <CardTitle className="text-xl font-light text-slate-900">
                   System Tax Settings
@@ -149,7 +137,7 @@ const TaxSettingsPage: React.FC = () => {
                   Configure tax rates applied to all invoices
                 </CardDescription>
               </CardHeader>
-              
+
               <CardContent>
                 {loading && !settings ? (
                   <div className="space-y-4">
@@ -158,14 +146,19 @@ const TaxSettingsPage: React.FC = () => {
                     <Skeleton className="h-10 w-full" />
                   </div>
                 ) : error ? (
-                  <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800">
+                  <Alert
+                    variant="destructive"
+                    className="bg-red-50 border-red-200 text-red-800"
+                  >
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
                 ) : (
                   <form onSubmit={handleSubmit} className="space-y-5">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="hotelName" className="text-slate-700">Hotel Name</Label>
+                        <Label htmlFor="hotelName" className="text-slate-700">
+                          Hotel Name
+                        </Label>
                         <Input
                           id="hotelName"
                           value={hotelName}
@@ -175,9 +168,12 @@ const TaxSettingsPage: React.FC = () => {
                           required
                         />
                       </div>
-                      
+
                       <div className="space-y-2">
-                        <Label htmlFor="currencySymbol" className="text-slate-700">
+                        <Label
+                          htmlFor="currencySymbol"
+                          className="text-slate-700"
+                        >
                           Currency Symbol
                         </Label>
                         <Input
@@ -191,7 +187,7 @@ const TaxSettingsPage: React.FC = () => {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="taxRate" className="text-slate-700">
                         Tax Rate (%)
@@ -204,7 +200,9 @@ const TaxSettingsPage: React.FC = () => {
                           max="100"
                           step="0.01"
                           value={taxRate}
-                          onChange={(e) => setTaxRate(parseFloat(e.target.value))}
+                          onChange={(e) =>
+                            setTaxRate(parseFloat(e.target.value))
+                          }
                           disabled={!isEditing}
                           className="border-slate-200 focus:border-amber-500 focus:ring-amber-500 pr-12"
                           required
@@ -215,27 +213,30 @@ const TaxSettingsPage: React.FC = () => {
                       </div>
                       {!isEditing && (
                         <p className="text-sm text-slate-500 mt-1">
-                          Current tax rate: <span className="font-medium text-amber-600">{settings?.taxRate}%</span>
+                          Current tax rate:{" "}
+                          <span className="font-medium text-amber-600">
+                            {settings?.taxRate}%
+                          </span>
                         </p>
                       )}
                     </div>
-                    
+
                     <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
                       {isAdmin && !isEditing && (
-                        <Button 
-                          type="button" 
+                        <Button
+                          type="button"
                           onClick={() => setIsEditing(true)}
                           className="bg-amber-500 hover:bg-amber-600 text-white"
                         >
                           Update GST
                         </Button>
                       )}
-                      
+
                       {isEditing && (
                         <>
-                          <Button 
-                            type="button" 
-                            variant="outline" 
+                          <Button
+                            type="button"
+                            variant="outline"
                             onClick={() => {
                               setIsEditing(false);
                               if (settings) {
@@ -248,9 +249,9 @@ const TaxSettingsPage: React.FC = () => {
                           >
                             Cancel
                           </Button>
-                          
-                          <Button 
-                            type="submit" 
+
+                          <Button
+                            type="submit"
                             disabled={loading}
                             className="bg-amber-500 hover:bg-amber-600 text-white"
                           >
@@ -260,23 +261,28 @@ const TaxSettingsPage: React.FC = () => {
                         </>
                       )}
                     </div>
-                    
+
                     {saveSuccess && (
                       <div className="flex items-center p-3 mt-4 rounded-lg bg-emerald-50 text-emerald-700">
                         <CheckCircle className="h-5 w-5 mr-2 text-emerald-500" />
                         <span>Settings updated successfully!</span>
                       </div>
                     )}
-                    
+
                     {!isAdmin && (
                       <div className="p-3 mt-4 rounded-lg bg-slate-50 text-slate-700 text-sm">
                         Only administrators can modify these settings.
                       </div>
                     )}
-                    
+
                     <div className="mt-6 text-sm text-slate-500 font-light flex items-center justify-between">
-                      <p>Last updated: {settings?.updatedAt ? new Date(settings.updatedAt).toLocaleString() : 'Never'}</p>
-                      
+                      <p>
+                        Last updated:{" "}
+                        {settings?.updatedAt
+                          ? new Date(settings.updatedAt).toLocaleString()
+                          : "Never"}
+                      </p>
+
                       <div className="flex items-center">
                         <div className="w-2 h-2 rounded-full bg-amber-500 mr-2"></div>
                         <span>Current settings active</span>

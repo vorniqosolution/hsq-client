@@ -176,7 +176,7 @@ const ReservationTable = memo<ReservationTableProps>(
 );
 
 const DashboardPage = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [roomFilter, setRoomFilter] = useState("all");
 
   // State for reservation month/year selection
@@ -418,7 +418,7 @@ const DashboardPage = () => {
     <div className="min-h-screen bg-slate-50 flex overflow-hidden">
       {/* Sidebar */}
       {/* ADD SIDE BAR COMPONENT */}
-      <Sidebar isOpen={true} />
+      <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)} />
       {/* <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} /> */}
 
       {/* Main content - USING OVERFLOW HIDDEN TO CONTAIN ALL CONTENT */}
@@ -427,7 +427,7 @@ const DashboardPage = () => {
         <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4">
           <div className="flex items-center justify-between">
             <button
-              onClick={() => setSidebarOpen(true)}
+              onClick={() => setIsOpen(true)}
               className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
             >
               <Menu className="h-5 w-5 text-slate-700" />

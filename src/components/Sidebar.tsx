@@ -1,6 +1,7 @@
-import React, { memo } from "react";
+import React from "react";
 import { useLocation, Link } from "react-router-dom";
 import HSQ from "../../public/HSQ.png";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Users,
   Bed,
@@ -9,6 +10,7 @@ import {
   Home,
   Star,
   Ticket,
+  Settings,
   Archive,
   FileText,
   Percent,
@@ -20,19 +22,64 @@ interface SidebarProps {
 }
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const location = useLocation();
+
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+  console.log("isAdmin", isAdmin);
   // Main navigation items
   const mainNavItems = [
-    { name: "Dashboard", href: "/dashboard", icon: Home },
-    { name: "Guests", href: "/guests", icon: Users },
-    { name: "Reservation", href: "/reservation", icon: Calendar1 },
-    { name: "Rooms", href: "/rooms", icon: Bed },
-    { name: "Discounts", href: "/Discount", icon: Ticket },
-    { name: "GST & Tax", href: "/Gst", icon: Percent },
-    { name: "Inventory", href: "/Inventory", icon: Archive },
-    { name: "Invoices", href: "/Invoices", icon: FileText },
-    { name: "Revenue", href: "/Revenue", icon: FileText },
-    // { name: "Setting", href: "/settings", icon: Settings },
+    { name: "Dashboard", href: "/dashboard", icon: Home, roles: ["admin"] },
+    {
+      name: "Guests",
+      href: "/guests",
+      icon: Users,
+      roles: ["admin", "receptionist"],
+    },
+    {
+      name: "Reservation",
+      href: "/reservation",
+      icon: Calendar1,
+      roles: ["admin", "receptionist"],
+    },
+    {
+      name: "Rooms",
+      href: "/rooms",
+      icon: Bed,
+      roles: ["admin", "receptionist"],
+    },
+    {
+      name: "Discounts",
+      href: "/Discount",
+      icon: Ticket,
+      roles: ["admin", "manager"],
+    },
+    { name: "GST & Tax", href: "/Gst", icon: Percent, roles: ["admin"] },
+    {
+      name: "Inventory",
+      href: "/Inventory",
+      icon: Archive,
+      roles: ["admin", "accountant"],
+    },
+    { name: "Invoices", href: "/Invoices", icon: FileText, roles: ["admin"] },
+    {
+      name: "Revenue",
+      href: "/Revenue",
+      icon: FileText,
+      roles: ["admin", "accountant"],
+    },
+    {
+      name: "Setting",
+      href: "/settings",
+      icon: Settings,
+      roles: ["admin"],
+    },
   ];
+  // Filter items based on user role
+  const filteredNavItems = mainNavItems.filter(
+    (item) =>
+      !item.roles ||
+      item.roles.map((r) => r.toLowerCase()).includes(user?.role?.toLowerCase())
+  );
 
   const isActive = (href: string) => {
     if (href === "/dashboard") {
@@ -83,9 +130,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     });
   };
 
-  // const SideBar = memo<SidebarProps>(({ isOpen, onClose }) => {
-  //   // Sidebar implementation unchanged
-
   return (
     <>
       {/* Mobile backdrop */}
@@ -129,7 +173,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         {/* Navigation */}
         <nav className="mt-8 px-4 flex flex-col mb-30">
           <div className="flex-grow">
-            <div className="space-y-1">{renderNavLinks(mainNavItems)}</div>
+            <div className="space-y-1 mb-20">
+              {renderNavLinks(filteredNavItems)}
+            </div>
           </div>
 
           {/* Bottom Section */}

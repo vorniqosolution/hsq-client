@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Search,
@@ -67,6 +73,7 @@ import {
   useReservationContext,
   CreateReservationInput,
 } from "@/contexts/ReservationContext";
+import Sidebar from "@/components/Sidebar";
 
 // --- Type definitions ---
 // Define PopulatedRoom interface for room data
@@ -96,16 +103,20 @@ interface Reservation {
   createdAt: string;
   updatedAt: string;
   isPaid?: boolean;
-  createdBy: string | {
-    _id: string;
-    name: string;
-    email: string;
-  };
+  createdBy:
+    | string
+    | {
+        _id: string;
+        name: string;
+        email: string;
+      };
 }
 
 // Helper function to check if room is populated
 const isPopulatedRoom = (room: any): room is PopulatedRoom => {
-  return typeof room === 'object' && room !== null && room.roomNumber !== undefined;
+  return (
+    typeof room === "object" && room !== null && room.roomNumber !== undefined
+  );
 };
 
 // --- Constants and Types ---
@@ -140,14 +151,16 @@ const ReservationsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [formData, setFormData] = useState<CreateReservationInput>(INITIAL_FORM_STATE);
-  const [reservationToDelete, setReservationToDelete] = useState<Reservation | null>(null);
+  const [formData, setFormData] =
+    useState<CreateReservationInput>(INITIAL_FORM_STATE);
+  const [reservationToDelete, setReservationToDelete] =
+    useState<Reservation | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const { toast } = useToast();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const location = useLocation();
-  
+  // FOR SIDE_BAR STATE ON MOBILE
+  const [isOpen, setIsOpen] = useState(true);
+
   // Refs for stabilizing renders and API calls
   const hasLoadedRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -157,36 +170,33 @@ const ReservationsPage: React.FC = () => {
   useEffect(() => {
     // Prevent duplicate API calls during renders
     if (hasLoadedRef.current && !loading) return;
-    
+
     // Cancel any in-progress fetch
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
+
     const controller = new AbortController();
     abortControllerRef.current = controller;
-    
+
     const loadData = async () => {
       try {
         setIsInitialLoad(true);
         // Use Promise.all to load data concurrently
-        await Promise.all([
-          fetchReservations(),
-          fetchRooms()
-        ]);
+        await Promise.all([fetchReservations(), fetchRooms()]);
         hasLoadedRef.current = true;
       } catch (error) {
         // Only handle non-abort errors
-        if (error.name !== 'AbortError') {
-          console.error('Failed to load data:', error);
+        if (error.name !== "AbortError") {
+          console.error("Failed to load data:", error);
         }
       } finally {
         setIsInitialLoad(false);
       }
     };
-    
+
     loadData();
-    
+
     // Cleanup function
     return () => {
       if (abortControllerRef.current) {
@@ -247,6 +257,7 @@ const ReservationsPage: React.FC = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   }, []);
 
+  // CREATE RESERVATION FUNCTION
   const handleCreateReservation = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -290,108 +301,73 @@ const ReservationsPage: React.FC = () => {
     }
   };
 
-  const convertToCheckIn = useCallback((reservation: Reservation) => {
-    // Navigate to the Guest Check-In page with query params
-    navigate(`/guests?reservation=${reservation._id}`);
-  }, [navigate]);
-  
-  const viewReservationDetails = useCallback((reservation: Reservation) => {
-    // Navigate to the reservation details page
-    navigate(`/reservation/${reservation._id}`);
-  }, [navigate]);
+  const convertToCheckIn = useCallback(
+    (reservation: Reservation) => {
+      // Navigate to the Guest Check-In page with query params
+      navigate(`/guests?reservation=${reservation._id}`);
+    },
+    [navigate]
+  );
 
-  // --- Navigation Items ---
-  const mainNavItems = [
-    { name: "Dashboard", href: "/dashboard", icon: Home },
-    { name: "Guests", href: "/guests", icon: Users },
-    { name: "Reservation", href: "/reservation", icon: Calendar },
-    { name: "Rooms", href: "/rooms", icon: Bed },
-    { name: "Discounts", href: "/Discount", icon: Ticket },
-    { name: "GST & Tax", href: "/Gst", icon: Percent },
-    { name: "Inventory", href: "/Inventory", icon: Archive },
-    { name: "Invoices", href: "/Invoices", icon: FileText },
-    { name: "Revenue", href: "/Revenue", icon: FileText },
-  ];
-
-  const systemNavItems = [
-    { name: "Settings", href: "/settings", icon: Settings },
-  ];
-
-  const isActive = (href: string) => {
-    if (href === "/dashboard") return location.pathname === href;
-    return location.pathname.startsWith(href);
-  };
-
-  // Helper function to render navigation links
-  const renderNavLinks = (items: typeof mainNavItems) => {
-    return items.map((item) => {
-      const Icon = item.icon;
-      const active = isActive(item.href);
-      return (
-        <Link
-          key={item.name}
-          to={item.href}
-          onClick={() => setSidebarOpen(false)}
-          className={`
-            group flex items-center px-4 py-3 text-sm rounded-lg
-            transition-all duration-200 relative overflow-hidden
-            ${
-              active
-                ? "bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-400 shadow-lg shadow-amber-500/10"
-                : "text-slate-300 hover:text-white hover:bg-slate-800/50"
-            }
-          `}
-        >
-          {active && (
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-amber-600" />
-          )}
-          <Icon
-            className={`
-            mr-3 h-5 w-5 transition-all duration-200
-            ${
-              active
-                ? "text-amber-400"
-                : "text-slate-400 group-hover:text-slate-300"
-            }
-          `}
-          />
-          <span className="font-light tracking-wide">{item.name}</span>
-          {active && <Star className="ml-auto h-3 w-3 text-amber-400/60" />}
-        </Link>
-      );
-    });
-  };
+  const viewReservationDetails = useCallback(
+    (reservation: Reservation) => {
+      // Navigate to the reservation details page
+      navigate(`/reservation/${reservation._id}`);
+    },
+    [navigate]
+  );
 
   // --- Status Badge Helper ---
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "confirmed":
-        return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">Confirmed</Badge>;
+        return (
+          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
+            Confirmed
+          </Badge>
+        );
       case "cancelled":
-        return <Badge className="bg-red-100 text-red-800 border-red-200">Cancelled</Badge>;
+        return (
+          <Badge className="bg-red-100 text-red-800 border-red-200">
+            Cancelled
+          </Badge>
+        );
       case "upcoming":
-        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Upcoming</Badge>;
+        return (
+          <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+            Upcoming
+          </Badge>
+        );
       case "active":
-        return <Badge className="bg-amber-100 text-amber-800 border-amber-200">Active</Badge>;
+        return (
+          <Badge className="bg-amber-100 text-amber-800 border-amber-200">
+            Active
+          </Badge>
+        );
       case "expired":
-        return <Badge className="bg-gray-100 text-gray-800 border-gray-200">Expired</Badge>;
+        return (
+          <Badge className="bg-gray-100 text-gray-800 border-gray-200">
+            Expired
+          </Badge>
+        );
       default:
         return null;
     }
   };
 
   // --- Content container with fixed height ---
-  const ContentContainer = useCallback(({ children }: { children: React.ReactNode }) => (
-    <div 
-      ref={contentRef}
-      className="relative h-[600px] overflow-y-auto overflow-x-hidden"
-      style={{ willChange: 'transform' }} // Optimize for GPU acceleration
-    >
-      <div className="absolute inset-0">
-        {children}
+  const ContentContainer = useCallback(
+    ({ children }: { children: React.ReactNode }) => (
+      <div
+        ref={contentRef}
+        className="relative h-[600px] overflow-y-auto overflow-x-hidden"
+        style={{ willChange: "transform" }} // Optimize for GPU acceleration
+      >
+        <div className="absolute inset-0">{children}</div>
       </div>
-    </div>
-  ), []);
+    ),
+    []
+  );
 
   // --- Memoized content to prevent re-renders ---
   const renderedContent = useMemo(() => {
@@ -446,119 +422,29 @@ const ReservationsPage: React.FC = () => {
       </div>
     );
   }, [
-    isInitialLoad, 
-    loading, 
-    error, 
-    filteredReservations, 
-    statusFilter, 
+    isInitialLoad,
+    loading,
+    error,
+    filteredReservations,
+    statusFilter,
     convertToCheckIn,
     viewReservationDetails,
-    getReservationStatus, 
-    getStatusBadge
+    getReservationStatus,
+    getStatusBadge,
   ]);
-
-  // Memoized sidebar to prevent re-renders
-  const Sidebar = useMemo(() => {
-    if (!isAdmin) return null;
-    
-    return (
-      <>
-        {/* Mobile backdrop */}
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-40 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-
-        {/* Sidebar */}
-        <aside
-          className={`
-            fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-slate-900 to-slate-950 
-            shadow-2xl transform transition-transform duration-300 ease-in-out
-            lg:translate-x-0 lg:static lg:inset-0
-            ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          `}
-        >
-          {/* Logo Section */}
-          <div className="h-20 px-6 flex items-center border-b border-slate-800/50">
-            <div className="flex items-center space-x-3">
-              <div className="relative">
-                <Crown className="h-9 w-9 text-amber-400" />
-                <Sparkles className="h-4 w-4 text-amber-300 absolute -top-1 -right-1" />
-              </div>
-              <div>
-                <h1 className="text-xl font-light tracking-wider text-white">
-                  HSQ ADMIN
-                </h1>
-                <p className="text-xs text-amber-400/80 tracking-widest uppercase">
-                  Management Panel
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="lg:hidden ml-auto p-1.5 rounded-lg hover:bg-slate-800/50 transition-colors"
-            >
-              <X className="h-5 w-5 text-slate-400" />
-            </button>
-          </div>
-
-          {/* Navigation */}
-          <nav className="mt-8 px-4 flex flex-col h-[calc(100%-80px)]">
-            <div className="flex-grow">
-              <div className="space-y-1">{renderNavLinks(mainNavItems)}</div>
-            </div>
-
-            {/* Bottom Section */}
-            <div className="flex-shrink-0">
-              <div className="my-4 px-4">
-                <div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
-              </div>
-              <div className="space-y-1">
-                {renderNavLinks(systemNavItems)}
-                <button className="group flex items-center px-4 py-3 text-sm text-slate-300 rounded-lg hover:text-white hover:bg-slate-800/50 w-full transition-all duration-200">
-                  <LogOut className="mr-3 h-5 w-5 text-slate-400 group-hover:text-slate-300" />
-                  <span className="font-light tracking-wide">Sign Out</span>
-                </button>
-              </div>
-            </div>
-          </nav>
-
-          {/* User Profile */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-slate-800/50 bg-slate-950">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-lg">
-                <span className="text-sm font-medium text-slate-900">AM</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-light text-white truncate">
-                  Admin Manager
-                </p>
-                <p className="text-xs text-slate-400 truncate">
-                  {user?.email || "admin@hsqtowers.com"}
-                </p>
-              </div>
-            </div>
-          </div>
-        </aside>
-      </>
-    );
-  }, [isAdmin, sidebarOpen, user?.email, renderNavLinks, mainNavItems, systemNavItems]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex overflow-hidden">
       {/* Sidebar */}
-      {Sidebar}
-
+      <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)} />
       {/* Main content */}
-      <div className="flex-1 w-full h-screen overflow-y-auto flex flex-col">
+      <div className="flex-1 w-full h-screen  flex flex-col">
         {/* Mobile header - only for admin */}
         {isAdmin && (
           <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4 flex-shrink-0">
             <div className="flex items-center justify-between">
               <button
-                onClick={() => setSidebarOpen(true)}
+                onClick={() => setIsOpen(true)}
                 className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <Menu className="h-5 w-5 text-slate-700" />
@@ -581,7 +467,10 @@ const ReservationsPage: React.FC = () => {
             <h1 className="text-3xl font-bold tracking-tight">Reservations</h1>
 
             <div className="flex gap-2 ml-auto">
-              <Button onClick={() => setIsCreateDialogOpen(true)} className="bg-amber-500 hover:bg-amber-600">
+              <Button
+                onClick={() => setIsCreateDialogOpen(true)}
+                className="bg-amber-500 hover:bg-amber-600"
+              >
                 <Calendar className="mr-2 h-4 w-4" />
                 New Reservation
               </Button>
@@ -639,8 +528,8 @@ const ReservationsPage: React.FC = () => {
           <ContentContainer>{renderedContent}</ContentContainer>
 
           {/* Create Reservation Dialog */}
-          <Dialog 
-            open={isCreateDialogOpen} 
+          <Dialog
+            open={isCreateDialogOpen}
             onOpenChange={setIsCreateDialogOpen}
           >
             <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto sm:max-h-[80vh]">
@@ -648,7 +537,10 @@ const ReservationsPage: React.FC = () => {
                 <DialogTitle>New Reservation</DialogTitle>
               </DialogHeader>
 
-              <form onSubmit={handleCreateReservation} className="space-y-4 pt-4">
+              <form
+                onSubmit={handleCreateReservation}
+                className="space-y-4 pt-4"
+              >
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Guest Name</Label>
                   <Input
@@ -727,11 +619,13 @@ const ReservationsPage: React.FC = () => {
                         <SelectValue placeholder="Select a room" />
                       </SelectTrigger>
                       <SelectContent>
-                        {rooms.filter(r => r.status === "available").map((r) => (
-                          <SelectItem key={r._id} value={r.roomNumber}>
-                            Room {r.roomNumber} — {r.category}
-                          </SelectItem>
-                        ))}
+                        {rooms
+                          .filter((r) => r.status === "available")
+                          .map((r) => (
+                            <SelectItem key={r._id} value={r.roomNumber}>
+                              Room {r.roomNumber} — {r.category}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -760,7 +654,10 @@ const ReservationsPage: React.FC = () => {
                       type="date"
                       value={formData.checkout}
                       onChange={handleFormChange}
-                      min={formData.checkin || new Date().toISOString().split("T")[0]}
+                      min={
+                        formData.checkin ||
+                        new Date().toISOString().split("T")[0]
+                      }
                       disabled={isSubmitting}
                       required
                     />
@@ -823,108 +720,122 @@ interface ReservationCardProps {
 }
 
 // Enhanced ReservationCard with room details
-const ReservationCard = React.memo(({
-  reservation,
-  onDelete,
-  onCheckIn,
-  onViewDetails,
-  getStatus,
-  getStatusBadge,
-}: ReservationCardProps) => {
-  const status = getStatus(reservation);
-  const isCheckInEnabled = status === "upcoming" || status === "active";
-  
-  // Get room details from GuestContext
-  const { rooms } = useGuestContext();
-  
-  // Find the room details using multiple strategies
-  const roomDetails = useMemo(() => {
-    // First check if room is already populated
-    if (isPopulatedRoom(reservation.room)) {
-      return reservation.room;
-    }
-    
-    // Fallback to finding room in allRooms array
-    if (rooms && rooms.length) {
-      return rooms.find((room) => room.roomNumber === reservation.roomNumber);
-    }
-    
-    return null;
-  }, [reservation.room, reservation.roomNumber, rooms]);
+const ReservationCard = React.memo(
+  ({
+    reservation,
+    onDelete,
+    onCheckIn,
+    onViewDetails,
+    getStatus,
+    getStatusBadge,
+  }: ReservationCardProps) => {
+    const status = getStatus(reservation);
+    const isCheckInEnabled = status === "upcoming" || status === "active";
 
-  // Get the room number safely
-  const getRoomNumber = () => {
-    if (isPopulatedRoom(reservation.room)) {
-      return reservation.room.roomNumber;
-    }
-    return reservation.roomNumber;
-  };
+    // Get room details from GuestContext
+    const { rooms } = useGuestContext();
 
-  return (
-    <Card className="hover:shadow transition-shadow duration-300 h-[140px]">
-      <CardContent className="grid grid-cols-1 md:grid-cols-5 items-center gap-4 p-4 h-full">
-        <div className="md:col-span-2 flex flex-col">
-          <p className="font-bold text-lg truncate">{reservation.fullName}</p>
-          <p className="text-sm text-gray-500 truncate">{reservation.phone}</p>
-          {reservation.email && (
-            <p className="text-sm text-gray-500 truncate">{reservation.email}</p>
-          )}
-        </div>
-        
-        <div className="flex flex-col">
-          <div className="flex items-center">
-            <Bed className="h-4 w-4 text-amber-500 mr-1" />
-            <p className="text-sm font-medium">Room {getRoomNumber()}</p>
+    // Find the room details using multiple strategies
+    const roomDetails = useMemo(() => {
+      // First check if room is already populated
+      if (isPopulatedRoom(reservation.room)) {
+        return reservation.room;
+      }
+
+      // Fallback to finding room in allRooms array
+      if (rooms && rooms.length) {
+        return rooms.find((room) => room.roomNumber === reservation.roomNumber);
+      }
+
+      return null;
+    }, [reservation.room, reservation.roomNumber, rooms]);
+
+    // Get the room number safely
+    const getRoomNumber = () => {
+      if (isPopulatedRoom(reservation.room)) {
+        return reservation.room.roomNumber;
+      }
+      return reservation.roomNumber;
+    };
+
+    // USER CARD DETAILS
+    // COMMING SOON BADGE IN THIS CODE ISSUE
+    return (
+      <Card className="hover:shadow transition-shadow   duration-300 ">
+        <CardContent className="grid grid-cols-1 md:grid-cols-5 items-center gap-4 p-4 h-full">
+          <div className="md:col-span-2 flex flex-col">
+            <p className="font-bold text-lg truncate">{reservation.fullName}</p>
+            <p className="text-sm text-gray-500 truncate">
+              {reservation.phone}
+            </p>
+            {reservation.email && (
+              <p className="text-sm text-gray-500 truncate">
+                {reservation.email}
+              </p>
+            )}
           </div>
-          
-          {roomDetails && (
-            <div className="mt-1">
-              <p className="text-xs text-gray-600">
-                <span className="font-medium">{roomDetails.category}</span>
-                {roomDetails.bedType && (
-                  <span className="ml-1">• {roomDetails.bedType}</span>
-                )}
-              </p>
-              <p className="text-xs text-amber-600">
-                Rs. {roomDetails.rate.toLocaleString()}/night
-              </p>
-            </div>
-          )}
-          
-          <p className="text-xs text-gray-500 mt-1">
-            {format(new Date(reservation.startAt), "MMM d, yyyy")} - {format(new Date(reservation.endAt), "MMM d, yyyy")}
-          </p>
-        </div>
-        
-        <div className="flex justify-start md:justify-center">
-          {getStatusBadge(status)}
-        </div>
-        
-        <div className="flex justify-start md:justify-end items-center gap-2">
-          <Button variant="outline" size="sm" onClick={onViewDetails}>
-            <Eye className="mr-2 h-4 w-4" /> Details
-          </Button>
-          {isCheckInEnabled && (
-            <Button className="bg-blue-900 hover:bg-blue-900 text-white" variant="outline" size="sm" onClick={onCheckIn}>
-              <CheckCircle2 className="mr-2 h-4 w-4" /> Check In
-            </Button>
-          )}
-          <Button variant="destructive" size="sm" onClick={onDelete}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}, (prevProps, nextProps) => {
-  // Advanced equality check to prevent unnecessary re-renders
-  return (
-    prevProps.reservation._id === nextProps.reservation._id &&
-    prevProps.getStatus(prevProps.reservation) === nextProps.getStatus(nextProps.reservation)
-  );
-});
 
-// Skeleton loader with fixed height matching the new card height
+          <div className="flex flex-col">
+            <div className="flex items-center">
+              <Bed className="h-4 w-4 text-amber-500 mr-1" />
+              <p className="text-sm font-medium">Room {getRoomNumber()}</p>
+            </div>
+
+            {roomDetails && (
+              <div className="mt-1">
+                <p className="text-xs text-gray-600">
+                  <span className="font-medium">{roomDetails.category}</span>
+                  {roomDetails.bedType && (
+                    <span className="ml-1">• {roomDetails.bedType}</span>
+                  )}
+                </p>
+                <p className="text-xs text-amber-600">
+                  Rs. {roomDetails.rate.toLocaleString()}/night
+                </p>
+              </div>
+            )}
+
+            <p className="text-xs text-gray-500 mt-1">
+              {format(new Date(reservation.startAt), "MMM d, yyyy")} -{" "}
+              {format(new Date(reservation.endAt), "MMM d, yyyy")}
+            </p>
+          </div>
+
+          <div className="flex gap-2">{getStatusBadge(status)}</div>
+
+          <div className="flex justify-end items-center gap-2">
+            <Button variant="outline" size="sm" onClick={onViewDetails}>
+              <Eye className="mr-2 h-4 w-4" /> Details
+            </Button>
+            {isCheckInEnabled && (
+              <Button
+                className="bg-blue-900 hover:bg-blue-900 text-white"
+                variant="outline"
+                size="sm"
+                onClick={onCheckIn}
+              >
+                <CheckCircle2 className="mr-2 h-4 w-4" /> Check In
+              </Button>
+            )}
+            <Button variant="destructive" size="sm" onClick={onDelete}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  },
+  (prevProps, nextProps) => {
+    // Advanced equality check to prevent unnecessary re-renders
+    return (
+      prevProps.reservation._id === nextProps.reservation._id &&
+      prevProps.getStatus(prevProps.reservation) ===
+        nextProps.getStatus(nextProps.reservation)
+    );
+  }
+);
+
+// SKALETON OF RESERVATION CARD COMPONENTS
 const ReservationListSkeleton: React.FC = () => (
   <div className="space-y-4">
     {[...Array(5)].map((_, i) => (

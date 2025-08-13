@@ -25,21 +25,28 @@ import {
   Banknote,
   Users,
 } from "lucide-react";
+import Sidebar from "@/components/Sidebar";
 
 // The getISOWeek and getWeeksInMonth functions remain the same
 const getISOWeek = (date: Date): number => {
   // Same implementation as before
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const d = new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+  );
   d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  const weekNo = Math.ceil(
+    ((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7
+  );
   return weekNo;
 };
 
 const getWeeksInMonth = (year: number, month: number) => {
   // Same implementation as before
   if (!year || !month) return [];
-  const weeks: { [key: number]: { week: number; year: number; start: Date; end: Date } } = {};
+  const weeks: {
+    [key: number]: { week: number; year: number; start: Date; end: Date };
+  } = {};
   const firstDay = new Date(year, month - 1, 1);
   const lastDay = new Date(year, month, 0);
   for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
@@ -47,13 +54,23 @@ const getWeeksInMonth = (year: number, month: number) => {
     const week = getISOWeek(dateCopy);
     if (!weeks[week]) {
       const startOfWeek = new Date(dateCopy);
-      startOfWeek.setDate(dateCopy.getDate() - (dateCopy.getDay() === 0 ? 6 : dateCopy.getDay() - 1));
+      startOfWeek.setDate(
+        dateCopy.getDate() -
+          (dateCopy.getDay() === 0 ? 6 : dateCopy.getDay() - 1)
+      );
       const endOfWeek = new Date(startOfWeek);
       endOfWeek.setDate(startOfWeek.getDate() + 6);
-      weeks[week] = { week, year: dateCopy.getFullYear(), start: startOfWeek, end: endOfWeek };
+      weeks[week] = {
+        week,
+        year: dateCopy.getFullYear(),
+        start: startOfWeek,
+        end: endOfWeek,
+      };
     }
   }
-  return Object.values(weeks).sort((a, b) => a.start.getTime() - b.start.getTime());
+  return Object.values(weeks).sort(
+    (a, b) => a.start.getTime() - b.start.getTime()
+  );
 };
 
 const RevenuePage = () => {
@@ -71,6 +88,7 @@ const RevenuePage = () => {
   } = useRevenueContext();
 
   const [reportType, setReportType] = useState("monthly");
+  const [isOpen, setIsOpen] = useState(true);
   const [params, setParams] = useState({
     year: new Date().getFullYear(),
     month: new Date().getMonth() + 1,
@@ -78,17 +96,21 @@ const RevenuePage = () => {
     day: new Date().getDate(),
   });
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [weeks, setWeeks] = useState<{ week: number; year: number; start: Date; end: Date }[]>([]);
+  const [weeks, setWeeks] = useState<
+    { week: number; year: number; start: Date; end: Date }[]
+  >([]);
 
   // Update available weeks when month/year changes
   useEffect(() => {
-    if (reportType === 'weekly') {
+    if (reportType === "weekly") {
       const weeksForMonth = getWeeksInMonth(params.year, params.month);
       setWeeks(weeksForMonth);
     }
   }, [params.year, params.month, reportType]);
 
-  const handleParamChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleParamChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     const numericValue = parseInt(value, 10);
     setParams((prev) => ({
@@ -100,13 +122,21 @@ const RevenuePage = () => {
   const handleFetchReport = () => {
     setValidationError(null);
     const { year, month, week, day } = params;
-    
+
     // Validation logic remains the same
-    if (["yearly", "monthly", "weekly", "daily", "categories", "guests"].includes(reportType) && (!year || year < 1970)) {
+    if (
+      ["yearly", "monthly", "weekly", "daily", "categories", "guests"].includes(
+        reportType
+      ) &&
+      (!year || year < 1970)
+    ) {
       setValidationError("Please enter a valid year.");
       return;
     }
-    if (["monthly", "daily", "categories", "guests"].includes(reportType) && (!month || month < 1 || month > 12)) {
+    if (
+      ["monthly", "daily", "categories", "guests"].includes(reportType) &&
+      (!month || month < 1 || month > 12)
+    ) {
       setValidationError("Please enter a valid month (1-12).");
       return;
     }
@@ -121,13 +151,20 @@ const RevenuePage = () => {
 
     // API calls remain the same
     switch (reportType) {
-      case "monthly": return fetchMonthlyRevenue(month, year);
-      case "yearly": return fetchYearlyRevenue(year);
-      case "weekly": return fetchWeeklyRevenue(week, year);
-      case "daily": return fetchDailyRevenue(day, month, year);
-      case "categories": return fetchRoomCategoriesRevenue(month, year);
-      case "guests": return fetchDiscountedGuests(month, year);
-      case "all-time": return fetchAllRevenue();
+      case "monthly":
+        return fetchMonthlyRevenue(month, year);
+      case "yearly":
+        return fetchYearlyRevenue(year);
+      case "weekly":
+        return fetchWeeklyRevenue(week, year);
+      case "daily":
+        return fetchDailyRevenue(day, month, year);
+      case "categories":
+        return fetchRoomCategoriesRevenue(month, year);
+      case "guests":
+        return fetchDiscountedGuests(month, year);
+      case "all-time":
+        return fetchAllRevenue();
     }
   };
 
@@ -138,14 +175,22 @@ const RevenuePage = () => {
   // Get the appropriate icon based on report type
   const getReportIcon = () => {
     switch (reportType) {
-      case "monthly": return <Calendar className="h-5 w-5 text-amber-500" />;
-      case "yearly": return <BarChart3 className="h-5 w-5 text-amber-500" />;
-      case "weekly": return <Calendar className="h-5 w-5 text-amber-500" />;
-      case "daily": return <Calendar className="h-5 w-5 text-amber-500" />;
-      case "categories": return <Tag className="h-5 w-5 text-amber-500" />;
-      case "guests": return <Users className="h-5 w-5 text-amber-500" />;
-      case "all-time": return <Banknote className="h-5 w-5 text-amber-500" />;
-      default: return <FileText className="h-5 w-5 text-amber-500" />;
+      case "monthly":
+        return <Calendar className="h-5 w-5 text-amber-500" />;
+      case "yearly":
+        return <BarChart3 className="h-5 w-5 text-amber-500" />;
+      case "weekly":
+        return <Calendar className="h-5 w-5 text-amber-500" />;
+      case "daily":
+        return <Calendar className="h-5 w-5 text-amber-500" />;
+      case "categories":
+        return <Tag className="h-5 w-5 text-amber-500" />;
+      case "guests":
+        return <Users className="h-5 w-5 text-amber-500" />;
+      case "all-time":
+        return <Banknote className="h-5 w-5 text-amber-500" />;
+      default:
+        return <FileText className="h-5 w-5 text-amber-500" />;
     }
   };
 
@@ -156,7 +201,12 @@ const RevenuePage = () => {
         return (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <label htmlFor="year" className="text-sm font-medium text-slate-700">Year</label>
+              <label
+                htmlFor="year"
+                className="text-sm font-medium text-slate-700"
+              >
+                Year
+              </label>
               <input
                 type="number"
                 id="year"
@@ -168,7 +218,12 @@ const RevenuePage = () => {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="month" className="text-sm font-medium text-slate-700">Month</label>
+              <label
+                htmlFor="month"
+                className="text-sm font-medium text-slate-700"
+              >
+                Month
+              </label>
               <input
                 type="number"
                 id="month"
@@ -181,7 +236,12 @@ const RevenuePage = () => {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="week" className="text-sm font-medium text-slate-700">Week</label>
+              <label
+                htmlFor="week"
+                className="text-sm font-medium text-slate-700"
+              >
+                Week
+              </label>
               <select
                 id="week"
                 name="week"
@@ -192,22 +252,37 @@ const RevenuePage = () => {
               >
                 <option value="">-- Choose a week --</option>
                 {weeks.map(({ week, year, start, end }) => {
-                  const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-                  const label = `Week ${week}: ${start.toLocaleDateString(undefined, options)} - ${end.toLocaleDateString(undefined, options)}`;
-                  return <option key={`${year}-${week}`} value={week}>{label}</option>;
+                  const options: Intl.DateTimeFormatOptions = {
+                    month: "short",
+                    day: "numeric",
+                  };
+                  const label = `Week ${week}: ${start.toLocaleDateString(
+                    undefined,
+                    options
+                  )} - ${end.toLocaleDateString(undefined, options)}`;
+                  return (
+                    <option key={`${year}-${week}`} value={week}>
+                      {label}
+                    </option>
+                  );
                 })}
               </select>
             </div>
           </div>
         );
-      
+
       case "monthly":
       case "categories":
       case "guests":
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label htmlFor="month" className="text-sm font-medium text-slate-700">Month</label>
+              <label
+                htmlFor="month"
+                className="text-sm font-medium text-slate-700"
+              >
+                Month
+              </label>
               <input
                 type="number"
                 id="month"
@@ -220,7 +295,12 @@ const RevenuePage = () => {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="year" className="text-sm font-medium text-slate-700">Year</label>
+              <label
+                htmlFor="year"
+                className="text-sm font-medium text-slate-700"
+              >
+                Year
+              </label>
               <input
                 type="number"
                 id="year"
@@ -233,11 +313,16 @@ const RevenuePage = () => {
             </div>
           </div>
         );
-      
+
       case "yearly":
         return (
           <div className="space-y-2">
-            <label htmlFor="year" className="text-sm font-medium text-slate-700">Year</label>
+            <label
+              htmlFor="year"
+              className="text-sm font-medium text-slate-700"
+            >
+              Year
+            </label>
             <input
               type="number"
               id="year"
@@ -249,12 +334,17 @@ const RevenuePage = () => {
             />
           </div>
         );
-      
+
       case "daily":
         return (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <label htmlFor="day" className="text-sm font-medium text-slate-700">Day</label>
+              <label
+                htmlFor="day"
+                className="text-sm font-medium text-slate-700"
+              >
+                Day
+              </label>
               <input
                 type="number"
                 id="day"
@@ -267,7 +357,12 @@ const RevenuePage = () => {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="month" className="text-sm font-medium text-slate-700">Month</label>
+              <label
+                htmlFor="month"
+                className="text-sm font-medium text-slate-700"
+              >
+                Month
+              </label>
               <input
                 type="number"
                 id="month"
@@ -280,7 +375,12 @@ const RevenuePage = () => {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="year" className="text-sm font-medium text-slate-700">Year</label>
+              <label
+                htmlFor="year"
+                className="text-sm font-medium text-slate-700"
+              >
+                Year
+              </label>
               <input
                 type="number"
                 id="year"
@@ -293,7 +393,7 @@ const RevenuePage = () => {
             </div>
           </div>
         );
-      
+
       default:
         return null;
     }
@@ -305,7 +405,9 @@ const RevenuePage = () => {
       return (
         <div className="py-12 text-center">
           <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-500 font-light">Select and fetch a report to view data</p>
+          <p className="text-slate-500 font-light">
+            Select and fetch a report to view data
+          </p>
         </div>
       );
     }
@@ -320,17 +422,19 @@ const RevenuePage = () => {
     };
 
     // Logic to render different report types
-    if ('monthlyrevenue' in reportData) {
+    if ("monthlyrevenue" in reportData) {
       const data = reportData as MonthlyRevenueResponse;
       return (
         <div>
           <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200">
             <div className="flex items-center space-x-2">
               <Calendar className="h-5 w-5 text-amber-500" />
-              <h3 className="text-lg font-light text-slate-900">Monthly Report ({data.month}/{data.year})</h3>
+              <h3 className="text-lg font-light text-slate-900">
+                Monthly Report ({data.month}/{data.year})
+              </h3>
               {getReportBadge()}
             </div>
-            <button 
+            <button
               onClick={handleDownload}
               className="flex items-center space-x-1 bg-amber-500 hover:bg-amber-600 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors"
             >
@@ -343,7 +447,7 @@ const RevenuePage = () => {
               <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
                 <div className="text-sm text-slate-500 mb-1">Total Revenue</div>
                 <div className="text-2xl font-light text-slate-900">
-                  Rs: {' '}{data.monthlyrevenue.totalRevenue.toLocaleString()}
+                  Rs: {data.monthlyrevenue.totalRevenue.toLocaleString()}
                 </div>
               </div>
               <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
@@ -359,17 +463,19 @@ const RevenuePage = () => {
     }
 
     // Weekly report
-    if ('weeklyrevenue' in reportData) {
+    if ("weeklyrevenue" in reportData) {
       const data = reportData as WeeklyRevenueResponse;
       return (
         <div>
           <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200">
             <div className="flex items-center space-x-2">
               <Calendar className="h-5 w-5 text-amber-500" />
-              <h3 className="text-lg font-light text-slate-900">Weekly Report (Week {data.week}, {data.year})</h3>
+              <h3 className="text-lg font-light text-slate-900">
+                Weekly Report (Week {data.week}, {data.year})
+              </h3>
               {getReportBadge()}
             </div>
-            <button 
+            <button
               onClick={handleDownload}
               className="flex items-center space-x-1 bg-amber-500 hover:bg-amber-600 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors"
             >
@@ -382,7 +488,7 @@ const RevenuePage = () => {
               <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
                 <div className="text-sm text-slate-500 mb-1">Total Revenue</div>
                 <div className="text-2xl font-light text-slate-900">
-                  Rs: {' '}{data.weeklyrevenue.totalRevenue.toLocaleString()}
+                  Rs: {data.weeklyrevenue.totalRevenue.toLocaleString()}
                 </div>
               </div>
               <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
@@ -398,7 +504,7 @@ const RevenuePage = () => {
     }
 
     // Category report
-    if ('categories' in reportData) {
+    if ("categories" in reportData) {
       const data = reportData as RoomCategoryRevenueResponse;
       return (
         <div>
@@ -410,7 +516,7 @@ const RevenuePage = () => {
               </h3>
               {getReportBadge()}
             </div>
-            <button 
+            <button
               onClick={handleDownload}
               className="flex items-center space-x-1 bg-amber-500 hover:bg-amber-600 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors"
             >
@@ -418,24 +524,33 @@ const RevenuePage = () => {
               <span>Download Excel</span>
             </button>
           </div>
-          
+
           <div className="space-y-4">
             {data.categories.map((cat, index) => (
-              <div key={index} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+              <div
+                key={index}
+                className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm"
+              >
                 <div className="flex justify-between items-center mb-3">
                   <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                    <h4 className="text-md font-medium text-slate-800">{cat.category}</h4>
+                    <h4 className="text-md font-medium text-slate-800">
+                      {cat.category}
+                    </h4>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-slate-50 p-3 rounded">
                     <div className="text-xs text-slate-500">Total Revenue</div>
-                    <div className="text-lg font-medium text-slate-900">Rs: {' '}{cat.totalRevenue.toLocaleString()}</div>
+                    <div className="text-lg font-medium text-slate-900">
+                      Rs: {cat.totalRevenue.toLocaleString()}
+                    </div>
                   </div>
                   <div className="bg-slate-50 p-3 rounded">
                     <div className="text-xs text-slate-500">Total Guests</div>
-                    <div className="text-lg font-medium text-slate-900">{cat.totalReservations.toLocaleString()}</div>
+                    <div className="text-lg font-medium text-slate-900">
+                      {cat.totalReservations.toLocaleString()}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -446,7 +561,7 @@ const RevenuePage = () => {
     }
 
     // Discounted Guests report
-    if ('guests' in reportData) {
+    if ("guests" in reportData) {
       const data = reportData as DiscountedGuestsResponse;
       return (
         <div>
@@ -460,7 +575,7 @@ const RevenuePage = () => {
                 {data.count} guests
               </span>
             </div>
-            <button 
+            <button
               onClick={handleDownload}
               className="flex items-center space-x-1 bg-amber-500 hover:bg-amber-600 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors"
             >
@@ -468,17 +583,22 @@ const RevenuePage = () => {
               <span>Download Excel</span>
             </button>
           </div>
-          
+
           <div className="space-y-4">
             {data.guests.map((guest, index) => (
-              <div key={index} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+              <div
+                key={index}
+                className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm"
+              >
                 <div className="flex flex-col md:flex-row justify-between mb-3">
                   <div className="flex items-center space-x-2 mb-2 md:mb-0">
                     <div className="w-8 h-8 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-sm font-medium">
                       {guest.fullName.substring(0, 2).toUpperCase()}
                     </div>
                     <div>
-                      <h4 className="text-md font-medium text-slate-800">{guest.fullName}</h4>
+                      <h4 className="text-md font-medium text-slate-800">
+                        {guest.fullName}
+                      </h4>
                       <p className="text-xs text-slate-500">{guest.email}</p>
                     </div>
                   </div>
@@ -497,11 +617,15 @@ const RevenuePage = () => {
                   </div>
                   <div className="bg-slate-50 p-3 rounded">
                     <div className="text-xs text-slate-500">Total Rent</div>
-                    <div className="text-sm font-medium text-slate-900">Rs: {' '}{guest.totalRent.toLocaleString()}</div>
+                    <div className="text-sm font-medium text-slate-900">
+                      Rs: {guest.totalRent.toLocaleString()}
+                    </div>
                   </div>
                   <div className="bg-slate-50 p-3 rounded">
                     <div className="text-xs text-slate-500">Discount</div>
-                    <div className="text-sm font-medium text-slate-900">{guest.discountTitle}</div>
+                    <div className="text-sm font-medium text-slate-900">
+                      {guest.discountTitle}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -512,7 +636,7 @@ const RevenuePage = () => {
     }
 
     // Daily report
-    if ('day' in reportData) {
+    if ("day" in reportData) {
       const data = reportData as DailyRevenueResponse;
       return (
         <div>
@@ -524,7 +648,7 @@ const RevenuePage = () => {
               </h3>
               {getReportBadge()}
             </div>
-            <button 
+            <button
               onClick={handleDownload}
               className="flex items-center space-x-1 bg-amber-500 hover:bg-amber-600 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors"
             >
@@ -537,7 +661,7 @@ const RevenuePage = () => {
               <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
                 <div className="text-sm text-slate-500 mb-1">Total Revenue</div>
                 <div className="text-2xl font-light text-slate-900">
-                  Rs: {' '}{data.totalRevenue.toLocaleString()}
+                  Rs: {data.totalRevenue.toLocaleString()}
                 </div>
               </div>
               <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
@@ -553,7 +677,7 @@ const RevenuePage = () => {
     }
 
     // Yearly report
-    if ('year' in reportData && !('day' in reportData)) {
+    if ("year" in reportData && !("day" in reportData)) {
       const data = reportData as YearlyRevenueResponse;
       return (
         <div>
@@ -565,7 +689,7 @@ const RevenuePage = () => {
               </h3>
               {getReportBadge()}
             </div>
-            <button 
+            <button
               onClick={handleDownload}
               className="flex items-center space-x-1 bg-amber-500 hover:bg-amber-600 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors"
             >
@@ -578,7 +702,7 @@ const RevenuePage = () => {
               <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
                 <div className="text-sm text-slate-500 mb-1">Total Revenue</div>
                 <div className="text-2xl font-light text-slate-900">
-                  Rs: {' '}{data.totalRevenue.toLocaleString()}
+                  Rs: {data.totalRevenue.toLocaleString()}
                 </div>
               </div>
               <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
@@ -594,19 +718,18 @@ const RevenuePage = () => {
     }
 
     // All-time report
-    if ('totalRevenue' in reportData) {
+    if ("totalRevenue" in reportData) {
       const data = reportData as AllRevenueResponse;
       return (
         <div>
           <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200">
             <div className="flex items-center space-x-2">
-              
               <h3 className="text-lg font-light text-slate-900">
                 All-Time Revenue
               </h3>
               {getReportBadge()}
             </div>
-            <button 
+            <button
               onClick={handleDownload}
               className="flex items-center space-x-1 bg-amber-500 hover:bg-amber-600 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors"
             >
@@ -619,7 +742,7 @@ const RevenuePage = () => {
               <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
                 <div className="text-sm text-slate-500 mb-1">Total Revenue</div>
                 <div className="text-2xl font-light text-slate-900">
-                  Rs:{' '}{data.totalRevenue.toLocaleString()}
+                  Rs: {data.totalRevenue.toLocaleString()}
                 </div>
               </div>
               <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
@@ -638,10 +761,13 @@ const RevenuePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className=" w-full flex gap-10 bg-slate-50 ">
+      <div className="w-[20%]">
+        <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)}></Sidebar>
+      </div>
+      <div className=" w-[80%] ">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+        <div className=" p-4 md:items-center md:justify-between mb-8">
           <div>
             <h1 className="text-4xl font-light text-slate-900 tracking-wide flex items-center">
               <BarChart3 className="h-8 w-8 text-amber-500 mr-3" />
@@ -664,12 +790,15 @@ const RevenuePage = () => {
               Select report type and specify the time period
             </p>
           </div>
-          
+
           <div className="p-6">
             <div className="space-y-6">
               {/* Report Type Selector */}
               <div className="space-y-2">
-                <label htmlFor="reportType" className="text-sm font-medium text-slate-700">
+                <label
+                  htmlFor="reportType"
+                  className="text-sm font-medium text-slate-700"
+                >
                   Report Type
                 </label>
                 <div className="relative">
@@ -699,7 +828,7 @@ const RevenuePage = () => {
                   {renderParameterInputs()}
                 </div>
               )}
-              
+
               {/* Fetch Button */}
               <div className="flex justify-end">
                 <button

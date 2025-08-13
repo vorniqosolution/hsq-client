@@ -1,7 +1,7 @@
 // components/ProtectedRoute.tsx
-import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import React from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -27,16 +27,15 @@ const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
   }
 
   // Authenticated but role not allowed → redirect to guest home
-  if (roles && !roles.includes(user.role)) {
-    return <Navigate to="/guests" replace />;
-  }
+  // if (roles && !roles.includes(user.role)) {
+  //   return <Navigate to="/guests" replace />;
+  // }
 
   // OK!
   return <>{children}</>;
 };
 
 export default ProtectedRoute;
-
 
 // import React from 'react';
 // import { Navigate, useLocation } from 'react-router-dom';
