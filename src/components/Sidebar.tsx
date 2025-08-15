@@ -149,7 +149,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {/* Sidebar */}
       <div
         className={`
-        fixed inset-y-0 h-screen left-0 z-50 w-72  bottom-2 bg-gradient-to-b from-slate-900 to-slate-950
+        fixed inset-y-0  min-h-screen max-h-[120vh]  left-0 z-50 w-72  bottom-2 bg-gradient-to-b from-slate-900 to-slate-950
         shadow-2xl transform transition-transform duration-300 ease-in-out
         lg:translate-x-0 lg:static lg:inset-0
         ${isOpen ? "translate-x-0" : "-translate-x-full"}

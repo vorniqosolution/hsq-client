@@ -75,6 +75,7 @@ export default function SettingsPage() {
           { withCredentials: true }
         );
         setReceptionists(response.data.data);
+        console.log(response.data.data);
       } catch (err: any) {
         toast({
           description: err.response.data.message,
