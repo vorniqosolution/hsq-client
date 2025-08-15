@@ -143,7 +143,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {/* Sidebar */}
       <div
         className={`
-        fixed inset-y-0 left-0 z-50 w-72 h-fit bottom-2 bg-gradient-to-b from-slate-900 to-slate-950
+        fixed inset-y-0 h-screen left-0 z-50 w-72 h-fit bottom-2 bg-gradient-to-b from-slate-900 to-slate-950
         shadow-2xl transform transition-transform duration-300 ease-in-out
         lg:translate-x-0 lg:static lg:inset-0
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
@@ -179,18 +179,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* Bottom Section */}
-          <div className="flex-shrink-0">
+          {/* <div className="flex-shrink-0">
             <div className="my-4 px-4">
               <div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
             </div>
             <div className="space-y-1">
-              {/* {renderNavLinks(systemNavItems)} */}
+              {renderNavLinks(systemNavItems)}
               <button className="group flex items-center px-4 py-3 text-sm text-slate-300 rounded-lg hover:text-white hover:bg-slate-800/50 w-full transition-all duration-200">
                 <LogOut className="mr-3 h-5 w-5 text-slate-400 group-hover:text-slate-300" />
                 <span className="font-light tracking-wide">Sign out</span>
               </button>
             </div>
-          </div>
+          </div> */}
         </nav>
 
         {/* User Profile */}
