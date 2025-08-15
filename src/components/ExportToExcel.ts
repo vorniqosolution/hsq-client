@@ -46,40 +46,43 @@ const transformDataForExcel = (data: any | null) => {
     };
   }
 
-  // Generic handler for simple key-value reports
-  let reportDataObject: object = {};
-  let fileName = "Revenue_Report.xlsx";
+  const toGuests = (obj: any) => ({
+  totalRevenue: Number(obj?.totalRevenue ?? 0),
+  totalGuests: Number(
+    obj?.totalGuests ?? obj?.totalGuest ?? obj?.totalReservations ?? 0
+  ),
+});
 
-  if ("monthlyrevenue" in data) {
-    reportDataObject = (data as MonthlyRevenueResponse).monthlyrevenue;
-    fileName = `Monthly_Revenue_${data.month}-${data.year}.xlsx`;
-  } else if ("weeklyrevenue" in data) {
-    reportDataObject = (data as WeeklyRevenueResponse).weeklyrevenue;
-    fileName = `Weekly_Revenue_W${data.week}-${data.year}.xlsx`;
-  } else if ("day" in data) {
-    const { totalRevenue, totalReservations } = data as DailyRevenueResponse;
-    reportDataObject = { totalRevenue, totalReservations };
-    fileName = `Daily_Revenue_${data.day}-${data.month}-${data.year}.xlsx`;
-  } else if ("year" in data && !("day" in data)) {
-    const { totalRevenue, totalReservations } = data as YearlyRevenueResponse;
-    reportDataObject = { totalRevenue, totalReservations };
-    fileName = `Yearly_Revenue_${data.year}.xlsx`;
-  } else if ("totalRevenue" in data) {
-    const { totalRevenue, totalReservations } = data as AllRevenueResponse;
-    reportDataObject = { totalRevenue, totalReservations };
-    fileName = "All_Time_Revenue.xlsx";
-  }
+let reportDataObject: Record<string, number> = {};
+let fileName = "Revenue_Report.xlsx";
 
-  const rows = Object.entries(reportDataObject).map(([key, value]) => ({
-    Metric: key,
-    Value: value,
-  }));
-  return { rows, fileName };
-};
+if ("monthlyrevenue" in data) {
+  // data.month, data.year are on the root object
+  reportDataObject = toGuests((data as MonthlyRevenueResponse)?.monthlyrevenue);
+  fileName = `Monthly_Revenue_${data.month}-${data.year}.xlsx`;
+} else if ("weeklyrevenue" in data) {
+  reportDataObject = toGuests((data as WeeklyRevenueResponse)?.weeklyrevenue);
+  fileName = `Weekly_Revenue_W${data.week}-${data.year}.xlsx`;
+} else if ("day" in data) {
+  reportDataObject = toGuests(data as DailyRevenueResponse);
+  fileName = `Daily_Revenue_${data.day}-${data.month}-${data.year}.xlsx`;
+} else if ("year" in data && !("day" in data)) {
+  reportDataObject = toGuests(data as YearlyRevenueResponse);
+  fileName = `Yearly_Revenue_${data.year}.xlsx`;
+} else if ("totalRevenue" in data) {
+  reportDataObject = toGuests(data as AllRevenueResponse);
+  fileName = "All_Time_Revenue.xlsx";
+}
 
-/**
- * The main exported function. It takes any report data, transforms it, and generates an Excel file.
- */
+// Pretty labels for Excel
+const rows = Object.entries(reportDataObject).map(([key, value]) => ({
+  Metric: key === "totalGuests" ? "Total Guests" :
+          key === "totalRevenue" ? "Total Revenue" : key,
+  Value: value,
+}));
+
+return { rows, fileName };};
+
 export const exportToExcel = (reportData: any) => {
   if (!reportData) {
     alert("No data available to download.");
