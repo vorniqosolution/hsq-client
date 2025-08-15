@@ -3,7 +3,7 @@ export default function Footer() {
   return (
     <>
       <footer>
-        <div className="flex flex-col mx-3 bg-white rounded-lg">
+        <div className="flex flex-col mx-3 z-10 bg-white rounded-lg">
           <div className="">
             <div className="container  flex flex-col mx-auto">
               <div className="flex flex-col items-center w-full my-20">

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useLocation, Link } from "react-router-dom";
 import HSQ from "../../public/HSQ.png";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,10 +25,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
-  console.log("isAdmin", isAdmin);
-  // Main navigation items
+  useEffect(() => {
+    console.log("isAdmin", isAdmin);
+  }, [isAdmin]);
   const mainNavItems = [
-    { name: "Dashboard", href: "/dashboard", icon: Home, roles: ["admin"] },
+    {
+      name: "Dashboard",
+      href: "/dashboard",
+      icon: Home,
+      roles: ["admin", "receptionist"],
+    },
     {
       name: "Guests",
       href: "/guests",
@@ -51,7 +57,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       name: "Discounts",
       href: "/Discount",
       icon: Ticket,
-      roles: ["admin", "manager"],
+      roles: ["admin"],
     },
     { name: "GST & Tax", href: "/Gst", icon: Percent, roles: ["admin"] },
     {
@@ -143,7 +149,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {/* Sidebar */}
       <div
         className={`
-        fixed inset-y-0 h-screen left-0 z-50 w-72 h-fit bottom-2 bg-gradient-to-b from-slate-900 to-slate-950
+        fixed inset-y-0 h-screen left-0 z-50 w-72  bottom-2 bg-gradient-to-b from-slate-900 to-slate-950
         shadow-2xl transform transition-transform duration-300 ease-in-out
         lg:translate-x-0 lg:static lg:inset-0
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
@@ -197,15 +203,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-slate-800/50 bg-slate-950">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-lg">
-              <span className="text-sm font-medium text-slate-900">AM</span>
+              <span className="text-lg font-bold text-slate-900">
+                {user.name.charAt(0).toUpperCase()}
+              </span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-light text-white truncate">
-                Admin Manager
+                {user.name}
               </p>
-              <p className="text-xs text-slate-400 truncate">
-                admin@hsqtowers.com
-              </p>
+              <p className="text-xs text-slate-400 truncate">{user.email}</p>
             </div>
           </div>
         </div>

@@ -16,8 +16,6 @@ import { ReservationProvider } from "./contexts/ReservationContext";
 
 import SessionPopup from "@/components/SessionPopup";
 
-
-
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import LoginPage from "./pages/LoginPage";
@@ -78,7 +76,7 @@ const App = () => (
                                   <Route
                                     path="/dashboard"
                                     element={
-                                      <ProtectedRoute roles={["admin"]}>
+                                      <ProtectedRoute>
                                         <Layout>
                                           <DashboardPage />
                                         </Layout>
@@ -88,7 +86,7 @@ const App = () => (
                                   <Route
                                     path="/rooms"
                                     element={
-                                      <ProtectedRoute roles={["admin"]}>
+                                      <ProtectedRoute>
                                         <Layout>
                                           <RoomsPage />
                                         </Layout>
@@ -98,7 +96,9 @@ const App = () => (
                                   <Route
                                     path="/guests"
                                     element={
-                                      <ProtectedRoute>
+                                      <ProtectedRoute
+                                      // roles={["admin", "receptionist"]}
+                                      >
                                         <Layout>
                                           <GuestsPage />
                                         </Layout>
@@ -108,7 +108,9 @@ const App = () => (
                                   <Route
                                     path="/guests/:id"
                                     element={
-                                      <ProtectedRoute>
+                                      <ProtectedRoute
+                                      // roles={["admin", "receptionist"]}
+                                      >
                                         <Layout>
                                           <GuestDetailPage />
                                         </Layout>

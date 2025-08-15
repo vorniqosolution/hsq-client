@@ -360,10 +360,10 @@ const ReservationsPage: React.FC = () => {
     ({ children }: { children: React.ReactNode }) => (
       <div
         ref={contentRef}
-        className="relative h-[600px] overflow-y-auto overflow-x-hidden"
+        className="h-screen overflow-y-auto "
         style={{ willChange: "transform" }} // Optimize for GPU acceleration
       >
-        <div className="absolute inset-0">{children}</div>
+        <div className="">{children}</div>
       </div>
     ),
     []
@@ -434,7 +434,7 @@ const ReservationsPage: React.FC = () => {
   ]);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex overflow-hidden">
+    <div className="min-h-screen bg-slate-50 flex ">
       {/* Sidebar */}
       <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)} />
       {/* Main content */}
@@ -461,8 +461,9 @@ const ReservationsPage: React.FC = () => {
         )}
 
         {/* Main content area */}
-        <div className="container mx-auto p-4 md:p-6 lg:p-8 flex-grow">
+        <div className="h-screen p-4 md:p-6 lg:p-8 ">
           {/* Page Header - fixed height */}
+          {/* Reservation and create new reservation */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 h-[60px]">
             <h1 className="text-3xl font-bold tracking-tight">Reservations</h1>
 
@@ -525,7 +526,9 @@ const ReservationsPage: React.FC = () => {
           </div>
 
           {/* Content Area - stable container */}
+          {/* <div className="h-scr"> */}
           <ContentContainer>{renderedContent}</ContentContainer>
+          {/* </div> */}
 
           {/* Create Reservation Dialog */}
           <Dialog

@@ -98,17 +98,17 @@ const GuestsPage: React.FC = () => {
     null
   );
 
-  const [ReservationFormData, setReservationFormData] =
-    useState<ReservationFormData>({
-      fullName: "",
-      address: "",
-      email: "",
-      phoneNo: "",
-      cnic: "",
-      roomNumber: "",
-      checkInDate: "",
-      checkOutDate: "",
-    });
+  // const [ReservationFormData, setReservationFormData] =
+  //   useState<ReservationFormData>({
+  //     fullName: "",
+  //     address: "",
+  //     email: "",
+  //     phoneNo: "",
+  //     cnic: "",
+  //     roomNumber: "",
+  //     checkInDate: "",
+  //     checkOutDate: "",
+  //   });
 
   type MaybeRoom = string | { _id: string; roomNumber: string };
 
@@ -510,16 +510,16 @@ interface CheckInFormDialogProps {
   createGuest: (data: CreateGuestInput) => Promise<void>;
   prefill?: Partial<CreateGuestInput> | null;
 }
-interface ReservationFormData {
-  fullName: string;
-  address: string;
-  email: string;
-  phoneNo: string;
-  cnic: string;
-  roomNumber: string;
-  checkInDate: string;
-  checkOutDate: string;
-}
+// interface ReservationFormData {
+//   fullName: string;
+//   address: string;
+//   email: string;
+//   phoneNo: string;
+//   cnic: string;
+//   roomNumber: string;
+//   checkInDate: string;
+//   checkOutDate: string;
+// }
 
 const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
   isOpen,
