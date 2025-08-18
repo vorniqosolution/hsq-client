@@ -33,7 +33,10 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     }
   }
   if (user.role === "receptionist") {
-    const allowedPaths = ["/guests", "/rooms", "/reservation", "/dashboard"];
+    const allowedPaths = ["/guests",
+      //  "/rooms", 
+       "/reservation", 
+       "/dashboard"];
     const isAllowed =
       allowedPaths.includes(location.pathname) ||
       location.pathname.startsWith("/guests/") ||

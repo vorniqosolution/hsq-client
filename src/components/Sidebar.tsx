@@ -51,7 +51,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       name: "Rooms",
       href: "/rooms",
       icon: Bed,
-      roles: ["admin", "receptionist"],
+      roles: ["admin",
+        //  "receptionist"
+        ],
     },
     {
       name: "Discounts",
