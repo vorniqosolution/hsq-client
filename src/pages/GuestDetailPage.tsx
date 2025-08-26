@@ -397,15 +397,15 @@ const CheckoutDialog = ({ isOpen, setIsOpen, onCheckout }) => {
 // Invoice Card with Print Support
 const InvoiceCard = ({ invoice, guest, onPrint, onSendEmail, isSendingEmail, innerRef }) => {
   // Calculate the standard discount amount (if available)
-  const standardDiscountAmount = guest.applyDiscount ? 
-    (invoice.standardDiscountAmount || invoice.discountAmount * 0.7) : 0;
+  const standardDiscountAmount = guest.applyDiscount
+  ? invoice.discountAmount     // full % discount
+  : 0;
   
   // Calculate the additional discount amount
-  const additionalDiscountAmount = guest.additionaldiscount || 
-    (invoice.additionalDiscountAmount || invoice.discountAmount * 0.3);
+  const additionalDiscountAmount = guest.additionaldiscount || 0;
   
   // Total discount amount
-  const totalDiscountAmount = invoice.discountAmount;
+  const totalDiscountAmount = standardDiscountAmount + additionalDiscountAmount;
 
   return (
     <div ref={innerRef} className="invoice-print-section">
