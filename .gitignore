@@ -24,5 +24,5 @@ dist-ssr
 *.sw?
 
 #add docker file in gitignore
-.Dockerfile 
+Dockerfile 
 .dockerignore
