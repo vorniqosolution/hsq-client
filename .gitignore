@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+#add docker file in gitignore
+Dockerfile 
+.dockerignore
