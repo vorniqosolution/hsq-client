@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useRef,
   ReactNode,
+  useCallback,
 } from "react";
 import axios from "axios";
 import { useAuth } from "@/contexts/AuthContext";
@@ -144,7 +145,7 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
   // --------------------------- ROOM METHODS ---------------------------
 
   // Fetch available rooms
-  const fetchAvailableRooms = async () => {
+  const fetchAvailableRooms = useCallback(async () => {
     setError(null);
     try {
       const res = await axios.get<{ rooms: Room[] }>(
@@ -156,7 +157,7 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
       console.error("Fetch available rooms error:", err);
       setError("Failed to fetch available rooms");
     }
-  };
+  }, []);
 
   // Fetch presidential rooms
   const fetchPresidentialRooms = async () => {
@@ -242,37 +243,67 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
   // --------------------------- NEW: RESERVATION METHODS ---------------------------
 
   // Fetch reserved rooms by date (from Reservation MVC)
-  const fetchReservedRoomsByDate = async (
-    year: number,
-    month: number,
-    day?: number | null
-  ) => {
-    setError(null);
-    try {
-      const res = await axios.get<{
-        success: boolean;
-        data: ReservedRoomByDate[];
-      }>(`${API_BASE}/api/reservation/Get-All-ReservedRoom-With-Date`, {
-        params: {
-          year,
-          month,
-          ...(day ? { day } : {}),
-        },
-        withCredentials: true,
-      });
+  const fetchReservedRoomsByDate = useCallback(
+    async (year: number, month: number, day?: number | null) => {
+      setError(null);
+      try {
+        const res = await axios.get<{
+          success: boolean;
+          data: ReservedRoomByDate[];
+        }>(`${API_BASE}/api/reservation/Get-All-ReservedRoom-With-Date`, {
+          params: {
+            year,
+            month,
+            ...(day ? { day } : {}),
+          },
+          withCredentials: true,
+        });
 
-      if (res.data.success) {
-        setReservedRoomsByDate(res.data.data);
-      } else {
+        if (res.data.success) {
+          setReservedRoomsByDate(res.data.data);
+        } else {
+          setError("Failed to fetch reserved rooms by date");
+          setReservedRoomsByDate([]);
+        }
+      } catch (err) {
+        console.error("Fetch reserved rooms by date error:", err);
         setError("Failed to fetch reserved rooms by date");
         setReservedRoomsByDate([]);
       }
-    } catch (err) {
-      console.error("Fetch reserved rooms by date error:", err);
-      setError("Failed to fetch reserved rooms by date");
-      setReservedRoomsByDate([]);
-    }
-  };
+    },
+    []
+  );
+  // const fetchReservedRoomsByDate = async (
+  //   year: number,
+  //   month: number,
+  //   day?: number | null
+  // ) => {
+  //   setError(null);
+  //   try {
+  //     const res = await axios.get<{
+  //       success: boolean;
+  //       data: ReservedRoomByDate[];
+  //     }>(`${API_BASE}/api/reservation/Get-All-ReservedRoom-With-Date`, {
+  //       params: {
+  //         year,
+  //         month,
+  //         ...(day ? { day } : {}),
+  //       },
+  //       withCredentials: true,
+  //     });
+
+  //     if (res.data.success) {
+  //       setReservedRoomsByDate(res.data.data);
+  //     } else {
+  //       setError("Failed to fetch reserved rooms by date");
+  //       setReservedRoomsByDate([]);
+  //     }
+  //   } catch (err) {
+  //     console.error("Fetch reserved rooms by date error:", err);
+  //     setError("Failed to fetch reserved rooms by date");
+  //     setReservedRoomsByDate([]);
+  //   }
+  // };
 
   // Fetch a specific reservation by ID
   const fetchReservationById = async (id: string) => {

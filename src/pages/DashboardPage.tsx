@@ -216,6 +216,7 @@ const DashboardPage = () => {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Separate effect for month changes only
+
   useEffect(() => {
     if (fetchReservedRoomsByDate) {
       fetchReservedRoomsByDate(selectedYear, selectedMonth);
@@ -389,13 +390,13 @@ const DashboardPage = () => {
   const handleRefresh = useCallback(() => {
     fetchRooms();
     if (fetchGuests) fetchGuests();
-    if (fetchReservedRoomsByDate) {
-      fetchReservedRoomsByDate(selectedYear, selectedMonth);
-    }
+    // if (fetchReservedRoomsByDate) {
+    //   fetchReservedRoomsByDate(selectedYear, selectedMonth);
+    // }
   }, [
     fetchRooms,
     fetchGuests,
-    fetchReservedRoomsByDate,
+    // fetchReservedRoomsByDate,
     selectedMonth,
     selectedYear,
   ]);
@@ -454,14 +455,12 @@ const DashboardPage = () => {
                 Welcome back. Here's today's overview of your business.
               </p>
             </div>
-
             {/* Stats Grid - USING MEMOIZED COMPONENTS */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
               {stats.map((stat) => (
                 <StatCard key={stat.title} stat={stat} />
               ))}
             </div>
-
             {/* Room Status Overview */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
               {/* Room Status Summary */}
@@ -633,7 +632,6 @@ const DashboardPage = () => {
                 </CardContent>
               </Card>
             </div>
-
             {/* Upcoming Reservations Section - WITH FIXED HEIGHT AND MEMOIZED COMPONENT */}
             <div className="mb-10" style={{ height: "400px" }}>
               {" "}
@@ -695,21 +693,20 @@ const DashboardPage = () => {
                   </div>
                 </CardContent>
               </Card>
-            </div>
-
-            {/* Manual Refresh Button */}
-            <div className="text-center mt-6 mb-10">
-              <Button
-                variant="outline"
-                size="sm"
-                className="font-light"
-                onClick={handleRefresh}
-              >
-                Refresh Dashboard Data
-              </Button>
-              <p className="text-xs text-slate-500 mt-2">
-                Data auto-refreshes every 5 seconds
-              </p>
+              {/* Manual Refresh Button */}
+              <div className="text-center mt-6 mb-10">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="font-light"
+                  onClick={handleRefresh}
+                >
+                  Refresh Dashboard Data
+                </Button>
+                <p className="text-xs text-slate-500 mt-2">
+                  Data auto-refreshes every 5 seconds
+                </p>
+              </div>
             </div>
           </div>
         </div>

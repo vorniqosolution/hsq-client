@@ -259,6 +259,7 @@ const GuestsPage: React.FC = () => {
     children,
   }) => <div className="relative min-h-[400px]">{children}</div>;
 
+  // RENDER CONTENT SHOW LOADING SKALETON CARDS EVERYTHING
   const renderContent = () => {
     if (loading) return <GuestListSkeleton />;
 

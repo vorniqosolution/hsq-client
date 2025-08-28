@@ -356,11 +356,12 @@ const ReservationsPage: React.FC = () => {
   };
 
   // --- Content container with fixed height ---
+  // IN THIS COMPONENT DEFINE THE COMPLETE CONTENT
   const ContentContainer = useCallback(
     ({ children }: { children: React.ReactNode }) => (
       <div
         ref={contentRef}
-        className="h-screen overflow-y-auto "
+        // className="h "
         style={{ willChange: "transform" }} // Optimize for GPU acceleration
       >
         <div className="">{children}</div>
@@ -370,6 +371,7 @@ const ReservationsPage: React.FC = () => {
   );
 
   // --- Memoized content to prevent re-renders ---
+  // complete all content show reservation cards zero reservation design
   const renderedContent = useMemo(() => {
     if (isInitialLoad || loading) {
       return <ReservationListSkeleton />;
@@ -405,9 +407,10 @@ const ReservationsPage: React.FC = () => {
         </div>
       );
     }
+    // CARDS OF RESERVATIONS
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-2 ">
         {filteredReservations.map((reservation) => (
           <ReservationCard
             key={reservation._id}
@@ -438,7 +441,7 @@ const ReservationsPage: React.FC = () => {
       {/* Sidebar */}
       <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)} />
       {/* Main content */}
-      <div className="flex-1 w-full h-screen  flex flex-col">
+      <div className={`flex-1 ${isAdmin ? "lg:ml-0" : ""}`}>
         {/* Mobile header - only for admin */}
         {isAdmin && (
           <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4 flex-shrink-0">
@@ -461,10 +464,9 @@ const ReservationsPage: React.FC = () => {
         )}
 
         {/* Main content area */}
-        <div className="h-screen p-4 md:p-6 lg:p-8 ">
+        <div className="container mx-auto p-4 md:p-6 lg:p-8 ">
           {/* Page Header - fixed height */}
-          {/* Reservation and create new reservation */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 h-[60px]">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <h1 className="text-3xl font-bold tracking-tight">Reservations</h1>
 
             <div className="flex gap-2 ml-auto">
@@ -479,7 +481,8 @@ const ReservationsPage: React.FC = () => {
           </div>
 
           {/* Toolbar - fixed height */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50 h-[80px]">
+          {/* input form */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50 ">
             <div className="md:col-span-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
@@ -525,10 +528,8 @@ const ReservationsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Content Area - stable container */}
-          {/* <div className="h-scr"> */}
+          {/* BODY OF THE RESERVATION CARDS  define top*/}
           <ContentContainer>{renderedContent}</ContentContainer>
-          {/* </div> */}
 
           {/* Create Reservation Dialog */}
           <Dialog
@@ -842,7 +843,7 @@ const ReservationCard = React.memo(
 const ReservationListSkeleton: React.FC = () => (
   <div className="space-y-4">
     {[...Array(5)].map((_, i) => (
-      <Card key={i} className="h-[140px]">
+      <Card key={i} className="min-h-screen">
         <CardContent className="grid grid-cols-1 md:grid-cols-5 items-center gap-4 p-4 h-full">
           <div className="md:col-span-2 space-y-2">
             <Skeleton className="h-6 w-48" />

@@ -125,6 +125,8 @@ const RoomsPage = () => {
     }
   }, [fetchAvailableRooms]);
 
+  // fetchAvailableRooms
+
   // Update displayed rooms when tab changes
   useEffect(() => {
     if (activeTab === "available") {
