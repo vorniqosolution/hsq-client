@@ -260,21 +260,21 @@ const RoomsPage = () => {
   }
 
   // Error state
-  if (error) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center p-6 max-w-md bg-white rounded-lg shadow-lg">
-          <div className="text-red-500 text-5xl mb-4">⚠️</div>
-          <h3 className="text-xl font-medium mb-2">Failed to load rooms</h3>
-          <p className="text-slate-600 mb-4">{error}</p>
-          <Button onClick={() => fetchRooms && fetchRooms()}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Retry
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  // if (error) {
+  //   return (
+  //     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+  //       <div className="text-center p-6 max-w-md bg-white rounded-lg shadow-lg">
+  //         <div className="text-red-500 text-5xl mb-4">⚠️</div>
+  //         <h3 className="text-xl font-medium mb-2">Failed to load rooms</h3>
+  //         <p className="text-slate-600 mb-4">{error}</p>
+  //         <Button onClick={() => fetchRooms && fetchRooms()}>
+  //           <RefreshCw className="w-4 h-4 mr-2" />
+  //           Retry
+  //         </Button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-slate-50 flex">

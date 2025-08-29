@@ -261,9 +261,11 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
         });
 
         if (res.data.success) {
+          // console.log(res.data.success);
           setReservedRoomsByDate(res.data.data);
         } else {
           setError("Failed to fetch reserved rooms by date");
+          // console.log("Failed", res.data);
           setReservedRoomsByDate([]);
         }
       } catch (err) {
