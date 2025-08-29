@@ -152,6 +152,7 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
         `${API_BASE}/api/rooms/get-available-rooms`,
         { withCredentials: true }
       );
+      console.log("Available roms", res.data.rooms);
       setAvailableRooms(res.data.rooms);
     } catch (err) {
       console.error("Fetch available rooms error:", err);

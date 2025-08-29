@@ -82,7 +82,6 @@ const RoomsPage = () => {
     error,
     createRoom,
     fetchRooms,
-    fetchAvailableRooms,
     fetchRoomById,
     updateRoom,
     deleteRoom,
@@ -120,13 +119,9 @@ const RoomsPage = () => {
 
   // Load available rooms when component mounts
   useEffect(() => {
-    if (fetchAvailableRooms) {
-      fetchAvailableRooms().catch(console.error);
-    }
-  }, [fetchAvailableRooms]);
-
+    fetchRooms().catch(console.error);
+  }, []);
   // fetchAvailableRooms
-
   // Update displayed rooms when tab changes
   useEffect(() => {
     if (activeTab === "available") {
