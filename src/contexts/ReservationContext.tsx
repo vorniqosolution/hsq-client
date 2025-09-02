@@ -1,4 +1,3 @@
-
 import React, {
   createContext,
   useContext,
@@ -29,27 +28,31 @@ export interface Reservation {
   phone: string;
   cnic: string;
   // Make room a union type to handle both string ID and populated object
-  room: string | {
-    _id: string;
-    roomNumber: string;
-    category: string;
-    rate: number;
-    status: string;
-    bedType?: string;
-    view?: string;
-  };
+  room:
+    | string
+    | {
+        _id: string;
+        roomNumber: string;
+        category: string;
+        rate: number;
+        status: string;
+        bedType?: string;
+        view?: string;
+      };
   roomNumber: string;
   startAt: string;
   endAt: string;
-  status: "reserved" | "cancelled" | "confirmed" | "checked-in" | "checked-out";
+  status: "reserved" | "cancelled" | "checked-in" | "checked-out";
   createdAt: string;
   updatedAt: string;
   isPaid?: boolean;
-  createdBy: string | {
-    _id: string;
-    name: string;
-    email: string;
-  };
+  createdBy:
+    | string
+    | {
+        _id: string;
+        name: string;
+        email: string;
+      };
 }
 
 // Updated input interface to match your controller
@@ -94,7 +97,8 @@ const ReservationContext = createContext<ReservationContextType | undefined>(
 
 export const ReservationProvider = ({ children }: { children: ReactNode }) => {
   const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [currentReservation, setCurrentReservation] = useState<Reservation | null>(null);
+  const [currentReservation, setCurrentReservation] =
+    useState<Reservation | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [allRooms, setAllRooms] = useState<Room[]>([]); // All rooms including occupied ones
   const [loading, setLoading] = useState(false);
@@ -143,6 +147,7 @@ export const ReservationProvider = ({ children }: { children: ReactNode }) => {
           count: number;
           data: Reservation[];
         }>("/api/reservation/get-reservations");
+        // console.log("getallreservation", res.data.data);
         return res.data.data || [];
       },
       (data) => setReservations(data),
@@ -193,7 +198,7 @@ export const ReservationProvider = ({ children }: { children: ReactNode }) => {
         },
         (newReservation) => {
           // Just add the new reservation to state instead of refetching
-          setReservations(prev => [...prev, newReservation]);
+          setReservations((prev) => [...prev, newReservation]);
         },
         "Failed to create reservation"
       );
@@ -244,12 +249,16 @@ export const ReservationProvider = ({ children }: { children: ReactNode }) => {
     if (user) {
       const loadInitialData = async () => {
         try {
-          await Promise.all([fetchReservations(), fetchRooms(), fetchAllRooms()]);
+          await Promise.all([
+            fetchReservations(),
+            fetchRooms(),
+            fetchAllRooms(),
+          ]);
         } catch (err) {
           console.error("Failed to load initial data:", err);
         }
       };
-      
+
       loadInitialData();
     }
   }, [fetchReservations, fetchRooms, fetchAllRooms, user]);
@@ -266,7 +275,7 @@ export const ReservationProvider = ({ children }: { children: ReactNode }) => {
       createReservation,
       deleteReservation,
       getReservationById,
-      
+
       fetchRooms,
       fetchAllRooms,
     }),
@@ -281,7 +290,7 @@ export const ReservationProvider = ({ children }: { children: ReactNode }) => {
       createReservation,
       deleteReservation,
       getReservationById,
-     
+
       fetchRooms,
       fetchAllRooms,
     ]

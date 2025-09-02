@@ -99,7 +99,7 @@ interface Reservation {
   roomNumber: string;
   startAt: string;
   endAt: string;
-  status: "reserved" | "cancelled" | "confirmed" | "checked-in" | "checked-out";
+  status: "reserved" | "cancelled" | "checked-in" | "checked-out";
   createdAt: string;
   updatedAt: string;
   isPaid?: boolean;
@@ -218,9 +218,12 @@ const ReservationsPage: React.FC = () => {
     const startDate = parseISO(reservation.startAt);
     const endDate = parseISO(reservation.endAt);
 
+    console.log("reservation status", reservation.status);
     if (reservation.status === "cancelled") return "cancelled";
-    if (reservation.status === "confirmed") return "confirmed";
-    if (reservation.status === "checked-in") return "active";
+    // if (reservation.status === "confirmed") return "confirmed";
+
+    if (reservation.status === "checked-in") return "checked-in";
+    if (reservation.status === "checked-out") return "checked-out";
     if (isAfter(startDate, now)) return "upcoming";
     if (isBefore(endDate, now)) return "expired";
     return "reserved";
@@ -320,10 +323,19 @@ const ReservationsPage: React.FC = () => {
   // --- Status Badge Helper ---
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "confirmed":
+      case "checked-in":
         return (
           <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
             Confirmed
+          </Badge>
+        );
+      // WORKING STATUSES
+      case "checked-out":
+        return <Badge className="bg-red-600 text-white">Checked Out</Badge>;
+      case "reserved":
+        return (
+          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
+            Reserved
           </Badge>
         );
       case "cancelled":
@@ -336,12 +348,6 @@ const ReservationsPage: React.FC = () => {
         return (
           <Badge className="bg-blue-100 text-blue-800 border-blue-200">
             Upcoming
-          </Badge>
-        );
-      case "active":
-        return (
-          <Badge className="bg-amber-100 text-amber-800 border-amber-200">
-            Active
           </Badge>
         );
       case "expired":
@@ -734,7 +740,7 @@ const ReservationCard = React.memo(
     getStatusBadge,
   }: ReservationCardProps) => {
     const status = getStatus(reservation);
-    const isCheckInEnabled = status === "upcoming" || status === "active";
+    const isCheckInEnabled = status === "reserved" || status === "upcoming";
 
     // Get room details from GuestContext
     const { rooms } = useGuestContext();
