@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
+  Upload,
   Plus,
   Edit,
   Trash2,
@@ -25,6 +26,7 @@ import {
   Percent,
   LucideChartNoAxesColumnDecreasing,
   Calendar,
+  ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -67,10 +69,12 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Room, useRoomContext } from "../contexts/RoomContext";
+import { Room, RoomImage, useRoomContext } from "../contexts/RoomContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Sidebar from "@/components/Sidebar";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 const RoomsPage = () => {
   // Enhanced context destructuring with all room management methods
@@ -98,6 +102,12 @@ const RoomsPage = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [displayedRooms, setDisplayedRooms] = useState<Room[]>([]);
 
+  // Add these state variables for image handling
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [existingImages, setExistingImages] = useState<RoomImage[]>([]);
+  const [deletedImages, setDeletedImages] = useState<string[]>([]);
+
   const [formData, setFormData] = useState<Partial<Room>>({
     roomNumber: "",
     bedType: "One Bed",
@@ -117,12 +127,10 @@ const RoomsPage = () => {
   const [isOpen, setIsOpen] = useState(true);
   const location = useLocation();
 
-  // Load available rooms when component mounts
   useEffect(() => {
     fetchRooms().catch(console.error);
   }, []);
-  // fetchAvailableRooms
-  // Update displayed rooms when tab changes
+
   useEffect(() => {
     if (activeTab === "available") {
       setDisplayedRooms(availableRooms || []);
@@ -131,7 +139,6 @@ const RoomsPage = () => {
     }
   }, [activeTab, rooms, availableRooms]);
 
-  // Reset form for create/edit
   const resetForm = () => {
     setFormData({
       roomNumber: "",
@@ -142,13 +149,59 @@ const RoomsPage = () => {
       status: "available",
       owner: "admin",
     });
+    setSelectedImages([]);
+    setImagePreviews([]);
+    setExistingImages([]);
+    setDeletedImages([]);
   };
 
-  // Load room data for editing
+  // Image handling functions
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const totalImages =
+      selectedImages.length +
+      (existingImages?.length || 0) -
+      deletedImages.length +
+      files.length;
+
+    if (totalImages > 6) {
+      toast({
+        title: "Too many images",
+        description: "You can only upload up to 6 images per room",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedImages((prev) => [...prev, ...files]);
+
+    // Create previews
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews((prev) => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeNewImage = (index: number) => {
+    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const removeExistingImage = (filename: string) => {
+    setDeletedImages((prev) => [...prev, filename]);
+  };
+
   const handleEditRoom = (room: Room) => {
     setFormData({
       ...room,
     });
+    setExistingImages(room.images || []);
+    setDeletedImages([]);
+    setSelectedImages([]);
+    setImagePreviews([]);
     setIsEditDialogOpen(true);
   };
 
@@ -173,11 +226,30 @@ const RoomsPage = () => {
     e.preventDefault();
     if (!createRoom) return;
 
-    const success = await createRoom(formData);
+    const formDataToSend = new FormData();
+
+    // Add room data
+    Object.entries(formData).forEach(([key, value]) => {
+      if (
+        value !== undefined &&
+        value !== null &&
+        key !== "_id" &&
+        key !== "images"
+      ) {
+        formDataToSend.append(key, value.toString());
+      }
+    });
+
+    // Add images
+    selectedImages.forEach((image) => {
+      formDataToSend.append("images", image);
+    });
+
+    const success = await createRoom(formDataToSend);
     if (success) {
       toast({
         title: "Room created",
-        description: `Room ${formData.roomNumber} has been created.`,
+        description: `Room ${formData.roomNumber} has been created with ${selectedImages.length} images.`,
       });
       setIsCreateDialogOpen(false);
       resetForm();
@@ -195,7 +267,31 @@ const RoomsPage = () => {
     e.preventDefault();
     if (!updateRoom || !formData._id) return;
 
-    const success = await updateRoom(formData._id, formData);
+    const formDataToSend = new FormData();
+
+    // Add room data
+    Object.entries(formData).forEach(([key, value]) => {
+      if (
+        value !== undefined &&
+        value !== null &&
+        key !== "_id" &&
+        key !== "images"
+      ) {
+        formDataToSend.append(key, value.toString());
+      }
+    });
+
+    // Add new images
+    selectedImages.forEach((image) => {
+      formDataToSend.append("images", image);
+    });
+
+    // Add deleted images if any
+    if (deletedImages.length > 0) {
+      formDataToSend.append("deletedImages", JSON.stringify(deletedImages));
+    }
+
+    const success = await updateRoom(formData._id, formDataToSend);
     if (success) {
       toast({
         title: "Room updated",
@@ -258,23 +354,6 @@ const RoomsPage = () => {
       </div>
     );
   }
-
-  // Error state
-  // if (error) {
-  //   return (
-  //     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-  //       <div className="text-center p-6 max-w-md bg-white rounded-lg shadow-lg">
-  //         <div className="text-red-500 text-5xl mb-4">⚠️</div>
-  //         <h3 className="text-xl font-medium mb-2">Failed to load rooms</h3>
-  //         <p className="text-slate-600 mb-4">{error}</p>
-  //         <Button onClick={() => fetchRooms && fetchRooms()}>
-  //           <RefreshCw className="w-4 h-4 mr-2" />
-  //           Retry
-  //         </Button>
-  //       </div>
-  //     </div>
-  //   );
-  // }
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
@@ -487,6 +566,54 @@ const RoomsPage = () => {
                             </SelectContent>
                           </Select>
                         </div>
+                        {/* Image Upload Section */}
+                        <div className="col-span-2 space-y-2">
+                          <Label>Room Images (Max 6)</Label>
+                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                            <input
+                              type="file"
+                              id="room-images"
+                              multiple
+                              accept="image/*"
+                              onChange={handleImageSelect}
+                              className="hidden"
+                            />
+                            <label
+                              htmlFor="room-images"
+                              className="flex flex-col items-center cursor-pointer"
+                            >
+                              <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                              <span className="text-sm text-gray-600">
+                                Click to upload images
+                              </span>
+                              <span className="text-xs text-gray-500 mt-1">
+                                JPG, PNG or GIF • Max 6 images
+                              </span>
+                            </label>
+                          </div>
+
+                          {/* Image previews */}
+                          {imagePreviews.length > 0 && (
+                            <div className="grid grid-cols-3 gap-2 mt-4">
+                              {imagePreviews.map((preview, index) => (
+                                <div key={index} className="relative group">
+                                  <img
+                                    src={preview}
+                                    alt={`Preview ${index + 1}`}
+                                    className="w-full h-24 object-cover rounded"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => removeNewImage(index)}
+                                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-80 hover:opacity-100"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <Button
                         type="submit"
@@ -523,6 +650,21 @@ const RoomsPage = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
+                    {/* Room image thumbnail */}
+                    {room.images && room.images.length > 0 ? (
+                      <div className="mb-3">
+                        <img
+                          src={`${API_BASE}${room.images[0].path}`}
+                          alt={`Room ${room.roomNumber}`}
+                          className="w-full h-40 object-cover rounded-md shadow-sm"
+                        />
+                      </div>
+                    ) : (
+                      <div className="mb-3 flex items-center justify-center h-40 bg-gray-100 rounded-md">
+                        <ImageIcon className="h-12 w-12 text-gray-300" />
+                      </div>
+                    )}
+
                     <div className="flex items-center gap-2 text-gray-600">
                       {/* <DollarSign className="h-4 w-4 text-amber-500" /> */}
                       <span>Rs {room.rate.toLocaleString()} per night</span>
@@ -755,6 +897,96 @@ const RoomsPage = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                    {/* Image Upload Section */}
+                    <div className="col-span-2 space-y-2">
+                      <Label>Room Images (Max 6)</Label>
+
+                      {/* Existing images */}
+                      {existingImages && existingImages.length > 0 && (
+                        <>
+                          <div className="text-sm text-gray-500 mb-2">
+                            Existing images:
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            {existingImages
+                              .filter(
+                                (img) => !deletedImages.includes(img.filename)
+                              )
+                              .map((image, index) => (
+                                <div key={index} className="relative group">
+                                  <img
+                                    src={`${API_BASE}${image.path}`}
+                                    alt={`Room ${formData.roomNumber} - ${
+                                      index + 1
+                                    }`}
+                                    className="w-full h-24 object-cover rounded"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      removeExistingImage(image.filename)
+                                    }
+                                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-80 hover:opacity-100"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ))}
+                          </div>
+                        </>
+                      )}
+
+                      {/* Upload new images */}
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                        <input
+                          type="file"
+                          id="edit-room-images"
+                          multiple
+                          accept="image/*"
+                          onChange={handleImageSelect}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor="edit-room-images"
+                          className="flex flex-col items-center cursor-pointer"
+                        >
+                          <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                          <span className="text-sm text-gray-600">
+                            Click to upload new images
+                          </span>
+                          <span className="text-xs text-gray-500 mt-1">
+                            JPG, PNG or GIF • Max 6 images total
+                          </span>
+                        </label>
+                      </div>
+
+                      {/* New image previews */}
+                      {imagePreviews.length > 0 && (
+                        <>
+                          <div className="text-sm text-gray-500 mb-2">
+                            New images to add:
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            {imagePreviews.map((preview, index) => (
+                              <div key={index} className="relative group">
+                                <img
+                                  src={preview}
+                                  alt={`New preview ${index + 1}`}
+                                  className="w-full h-24 object-cover rounded"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeNewImage(index)}
+                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-80 hover:opacity-100"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                   <DialogFooter>
                     <DialogClose asChild>
@@ -778,7 +1010,7 @@ const RoomsPage = () => {
               open={isViewDialogOpen && currentRoom !== null}
               onOpenChange={setIsViewDialogOpen}
             >
-              <DialogContent>
+              <DialogContent className="max-w-3xl">
                 <DialogHeader>
                   <DialogTitle>
                     Room {currentRoom?.roomNumber} Details
@@ -789,7 +1021,7 @@ const RoomsPage = () => {
                 </DialogHeader>
 
                 {currentRoom && (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div className="flex justify-between items-center">
                       <h3 className="text-lg font-medium">Room Information</h3>
                       <Badge className={getStatusColor(currentRoom.status)}>
@@ -797,6 +1029,41 @@ const RoomsPage = () => {
                           currentRoom.status.slice(1)}
                       </Badge>
                     </div>
+
+                    {/* Room Images Gallery */}
+                    {currentRoom.images && currentRoom.images.length > 0 ? (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">
+                          Room Images
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {currentRoom.images.map((image, index) => (
+                            <a
+                              key={index}
+                              href={`${API_BASE}${image.path}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block rounded-md overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                            >
+                              <img
+                                src={`${API_BASE}${image.path}`}
+                                alt={`Room ${currentRoom.roomNumber} - ${
+                                  index + 1
+                                }`}
+                                className="w-full h-32 object-cover"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                        <ImageIcon className="h-12 w-12 text-gray-300 mb-2" />
+                        <p className="text-gray-500 text-sm">
+                          No images available for this room
+                        </p>
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                       <div>

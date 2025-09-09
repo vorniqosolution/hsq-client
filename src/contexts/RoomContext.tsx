@@ -12,6 +12,13 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
+export interface RoomImage {
+  filename: string;
+  path: string;
+  mimetype: string;
+  size: number;
+}
+
 export interface Room {
   room: any;
   price: number;
@@ -24,6 +31,7 @@ export interface Room {
   status: "available" | "reserved" | "occupied" | "maintenance";
   owner: string;
   dropdownLabel?: string;
+  images?: RoomImage[];
 }
 
 // New: Reservation interfaces
@@ -67,13 +75,16 @@ interface RoomContextType {
 
   // Existing methods
   fetchRooms: () => Promise<void>;
-  createRoom: (room: Partial<Room>) => Promise<boolean>;
+  createRoom: (room: Partial<Room> | FormData) => Promise<boolean>; // Update to accept FormData
 
   // Room methods
   fetchAvailableRooms: () => Promise<void>;
   fetchPresidentialRooms: () => Promise<void>;
   fetchRoomById: (id: string) => Promise<void>;
-  updateRoom: (id: string, roomData: Partial<Room>) => Promise<boolean>;
+  updateRoom: (
+    id: string,
+    roomData: Partial<Room> | FormData
+  ) => Promise<boolean>; // Update to accept FormData
   deleteRoom: (id: string) => Promise<boolean>;
 
   // New: Reservation methods
@@ -108,8 +119,6 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
   const initialFetchDone = useRef(false);
 
-  // --------------------------- EXISTING METHODS ---------------------------
-
   // Fetch all rooms; showSpinner controls loading indicator
   const fetchRoomsInternal = async (showSpinner = false) => {
     if (showSpinner) setLoading(true);
@@ -128,11 +137,21 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchRooms = () => fetchRoomsInternal(true);
 
-  const createRoom = async (room: Partial<Room>) => {
+  const createRoom = async (room: Partial<Room> | FormData) => {
     try {
+      // Check if room is FormData (for image uploads) or a regular object
+      const isFormData = room instanceof FormData;
+
       await axios.post(`${API_BASE}/api/rooms/create-room`, room, {
         withCredentials: true,
+        // Set the correct content type for FormData using the variable
+        headers: isFormData
+          ? {
+              "Content-Type": "multipart/form-data",
+            }
+          : undefined,
       });
+
       // After creation, show spinner and refresh
       await fetchRoomsInternal(true);
       return true;
@@ -141,8 +160,6 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
       return false;
     }
   };
-
-  // --------------------------- ROOM METHODS ---------------------------
 
   // Fetch available rooms
   const fetchAvailableRooms = useCallback(async () => {
@@ -191,11 +208,20 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Update a room
-  const updateRoom = async (id: string, roomData: Partial<Room>) => {
+  const updateRoom = async (id: string, roomData: Partial<Room> | FormData) => {
     setError(null);
     try {
+      // Check if roomData is FormData or a regular object
+      const isFormData = roomData instanceof FormData;
+
       await axios.put(`${API_BASE}/api/rooms/update-room/${id}`, roomData, {
         withCredentials: true,
+        // Set the correct content type for FormData
+        headers: isFormData
+          ? {
+              "Content-Type": "multipart/form-data",
+            }
+          : undefined,
       });
 
       // Refresh rooms data after update
@@ -241,8 +267,6 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // --------------------------- NEW: RESERVATION METHODS ---------------------------
-
   // Fetch reserved rooms by date (from Reservation MVC)
   const fetchReservedRoomsByDate = useCallback(
     async (year: number, month: number, day?: number | null) => {
@@ -276,37 +300,6 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
     },
     []
   );
-  // const fetchReservedRoomsByDate = async (
-  //   year: number,
-  //   month: number,
-  //   day?: number | null
-  // ) => {
-  //   setError(null);
-  //   try {
-  //     const res = await axios.get<{
-  //       success: boolean;
-  //       data: ReservedRoomByDate[];
-  //     }>(`${API_BASE}/api/reservation/Get-All-ReservedRoom-With-Date`, {
-  //       params: {
-  //         year,
-  //         month,
-  //         ...(day ? { day } : {}),
-  //       },
-  //       withCredentials: true,
-  //     });
-
-  //     if (res.data.success) {
-  //       setReservedRoomsByDate(res.data.data);
-  //     } else {
-  //       setError("Failed to fetch reserved rooms by date");
-  //       setReservedRoomsByDate([]);
-  //     }
-  //   } catch (err) {
-  //     console.error("Fetch reserved rooms by date error:", err);
-  //     setError("Failed to fetch reserved rooms by date");
-  //     setReservedRoomsByDate([]);
-  //   }
-  // };
 
   // Fetch a specific reservation by ID
   const fetchReservationById = async (id: string) => {
@@ -329,8 +322,6 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
       setCurrentReservation(null);
     }
   };
-
-  // --------------------------- EFFECTS ---------------------------
 
   useEffect(() => {
     // Initial load with spinner
