@@ -1,7 +1,6 @@
-import React, { useState, useEffect, memo, useCallback } from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useState, useEffect, memo, useMemo, useCallback } from "react";
+import { Link } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
-// import HSQ from "../../public/HSQ.png";
 import {
   Users,
   Bed,
@@ -9,23 +8,17 @@ import {
   DollarSign,
   TrendingUp,
   TrendingDown,
-  Settings,
-  LogOut,
   Menu,
-  X,
-  Home,
   Crown,
-  Star,
   CheckCircle,
   Wrench,
   Key,
-  Filter,
-  Sparkles,
-  Ticket,
-  Archive,
-  FileText,
-  Percent,
-  Calendar1,
+  LogOut,
+  Briefcase,
+  ArrowRight,
+  Sun,
+  Moon,
+  RefreshCcw,
 } from "lucide-react";
 import {
   Card,
@@ -34,29 +27,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Button } from "@/components/ui/button";
-import { useRoomContext, ReservedRoomByDate } from "@/contexts/RoomContext";
+import {
+  Tooltip as ShadTooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useRoomContext } from "@/contexts/RoomContext";
 import { useGuestContext } from "@/contexts/GuestContext";
+import { useReservationContext } from "@/contexts/ReservationContext";
+import { isToday, isFuture, parseISO, addDays, format } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
 
-// Define prop types for components
+// --- Sub-Components (Memoized for Performance) ---
 
 interface StatCardProps {
   stat: {
@@ -69,11 +54,6 @@ interface StatCardProps {
   };
 }
 
-interface ReservationTableProps {
-  reservedRoomsByDate: ReservedRoomByDate[];
-}
-
-// Memoized Stats Card Component with proper types
 const StatCard = memo<StatCardProps>(({ stat }) => (
   <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white relative overflow-hidden group">
     <div
@@ -120,289 +100,313 @@ const StatCard = memo<StatCardProps>(({ stat }) => (
   </Card>
 ));
 
-// Memoized Reservation Table Component with proper types
-const ReservationTable = memo<ReservationTableProps>(
-  ({ reservedRoomsByDate }) => (
-    <div className="h-[300px] overflow-hidden">
-      <div className="w-full h-full overflow-y-auto">
-        <table className="w-full text-sm text-left">
-          <thead className="text-xs uppercase bg-slate-50 text-slate-500 sticky top-0 z-10">
-            <tr>
-              <th className="px-4 py-3 font-light">Guest Name</th>
-              <th className="px-4 py-3 font-light">Room</th>
-              <th className="px-4 py-3 font-light">Status</th>
-              <th className="px-4 py-3 font-light">Stay Duration</th>
-            </tr>
-          </thead>
-          <tbody>
-            {reservedRoomsByDate && reservedRoomsByDate.length > 0 ? (
-              reservedRoomsByDate.map((reservation) => (
-                <tr
-                  key={reservation._id}
-                  className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
-                >
-                  <td className="px-4 py-3 font-medium text-slate-900">
-                    {reservation.fullName}
-                  </td>
-                  <td className="px-4 py-3 text-slate-700">
-                    {reservation.roomNumber}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {reservation.roomStatus}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-slate-700">
-                    {reservation.daysBooked}{" "}
-                    {reservation.daysBooked === 1 ? "day" : "days"}
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={4} className="text-center py-8 text-slate-500">
-                  <Calendar className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                  <p className="font-light">
-                    No reservations found for this month
-                  </p>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
-);
+// NEW: This is the "brain" that determines the real-time state of a room.
+// NEW: This is the upgraded "brain" that finds ALL future reservations.
+const getRoomState = (room, guests, reservations) => {
+  const today = new Date();
+
+  if (room.status === "maintenance") {
+    return { state: "Maintenance", details: "Out of service" };
+  }
+
+  const guestCheckedInNow = guests.find(
+    (g) => g.room._id === room._id && g.status === "checked-in"
+  );
+  const guestCheckingOutToday = guests.find(
+    (g) =>
+      g.room._id === room._id && g.checkOutAt && isToday(parseISO(g.checkOutAt))
+  );
+  const reservationForToday = reservations.find(
+    (r) =>
+      (typeof r.room === "object" ? r.room._id : r.room) === room._id &&
+      ["reserved", "confirmed"].includes(r.status) &&
+      isToday(parseISO(r.startAt))
+  );
+
+  if (guestCheckingOutToday && reservationForToday) {
+    return {
+      state: "Back-to-Back",
+      details: `Checkout: ${guestCheckingOutToday.fullName} | Arrival: ${reservationForToday.fullName}`,
+    };
+  }
+  if (guestCheckingOutToday) {
+    return {
+      state: "Departure Due",
+      details: `Checkout: ${guestCheckingOutToday.fullName}`,
+    };
+  }
+  if (guestCheckedInNow) {
+    return {
+      state: "Occupied",
+      details: `Guest: ${guestCheckedInNow.fullName}`,
+    };
+  }
+  if (reservationForToday) {
+    return {
+      state: "Arrival Due",
+      details: `Arrival: ${reservationForToday.fullName}`,
+    };
+  }
+
+  // CHANGED: Use .filter() to find ALL future reservations, not just the first one.
+  const futureReservations = reservations
+    .filter(
+      (r) =>
+        (typeof r.room === "object" ? r.room._id : r.room) === room._id &&
+        ["reserved", "confirmed"].includes(r.status) &&
+        isFuture(parseISO(r.startAt))
+    )
+    .sort(
+      (a, b) => parseISO(a.startAt).getTime() - parseISO(b.startAt).getTime()
+    ); // Sort them by date
+
+  if (futureReservations.length > 0) {
+    // Return the entire array of reservations as the details.
+    return { state: "Reserved", details: futureReservations };
+  }
+
+  return { state: "Available", details: "Ready for booking" };
+};
+
+// NEW: This function provides styling and icons for each state.
+const getStateStyling = (state) => {
+  switch (state) {
+    case "Occupied":
+      return {
+        color: "bg-amber-100 text-amber-800 border-amber-200",
+        icon: Key,
+        label: "Occupied",
+      };
+    case "Available":
+      return {
+        color: "bg-emerald-100 text-emerald-800 border-emerald-200",
+        icon: CheckCircle,
+        label: "Available",
+      };
+    case "Arrival Due":
+      return {
+        color: "bg-blue-100 text-blue-800 border-blue-200",
+        icon: Sun,
+        label: "Arrival Today",
+      };
+    case "Departure Due":
+      return {
+        color: "bg-indigo-100 text-indigo-800 border-indigo-200",
+        icon: Moon,
+        label: "Departure Today",
+      };
+    case "Back-to-Back":
+      return {
+        color: "bg-purple-100 text-purple-800 border-purple-200",
+        icon: RefreshCcw,
+        label: "Back-to-Back",
+      };
+    case "Reserved":
+      return {
+        color: "bg-gray-100 text-gray-800 border-gray-200",
+        icon: Calendar,
+        label: "Reserved (Future)",
+      };
+    case "Maintenance":
+      return {
+        color: "bg-red-100 text-red-800 border-red-200",
+        icon: Wrench,
+        label: "Maintenance",
+      };
+    default:
+      return {
+        color: "bg-gray-100 text-gray-800 border-gray-200",
+        icon: Bed,
+        label: "Unknown",
+      };
+  }
+};
 
 const DashboardPage = () => {
   const [isOpen, setIsOpen] = useState(true);
-  const [roomFilter, setRoomFilter] = useState("all");
+  const { user } = useAuth();
+  const [selectedRoomForDetails, setSelectedRoomForDetails] = useState(null);
 
-  // State for reservation month/year selection
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-
-  // Use the room context with reservation data
-  const {
-    rooms,
-    loading: roomsLoading,
-    fetchRooms,
-    reservedRoomsByDate,
-    fetchReservedRoomsByDate,
-  } = useRoomContext();
-
-  // Use the guest context
+  const { rooms, loading: roomsLoading, fetchRooms } = useRoomContext();
   const { guests, loading: guestsLoading, fetchGuests } = useGuestContext();
-
-  // Initial data loading with stable refs
-  useEffect(() => {
-    // Only fetch on mount
-    const loadData = async () => {
-      await fetchRooms();
-
-      if (fetchGuests) {
-        await fetchGuests();
-      }
-
-      if (fetchReservedRoomsByDate) {
-        await fetchReservedRoomsByDate(selectedYear, selectedMonth);
-      }
-    };
-
-    loadData();
-
-    // DO NOT add dependencies here to prevent re-fetching on every render
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Separate effect for month changes only
+  const {
+    reservations,
+    loading: reservationsLoading,
+    fetchReservations,
+  } = useReservationContext();
 
   useEffect(() => {
-    if (fetchReservedRoomsByDate) {
-      fetchReservedRoomsByDate(selectedYear, selectedMonth);
-    }
-  }, [selectedMonth, selectedYear, fetchReservedRoomsByDate]);
-
-  // Handle month change without re-rendering the entire page
-  const handleMonthChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      setSelectedMonth(parseInt(e.target.value, 10));
-    },
-    []
-  );
-
-  // Memoize computed values to prevent recalculations on every render
-  const filteredRooms = React.useMemo(() => {
-    // Filter rooms by status
-    const availableRooms = rooms.filter((room) => room.status === "available");
-    const occupiedRooms = rooms.filter((room) => room.status === "occupied");
-    const maintenanceRooms = rooms.filter(
-      (room) => room.status === "maintenance"
-    );
-    const reservedRooms = rooms.filter((room) => room.status === "reserved");
-
-    // Filter rooms based on selected filter
-    const filtered =
-      roomFilter === "all"
-        ? rooms
-        : rooms.filter((room) => room.status === roomFilter);
-
-    // Return all computed values to avoid recalculating them later
-    return {
-      filtered,
-      availableRooms,
-      occupiedRooms,
-      maintenanceRooms,
-      reservedRooms,
-      formattedRooms: filtered.map((room) => ({
-        id: room._id,
-        roomNumber: room.roomNumber,
-        type: room.category?.toLowerCase() || "",
-        rate: room.rate,
-        status: room.status,
-        bedType: room.bedType,
-        view: room.view,
-      })),
-    };
-  }, [rooms, roomFilter]);
-
-  // Calculate stats once to avoid recalculations
-  const stats = React.useMemo(() => {
-    const { availableRooms, occupiedRooms, reservedRooms } = filteredRooms;
-    const totalRooms = rooms.length;
-    const availableRoomCount = availableRooms.length;
-    const occupiedRoomCount = occupiedRooms.length;
-    const reservedRoomCount = reservedRooms.length;
-
-    // Get today's check-ins
-    const today = new Date().toISOString().split("T")[0];
-    const todayCheckIns = guests
-      ? guests.filter(
-          (guest) =>
-            new Date(guest.checkInAt).toISOString().split("T")[0] === today
-        ).length
-      : 0;
-
-    // Calculate total revenue from current guests
-    const totalRevenue = guests
-      ? guests
-          .filter((guest) => guest.status === "checked-in")
-          .reduce((sum, guest) => sum + guest.totalRent, 0)
-      : 0;
-
-    return [
-      {
-        title: "Total Rooms",
-        value: totalRooms.toString(),
-        change: `${availableRoomCount} available`,
-        trend: "neutral" as const,
-        icon: Bed,
-        gradient: "from-blue-500 to-blue-600",
-      },
-      {
-        title: "Occupancy Rate",
-        value:
-          totalRooms > 0
-            ? `${Math.round(
-                ((occupiedRoomCount + reservedRoomCount) / totalRooms) * 100
-              )}%`
-            : "0%",
-        change: `${
-          occupiedRoomCount + reservedRoomCount
-        } of ${totalRooms} occupied/reserved`,
-        trend:
-          occupiedRoomCount > availableRoomCount
-            ? ("up" as const)
-            : ("down" as const),
-        icon: Users,
-        gradient: "from-emerald-500 to-emerald-600",
-      },
-      {
-        title: "Arrivals Today",
-        value: todayCheckIns.toString(),
-        change: "New guests",
-        trend: "up" as const,
-        icon: Calendar,
-        gradient: "from-purple-500 to-purple-600",
-      },
-      {
-        title: "Daily Revenue",
-        value: `${totalRevenue.toLocaleString()}`,
-        change: "Active bookings",
-        trend: "up" as const,
-        icon: DollarSign,
-        gradient: "from-amber-500 to-amber-600",
-      },
-    ];
-  }, [filteredRooms, guests, rooms.length]);
-
-  // Room status data for pie chart
-  const roomStatusData = React.useMemo(() => {
-    const { availableRooms, occupiedRooms, reservedRooms, maintenanceRooms } =
-      filteredRooms;
-    return [
-      { name: "Available", value: availableRooms.length, color: "#10b981" },
-      { name: "Occupied", value: occupiedRooms.length, color: "#f59e0b" },
-      { name: "Reserved", value: reservedRooms.length, color: "#3b82f6" },
-      { name: "Maintenance", value: maintenanceRooms.length, color: "#ef4444" },
-    ];
-  }, [filteredRooms]);
-
-  // Icons and colors for room statuses
-  const getStatusIcon = useCallback((status: string) => {
-    switch (status) {
-      case "available":
-        return <CheckCircle className="w-4 h-4" />;
-      case "occupied":
-        return <Key className="w-4 h-4" />;
-      case "reserved":
-        return <Calendar className="w-4 h-4" />;
-      case "maintenance":
-        return <Wrench className="w-4 h-4" />;
-      default:
-        return null;
-    }
-  }, []);
-
-  const getStatusColor = useCallback((status: string) => {
-    switch (status) {
-      case "available":
-        return "bg-emerald-100 text-emerald-700 border-emerald-200";
-      case "occupied":
-        return "bg-amber-100 text-amber-700 border-amber-200";
-      case "reserved":
-        return "bg-blue-100 text-blue-700 border-blue-200";
-      case "maintenance":
-        return "bg-red-100 text-red-700 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200";
-    }
-  }, []);
-
-  // Chart configuration
-  const chartConfig = {
-    occupied: { label: "Occupied", color: "#f59e0b" },
-    available: { label: "Available", color: "#e2e8f0" },
-    checkIns: { label: "Check-ins", color: "#3b82f6" },
-  };
-
-  // Handle refresh button click
-  const handleRefresh = useCallback(() => {
     fetchRooms();
-    if (fetchGuests) fetchGuests();
-    // if (fetchReservedRoomsByDate) {
-    //   fetchReservedRoomsByDate(selectedYear, selectedMonth);
-    // }
-  }, [
-    fetchRooms,
-    fetchGuests,
-    // fetchReservedRoomsByDate,
-    selectedMonth,
-    selectedYear,
-  ]);
+    fetchGuests();
+    fetchReservations();
+  }, [fetchRooms, fetchGuests, fetchReservations]);
 
-  // Show loading state when data is being fetched
-  if (roomsLoading || guestsLoading) {
+  const hotelStats = useMemo(() => {
+    const today = new Date();
+    const totalRooms = rooms.length;
+
+    if (totalRooms === 0) {
+      return {
+        totalRooms: 0,
+        occupiedNow: 0,
+        reservedForToday: 0,
+        maintenanceNow: 0,
+        availableNow: 0,
+        arrivalsToday: 0,
+        departuresToday: 0,
+        totalRevenue: 0,
+        occupancyRate: 0,
+        upcomingReservations: [],
+      };
+    }
+
+    const occupiedNowIds = new Set(
+      guests.filter((g) => g.status === "checked-in").map((g) => g.room._id)
+    );
+    const maintenanceNowIds = new Set(
+      rooms.filter((r) => r.status === "maintenance").map((r) => r._id)
+    );
+
+    const reservedForTodayIds = new Set(
+      reservations
+        .filter((r) => {
+          const isRelevant = ["reserved", "confirmed"].includes(r.status);
+          const startsBeforeOrToday = parseISO(r.startAt) <= today;
+          const endsAfterToday = parseISO(r.endAt) > today;
+          const roomId = typeof r.room === "object" ? r.room._id : r.room;
+          return (
+            isRelevant &&
+            startsBeforeOrToday &&
+            endsAfterToday &&
+            !occupiedNowIds.has(roomId)
+          );
+        })
+        .map((r) => (typeof r.room === "object" ? r.room._id : r.room))
+    );
+
+    const occupiedNowCount = occupiedNowIds.size;
+    const reservedForTodayCount = reservedForTodayIds.size;
+    const maintenanceNowCount = maintenanceNowIds.size;
+    const busyRoomsCount =
+      occupiedNowCount + reservedForTodayCount + maintenanceNowCount;
+    const availableNowCount = Math.max(0, totalRooms - busyRoomsCount);
+
+    const arrivalsToday = guests.filter((g) =>
+      isToday(parseISO(g.checkInAt))
+    ).length;
+    const departuresToday = guests.filter(
+      (g) => g.checkOutAt && isToday(parseISO(g.checkOutAt))
+    ).length;
+
+    const totalRevenue = guests
+      .filter((g) => g.status === "checked-in")
+      .reduce((sum, guest) => sum + guest.totalRent, 0);
+
+    const occupancyRate =
+      totalRooms > 0 ? Math.round((occupiedNowCount / totalRooms) * 100) : 0;
+
+    const sevenDaysFromNow = addDays(today, 7);
+    const upcomingReservations = reservations
+      .filter((r) => {
+        const startDate = parseISO(r.startAt);
+        return (
+          ["reserved", "confirmed"].includes(r.status) &&
+          startDate >= today &&
+          startDate <= sevenDaysFromNow
+        );
+      })
+      .sort(
+        (a, b) => parseISO(a.startAt).getTime() - parseISO(b.startAt).getTime()
+      );
+
+    return {
+      totalRooms,
+      occupiedNow: occupiedNowCount,
+      reservedForToday: reservedForTodayCount,
+      maintenanceNow: maintenanceNowCount,
+      availableNow: availableNowCount,
+      arrivalsToday,
+      departuresToday,
+      totalRevenue,
+      occupancyRate,
+      upcomingReservations,
+    };
+  }, [rooms, guests, reservations]);
+
+  // ADD THIS BLOCK AFTER `hotelStats`
+  // NEW: Group rooms by their real-time state for display
+  const groupedRooms = useMemo(() => {
+    return rooms.reduce((acc, room) => {
+      const { state, details } = getRoomState(room, guests, reservations);
+      if (!acc[state]) {
+        acc[state] = [];
+      }
+      acc[state].push({ ...room, state, details });
+      return acc;
+    }, {});
+  }, [rooms, guests, reservations]);
+
+  // ADD THIS BLOCK AFTER `groupedRooms`
+  // NEW: Define the order in which to display the room groups for importance
+  const groupDisplayOrder = [
+    "Back-to-Back",
+    "Departure Due",
+    "Arrival Due",
+    "Occupied",
+    "Available",
+    "Reserved",
+    "Maintenance",
+  ];
+
+  const statsCardsData = [
+    {
+      title: "Occupancy Now",
+      value: `${hotelStats.occupancyRate}%`,
+      change: `${hotelStats.occupiedNow} of ${hotelStats.totalRooms} rooms`,
+      trend: "up" as const,
+      icon: Users,
+      gradient: "from-emerald-500 to-emerald-600",
+    },
+    {
+      title: "Available Rooms",
+      value: hotelStats.availableNow.toString(),
+      change: "Ready for guests",
+      trend: "neutral" as const,
+      icon: Bed,
+      gradient: "from-blue-500 to-blue-600",
+    },
+    {
+      title: "Arrivals Today",
+      value: hotelStats.arrivalsToday.toString(),
+      change: "New check-ins",
+      trend: "up" as const,
+      icon: Calendar,
+      gradient: "from-purple-500 to-purple-600",
+    },
+    {
+      title: "Departures Today",
+      value: hotelStats.departuresToday.toString(),
+      change: "Guests checking out",
+      trend: "down" as const,
+      icon: LogOut,
+      gradient: "from-rose-500 to-rose-600",
+    },
+  ];
+
+  const roomStatusDataForChart = [
+    { name: "Available", value: hotelStats.availableNow, color: "#10b981" },
+    { name: "Occupied", value: hotelStats.occupiedNow, color: "#f59e0b" },
+    {
+      name: "Reserved for Today",
+      value: hotelStats.reservedForToday,
+      color: "#3b82f6",
+    },
+    { name: "Maintenance", value: hotelStats.maintenanceNow, color: "#ef4444" },
+  ];
+
+  const isLoading = roomsLoading || guestsLoading || reservationsLoading;
+
+  if (isLoading && !rooms.length && !guests.length && !reservations.length) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
@@ -417,14 +421,8 @@ const DashboardPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex overflow-hidden">
-      {/* Sidebar */}
-      {/* ADD SIDE BAR COMPONENT */}
       <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)} />
-      {/* <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} /> */}
-
-      {/* Main content - USING OVERFLOW HIDDEN TO CONTAIN ALL CONTENT */}
       <div className="flex-1 lg:ml-0 overflow-hidden">
-        {/* Mobile header */}
         <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4">
           <div className="flex items-center justify-between">
             <button
@@ -442,271 +440,249 @@ const DashboardPage = () => {
             <div className="w-9" />
           </div>
         </div>
-
-        {/* Dashboard content - USING A FIXED CONTAINER WITH OVERFLOW */}
-        <div className="p-8 ">
+        <div className="p-8 overflow-y-auto h-screen">
           <div className="max-w-7xl mx-auto">
-            {/* Header */}
             <div className="mb-10">
               <h1 className="text-4xl font-light text-slate-900 tracking-wide">
                 Executive Dashboard
               </h1>
               <p className="text-slate-600 mt-2 font-light">
-                Welcome back. Here's today's overview of your business.
+                Real-time overview of your hotel's operations for{" "}
+                {format(new Date(), "PPP")}.
               </p>
             </div>
-            {/* Stats Grid - USING MEMOIZED COMPONENTS */}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-              {stats.map((stat) => (
+              {statsCardsData.map((stat) => (
                 <StatCard key={stat.title} stat={stat} />
               ))}
             </div>
-            {/* Room Status Overview */}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-              {/* Room Status Summary */}
               <Card className="border-0 shadow-lg bg-white">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-xl font-light text-slate-900">
+                <CardHeader>
+                  <CardTitle className="text-xl font-light">
                     Room Status Overview
                   </CardTitle>
-                  <CardDescription className="font-light text-slate-500">
-                    Current accommodation status
+                  <CardDescription className="font-light">
+                    Current state of all rooms
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-50">
-                      <div className="flex items-center space-x-3">
-                        <CheckCircle className="w-5 h-5 text-emerald-600" />
-                        <span className="font-medium text-slate-700">
-                          Available
-                        </span>
-                      </div>
-                      <span className="text-xl font-light text-slate-900">
-                        {filteredRooms.availableRooms.length}
+                      <span className="flex items-center">
+                        <CheckCircle className="inline w-5 h-5 mr-2 text-emerald-600" />
+                        Available
+                      </span>
+                      <span className="text-xl font-light">
+                        {hotelStats.availableNow}
                       </span>
                     </div>
                     <div className="flex items-center justify-between p-3 rounded-lg bg-amber-50">
-                      <div className="flex items-center space-x-3">
-                        <Key className="w-5 h-5 text-amber-600" />
-                        <span className="font-medium text-slate-700">
-                          Occupied
-                        </span>
-                      </div>
-                      <span className="text-xl font-light text-slate-900">
-                        {filteredRooms.occupiedRooms.length}
+                      <span className="flex items-center">
+                        <Key className="inline w-5 h-5 mr-2 text-amber-600" />
+                        Occupied
+                      </span>
+                      <span className="text-xl font-light">
+                        {hotelStats.occupiedNow}
                       </span>
                     </div>
                     <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50">
-                      <div className="flex items-center space-x-3">
-                        <Calendar className="w-5 h-5 text-blue-600" />
-                        <span className="font-medium text-slate-700">
-                          Reserved
-                        </span>
-                      </div>
-                      <span className="text-xl font-light text-slate-900">
-                        {filteredRooms.reservedRooms.length}
+                      <span className="flex items-center">
+                        <Calendar className="inline w-5 h-5 mr-2 text-blue-600" />
+                        Reserved for Today
+                      </span>
+                      <span className="text-xl font-light">
+                        {hotelStats.reservedForToday}
                       </span>
                     </div>
                     <div className="flex items-center justify-between p-3 rounded-lg bg-red-50">
-                      <div className="flex items-center space-x-3">
-                        <Wrench className="w-5 h-5 text-red-600" />
-                        <span className="font-medium text-slate-700">
-                          Maintenance
-                        </span>
-                      </div>
-                      <span className="text-xl font-light text-slate-900">
-                        {filteredRooms.maintenanceRooms.length}
+                      <span className="flex items-center">
+                        <Wrench className="inline w-5 h-5 mr-2 text-red-600" />
+                        Maintenance
+                      </span>
+                      <span className="text-xl font-light">
+                        {hotelStats.maintenanceNow}
                       </span>
                     </div>
                   </div>
-
-                  {/* Mini Pie Chart */}
                   <div className="mt-6 h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={roomStatusData}
+                          data={roomStatusDataForChart}
+                          dataKey="value"
                           cx="50%"
                           cy="50%"
                           innerRadius={60}
                           outerRadius={80}
                           paddingAngle={2}
-                          dataKey="value"
                         >
-                          {roomStatusData.map((entry, index) => (
+                          {roomStatusDataForChart.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
-                        <ChartTooltip />
+                        <Tooltip
+                          contentStyle={{
+                            borderRadius: "0.5rem",
+                            boxShadow:
+                              "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+                          }}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Room Quick View */}
               <Card className="border-0 shadow-lg bg-white lg:col-span-2">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-xl font-light text-slate-900">
-                        Room Quick View
-                      </CardTitle>
-                      <CardDescription className="font-light text-slate-500">
-                        Real-time room status
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Filter className="w-4 h-4 text-slate-500" />
-                      <select
-                        value={roomFilter}
-                        onChange={(e) => setRoomFilter(e.target.value)}
-                        className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                      >
-                        <option value="all">All Rooms</option>
-                        <option value="available">Available</option>
-                        <option value="occupied">Occupied</option>
-                        <option value="reserved">Reserved</option>
-                        <option value="maintenance">Maintenance</option>
-                      </select>
-                    </div>
-                  </div>
+                <CardHeader>
+                  <CardTitle className="text-xl font-light">
+                    Room Quick View
+                  </CardTitle>
+                  <CardDescription className="font-light">
+                    Real-time room state overview
+                  </CardDescription>
                 </CardHeader>
+                {/* NEW: This <CardContent> renders the grouped rooms */}
                 <CardContent>
-                  {/* Fixed height container with absolute positioning */}
-                  <div className="relative h-[300px] w-full">
-                    <div className="absolute inset-0 overflow-y-auto">
-                      <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-                        {filteredRooms.formattedRooms.map((room) => (
-                          <div
-                            key={room.id}
-                            className={`
-                              relative p-3 rounded-lg border transition-all duration-200 cursor-pointer
-                              hover:shadow-md hover:scale-105 ${getStatusColor(
-                                room.status
-                              )}
-                            `}
-                            title={`Room ${room.roomNumber} - ${room.type} - ${room.status}`}
-                          >
-                            <div className="text-center">
-                              <p className="font-medium text-sm">
-                                {room.roomNumber}
-                              </p>
-                              <div className="mt-1 flex justify-center">
-                                {getStatusIcon(room.status)}
+                  <div className="relative h-[450px] w-full">
+                    <div className="absolute inset-0 overflow-y-auto pr-2 space-y-4">
+                      <TooltipProvider>
+                        {groupDisplayOrder.map((groupName) => {
+                          const roomsInGroup = groupedRooms[groupName];
+                          if (!roomsInGroup || roomsInGroup.length === 0) {
+                            return null; // Don't render empty groups
+                          }
+                          const groupStyling = getStateStyling(groupName);
+                          return (
+                            <div key={groupName}>
+                              <h3 className="font-semibold text-slate-600 text-sm mb-2 border-b pb-1 flex items-center">
+                                <groupStyling.icon className="w-4 h-4 mr-2" />
+                                {groupStyling.label} ({roomsInGroup.length})
+                              </h3>
+                              <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                                {roomsInGroup.map((room) => {
+                                  const { color, icon: Icon } = getStateStyling(
+                                    room.state
+                                  );
+                                  return (
+                                    <ShadTooltip key={room._id}>
+                                      <TooltipTrigger asChild>
+                                        <div
+                                          className={`p-3 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-md hover:scale-105 ${color}`}
+                                        >
+                                          <div className="text-center">
+                                            <p className="font-medium text-sm truncate">
+                                              {room.roomNumber}
+                                            </p>
+                                            <div className="mt-1 flex justify-center">
+                                              <Icon className="w-4 h-4" />
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p className="font-semibold">
+                                          {room.state}
+                                        </p>
+                                        {Array.isArray(room.details) ? (
+                                          <ul className="mt-1 space-y-1 text-xs list-disc pl-4">
+                                            {room.details.map((res) => (
+                                              <li key={res._id}>
+                                                <span className="font-medium">
+                                                  {res.fullName}:
+                                                </span>{" "}
+                                                {format(
+                                                  parseISO(res.startAt),
+                                                  "MMM d"
+                                                )}{" "}
+                                                -{" "}
+                                                {format(
+                                                  parseISO(res.endAt),
+                                                  "MMM d"
+                                                )}
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        ) : (
+                                          <p className="text-sm text-gray-600">
+                                            {room.details}
+                                          </p>
+                                        )}
+                                      </TooltipContent>
+                                    </ShadTooltip>
+                                  );
+                                })}
                               </div>
                             </div>
-                          </div>
-                        ))}
-
-                        {filteredRooms.formattedRooms.length === 0 && (
-                          <div className="col-span-full text-center py-8">
-                            <Bed className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                            <p className="text-slate-500 font-light">
-                              No rooms matching the selected filter
-                            </p>
-                          </div>
-                        )}
-                      </div>
+                          );
+                        })}
+                      </TooltipProvider>
                     </div>
                   </div>
-
-                  {/* Quick Actions */}
-                  <div className="mt-6 flex items-center justify-between border-t pt-4">
-                    <p className="text-sm text-slate-600 font-light">
-                      Showing {filteredRooms.formattedRooms.length} of{" "}
-                      {rooms.length} rooms
-                    </p>
+                  <div className="mt-6 flex items-center justify-end border-t pt-4">
                     <Link to="/rooms">
                       <Button
                         variant="outline"
                         size="sm"
                         className="font-light"
                       >
-                        View All Rooms
-                        <Bed className="w-4 h-4 ml-2" />
+                        Manage All Rooms <ArrowRight className="w-4 h-4 ml-2" />
                       </Button>
                     </Link>
                   </div>
                 </CardContent>
               </Card>
-            </div>
-            {/* Upcoming Reservations Section - WITH FIXED HEIGHT AND MEMOIZED COMPONENT */}
-            <div className="mb-10" style={{ height: "400px" }}>
-              {" "}
-              {/* Fixed height container */}
-              <Card className="border-0 shadow-lg bg-white h-full">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-xl font-light text-slate-900">
-                        Upcoming Reservations
-                      </CardTitle>
-                      <CardDescription className="font-light text-slate-500">
-                        Reserved rooms for{" "}
-                        {new Date(
-                          selectedYear,
-                          selectedMonth - 1
-                        ).toLocaleString("default", { month: "long" })}{" "}
-                        {selectedYear}
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="w-4 h-4 text-slate-500" />
-                      <select
-                        value={selectedMonth}
-                        onChange={handleMonthChange}
-                        className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                      >
-                        {Array.from({ length: 12 }, (_, i) => i + 1).map(
-                          (month) => (
-                            <option key={month} value={month}>
-                              {new Date(2023, month - 1).toLocaleString(
-                                "default",
-                                { month: "long" }
-                              )}
-                            </option>
-                          )
-                        )}
-                      </select>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="h-[calc(100%-80px)] flex flex-col">
-                  {/* Memoized Reservation Table */}
-                  <ReservationTable
-                    reservedRoomsByDate={reservedRoomsByDate || []}
-                  />
 
-                  <div className="mt-4 flex justify-end">
-                    <Link to="/reservation">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="font-light"
-                      >
-                        View All Reservations
-                        <Calendar className="w-4 h-4 ml-2" />
-                      </Button>
-                    </Link>
+              <Card className="border-0 shadow-lg bg-white lg:col-span-3">
+                <CardHeader>
+                  <CardTitle className="text-xl font-light">
+                    Upcoming Arrivals (Next 7 Days)
+                  </CardTitle>
+                  <CardDescription className="font-light">
+                    A look at confirmed future bookings for planning.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 h-[300px] overflow-y-auto pr-2">
+                    {hotelStats.upcomingReservations.length > 0 ? (
+                      hotelStats.upcomingReservations.map((res) => (
+                        <div
+                          key={res._id}
+                          className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 border transition-colors"
+                        >
+                          <div>
+                            <p className="font-medium text-slate-800">
+                              {res.fullName}
+                            </p>
+                            <p className="text-sm text-slate-500">
+                              Room{" "}
+                              {typeof res.room === "object"
+                                ? res.room.roomNumber
+                                : res.roomNumber}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium text-slate-800">
+                              {format(parseISO(res.startAt), "EEE, MMM d")}
+                            </p>
+                            <p className="text-xs text-slate-500">Arriving</p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                        <Briefcase className="w-12 h-12 text-slate-300 mb-3" />
+                        <p className="font-light">
+                          No new reservations in the next 7 days.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
-              {/* Manual Refresh Button */}
-              <div className="text-center mt-6 mb-10">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="font-light"
-                  onClick={handleRefresh}
-                >
-                  Refresh Dashboard Data
-                </Button>
-                <p className="text-xs text-slate-500 mt-2">
-                  Data auto-refreshes every 5 seconds
-                </p>
-              </div>
             </div>
           </div>
         </div>

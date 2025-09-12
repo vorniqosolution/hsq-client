@@ -67,16 +67,14 @@ import { format, isAfter, isBefore, parseISO } from "date-fns";
 // Hooks & Contexts
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRoomContext } from "@/contexts/RoomContext";
-import { useGuestContext } from "@/contexts/GuestContext"; // Added GuestContext import
+import { useRoomContext, Room } from "@/contexts/RoomContext";
+import { useGuestContext } from "@/contexts/GuestContext";
 import {
   useReservationContext,
   CreateReservationInput,
 } from "@/contexts/ReservationContext";
 import Sidebar from "@/components/Sidebar";
 
-// --- Type definitions ---
-// Define PopulatedRoom interface for room data
 interface PopulatedRoom {
   _id: string;
   roomNumber: string;
@@ -87,7 +85,6 @@ interface PopulatedRoom {
   view?: string;
 }
 
-// Updated Reservation interface to handle populated room data
 interface Reservation {
   _id: string;
   fullName: string;
@@ -95,7 +92,7 @@ interface Reservation {
   email: string;
   phone: string;
   cnic: string;
-  room: string | PopulatedRoom; // Can be either string ID or populated object
+  room: string | PopulatedRoom; 
   roomNumber: string;
   startAt: string;
   endAt: string;
@@ -112,14 +109,12 @@ interface Reservation {
       };
 }
 
-// Helper function to check if room is populated
 const isPopulatedRoom = (room: any): room is PopulatedRoom => {
   return (
     typeof room === "object" && room !== null && room.roomNumber !== undefined
   );
 };
 
-// --- Constants and Types ---
 const INITIAL_FORM_STATE: CreateReservationInput = {
   fullName: "",
   address: "",
@@ -131,19 +126,18 @@ const INITIAL_FORM_STATE: CreateReservationInput = {
   checkout: "",
 };
 
-// --- Main Page Component ---
 const ReservationsPage: React.FC = () => {
   const navigate = useNavigate();
   const {
-    reservations,
-    loading,
-    error,
-    fetchReservations,
-    createReservation,
-    deleteReservation,
-  } = useReservationContext();
+  reservations,
+  loading,
+  error,
+  fetchReservations,
+  createReservation,
+  deleteReservation,
+} = useReservationContext();
 
-  const { rooms, fetchRooms } = useRoomContext();
+  const { rooms: allRooms, availableRooms, fetchAvailableRooms } = useRoomContext();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
 
@@ -158,20 +152,14 @@ const ReservationsPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const { toast } = useToast();
-  // FOR SIDE_BAR STATE ON MOBILE
   const [isOpen, setIsOpen] = useState(true);
-
-  // Refs for stabilizing renders and API calls
   const hasLoadedRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // --- Data Fetching with stability improvements ---
   useEffect(() => {
-    // Prevent duplicate API calls during renders
     if (hasLoadedRef.current && !loading) return;
 
-    // Cancel any in-progress fetch
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -181,12 +169,10 @@ const ReservationsPage: React.FC = () => {
 
     const loadData = async () => {
       try {
-        setIsInitialLoad(true);
-        // Use Promise.all to load data concurrently
-        await Promise.all([fetchReservations(), fetchRooms()]);
-        hasLoadedRef.current = true;
+           setIsInitialLoad(true);
+        await fetchReservations(); 
+         hasLoadedRef.current = true;
       } catch (error) {
-        // Only handle non-abort errors
         if (error.name !== "AbortError") {
           console.error("Failed to load data:", error);
         }
@@ -194,16 +180,13 @@ const ReservationsPage: React.FC = () => {
         setIsInitialLoad(false);
       }
     };
-
     loadData();
-
-    // Cleanup function
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  }, [fetchReservations, fetchRooms, loading]);
+  }, [fetchReservations, loading]);
 
   // Manual refresh function - force refetch
   const handleManualRefresh = useCallback(() => {
@@ -249,12 +232,23 @@ const ReservationsPage: React.FC = () => {
 
   // --- Event Handlers ---
   const handleFormChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const { name, value } = e.target;
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    },
-    []
-  );
+  (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    const newFormData = { ...formData, [name]: value };
+    setFormData(newFormData);
+
+    // If both dates are present and valid, fetch available rooms
+    if (name === 'checkin' || name === 'checkout') {
+      // Reset the room selection whenever a date changes
+      setFormData(prev => ({ ...prev, [name]: value, roomNumber: '' })); 
+      const { checkin, checkout } = newFormData;
+      if (checkin && checkout && new Date(checkout) > new Date(checkin)) {
+        fetchAvailableRooms(checkin, checkout);
+      }
+    }
+  },
+  [formData, fetchAvailableRooms]
+);
 
   const handleSelectChange = useCallback((name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -416,20 +410,21 @@ const ReservationsPage: React.FC = () => {
     // CARDS OF RESERVATIONS
 
     return (
-      <div className="space-y-2 ">
-        {filteredReservations.map((reservation) => (
-          <ReservationCard
-            key={reservation._id}
-            reservation={reservation}
-            onDelete={() => setReservationToDelete(reservation)}
-            onCheckIn={() => convertToCheckIn(reservation)}
-            onViewDetails={() => viewReservationDetails(reservation)}
-            getStatus={getReservationStatus}
-            getStatusBadge={getStatusBadge}
-          />
-        ))}
-      </div>
-    );
+  <div className="space-y-2 ">
+    {filteredReservations.map((reservation) => (
+      <ReservationCard
+        key={reservation._id}
+        reservation={reservation}
+        allRooms={allRooms} // <-- NEW: Pass the master room list as a prop
+        onDelete={() => setReservationToDelete(reservation)}
+        onCheckIn={() => convertToCheckIn(reservation)}
+        onViewDetails={() => viewReservationDetails(reservation)}
+        getStatus={getReservationStatus}
+        getStatusBadge={getStatusBadge}
+      />
+    ))}
+  </div>
+);
   }, [
     isInitialLoad,
     loading,
@@ -620,24 +615,31 @@ const ReservationsPage: React.FC = () => {
                   <div className="space-y-2">
                     <Label>Room</Label>
                     <Select
-                      name="roomNumber"
-                      value={formData.roomNumber}
-                      onValueChange={(v) => handleSelectChange("roomNumber", v)}
-                      disabled={isSubmitting}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a room" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {rooms
-                          .filter((r) => r.status === "available")
-                          .map((r) => (
-                            <SelectItem key={r._id} value={r.roomNumber}>
-                              Room {r.roomNumber} — {r.category}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
+  name="roomNumber"
+  value={formData.roomNumber}
+  onValueChange={(v) => handleSelectChange("roomNumber", v)}
+  disabled={isSubmitting || !formData.checkin || !formData.checkout || loading}
+>
+  <SelectTrigger>
+    <SelectValue placeholder={
+      loading ? "Fetching rooms..." : 
+      (!formData.checkout ? "Select dates to see rooms" : "Select an available room")
+    } />
+  </SelectTrigger>
+  <SelectContent>
+    {availableRooms.length > 0 ? (
+      availableRooms.map((r) => (
+        <SelectItem key={r._id} value={r.roomNumber}>
+          Room {r.roomNumber} — {r.category} — (Rs{r.rate}/night)
+        </SelectItem>
+      ))
+    ) : (
+      <div className="px-2 py-4 text-center text-gray-500">
+        {formData.checkout ? "No rooms available" : "Select dates first"}
+      </div>
+    )}
+  </SelectContent>
+</Select>
                   </div>
                 </div>
 
@@ -719,9 +721,10 @@ const ReservationsPage: React.FC = () => {
   );
 };
 
-// --- Sub-components ---
+
 interface ReservationCardProps {
   reservation: Reservation;
+  allRooms: Room[]; 
   onDelete: () => void;
   onCheckIn: () => void;
   onViewDetails: () => void;
@@ -733,6 +736,7 @@ interface ReservationCardProps {
 const ReservationCard = React.memo(
   ({
     reservation,
+    allRooms, // <-- NEW: Accept the allRooms prop
     onDelete,
     onCheckIn,
     onViewDetails,
@@ -742,23 +746,17 @@ const ReservationCard = React.memo(
     const status = getStatus(reservation);
     const isCheckInEnabled = status === "reserved" || status === "upcoming";
 
-    // Get room details from GuestContext
-    const { rooms } = useGuestContext();
-
     // Find the room details using multiple strategies
     const roomDetails = useMemo(() => {
-      // First check if room is already populated
-      if (isPopulatedRoom(reservation.room)) {
-        return reservation.room;
-      }
-
-      // Fallback to finding room in allRooms array
-      if (rooms && rooms.length) {
-        return rooms.find((room) => room.roomNumber === reservation.roomNumber);
-      }
-
-      return null;
-    }, [reservation.room, reservation.roomNumber, rooms]);
+  if (isPopulatedRoom(reservation.room)) {
+    return reservation.room;
+  }
+  // Fallback to finding room in the allRooms prop
+  if (allRooms && allRooms.length) { // <-- CHANGED: uses the new `allRooms` prop
+    return allRooms.find((room) => room.roomNumber === reservation.roomNumber);
+  }
+  return null;
+}, [reservation.room, reservation.roomNumber, allRooms]); // <-- CHANGED: dependency updated
 
     // Get the room number safely
     const getRoomNumber = () => {

@@ -58,27 +58,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 
 // Hooks & Contexts
 import { useToast } from "@/hooks/use-toast";
 import { useGuestContext, Guest, Invoice } from "@/contexts/GuestContext";
-
-const getExpectedCheckoutDate = (checkIn, duration) => {
-  const checkInDate = new Date(checkIn);
-  checkInDate.setDate(checkInDate.getDate() + duration);
-  return checkInDate.toLocaleString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-// === Sub-Components ===
 
 // Skeleton loader for guest information
 const GuestDetailSkeleton = () => (
@@ -120,7 +110,12 @@ const ErrorDisplay = ({ message, onRetry }) => (
     <AlertDescription className="flex flex-col gap-2">
       <p>{message}</p>
       {onRetry && (
-        <Button variant="outline" size="sm" onClick={onRetry} className="self-start mt-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRetry}
+          className="self-start mt-2"
+        >
           Retry
         </Button>
       )}
@@ -158,13 +153,10 @@ const EditGuestDialog = ({ isOpen, setIsOpen, guest, onUpdate }) => {
     }
   }, [guest, isOpen]);
 
-  const handleInputChange = useCallback(
-    (e) => {
-      const { name, value } = e.target;
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    },
-    []
-  );
+  const handleInputChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -287,10 +279,12 @@ const EditGuestDialog = ({ isOpen, setIsOpen, guest, onUpdate }) => {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="space-y-2">
             <div className="flex items-center justify-between mb-2">
-              <Label htmlFor="applyDiscount" className="font-medium">Apply Standard Discount</Label>
+              <Label htmlFor="applyDiscount" className="font-medium">
+                Apply Standard Discount
+              </Label>
               <Switch
                 id="applyDiscount"
                 checked={formData.applyDiscount}
@@ -304,7 +298,7 @@ const EditGuestDialog = ({ isOpen, setIsOpen, guest, onUpdate }) => {
               Standard discount is applied to the room rate as per hotel policy
             </p>
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="additionaldiscount">Additional Discount (Rs)</Label>
             <Input
@@ -385,7 +379,11 @@ const CheckoutDialog = ({ isOpen, setIsOpen, onCheckout }) => {
           >
             Cancel
           </Button>
-          <Button onClick={handleCheckout} variant="destructive" disabled={isProcessing}>
+          <Button
+            onClick={handleCheckout}
+            variant="destructive"
+            disabled={isProcessing}
+          >
             {isProcessing ? "Processing..." : "Confirm Checkout"}
           </Button>
         </DialogFooter>
@@ -395,15 +393,22 @@ const CheckoutDialog = ({ isOpen, setIsOpen, onCheckout }) => {
 };
 
 // Invoice Card with Print Support
-const InvoiceCard = ({ invoice, guest, onPrint, onSendEmail, isSendingEmail, innerRef }) => {
+const InvoiceCard = ({
+  invoice,
+  guest,
+  onPrint,
+  onSendEmail,
+  isSendingEmail,
+  innerRef,
+}) => {
   // Calculate the standard discount amount (if available)
   const standardDiscountAmount = guest.applyDiscount
-  ? invoice.discountAmount     // full % discount
-  : 0;
-  
+    ? invoice.discountAmount // full % discount
+    : 0;
+
   // Calculate the additional discount amount
   const additionalDiscountAmount = guest.additionaldiscount || 0;
-  
+
   // Total discount amount
   const totalDiscountAmount = standardDiscountAmount + additionalDiscountAmount;
 
@@ -431,9 +436,12 @@ const InvoiceCard = ({ invoice, guest, onPrint, onSendEmail, isSendingEmail, inn
           <div className="flex justify-between items-center">
             <CardTitle className="flex items-center text-slate-800 dark:text-slate-200">
               <FileText className="mr-2 h-5 w-5 text-primary invoice-print-hidden" />
-              <span>Invoice Number {" "}{invoice.invoiceNumber}</span>
+              <span>Invoice Number {invoice.invoiceNumber}</span>
             </CardTitle>
-            <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800">
+            <Badge
+              variant="outline"
+              className="bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
+            >
               {invoice.status ? "PAID" : "PENDING"}
             </Badge>
           </div>
@@ -445,25 +453,43 @@ const InvoiceCard = ({ invoice, guest, onPrint, onSendEmail, isSendingEmail, inn
         <CardContent className="pt-6">
           <div className="grid md:grid-cols-2 gap-6 mb-6">
             <div>
-              <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Billed To</h3>
+              <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
+                Billed To
+              </h3>
               <p className="font-medium">{guest.fullName}</p>
-              <p className="text-sm text-slate-600 dark:text-slate-400">{guest.address}</p>
-              <p className="text-sm text-slate-600 dark:text-slate-400">{guest.phone}</p>
-              {guest.email && <p className="text-sm text-slate-600 dark:text-slate-400">{guest.email}</p>}
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {guest.address}
+              </p>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {guest.phone}
+              </p>
+              {guest.email && (
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {guest.email}
+                </p>
+              )}
             </div>
             <div>
-              <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Stay Details</h3>
+              <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
+                Stay Details
+              </h3>
               <p className="text-sm">
-                <span className="font-medium">Room:</span> {guest.room.roomNumber} ({guest.room.category})
+                <span className="font-medium">Room:</span>{" "}
+                {guest.room.roomNumber} ({guest.room.category})
               </p>
               <p className="text-sm">
-                <span className="font-medium">Check-in:</span> {new Date(guest.checkInAt).toLocaleDateString()}
+                <span className="font-medium">Check-in:</span>{" "}
+                {new Date(guest.checkInAt).toLocaleDateString()}
               </p>
               <p className="text-sm">
-                <span className="font-medium">Expected Check-out:</span> {guest.checkOutAt ? new Date(guest.checkOutAt).toLocaleDateString() : getExpectedCheckoutDate(guest.checkInAt, guest.stayDuration)}
+                <span className="font-medium">Check-out:</span>{" "}
+                {guest.checkOutAt
+                  ? new Date(guest.checkOutAt).toLocaleDateString()
+                  : "N/A"}
               </p>
               <p className="text-sm">
-                <span className="font-medium">Duration:</span> {guest.stayDuration} day(s)
+                <span className="font-medium">Duration:</span>{" "}
+                {guest.stayDuration} day(s)
               </p>
             </div>
           </div>
@@ -472,19 +498,36 @@ const InvoiceCard = ({ invoice, guest, onPrint, onSendEmail, isSendingEmail, inn
             <table className="w-full caption-bottom text-sm">
               <thead className="bg-slate-50 dark:bg-slate-800">
                 <tr className="border-b border-slate-200 dark:border-slate-700">
-                  <th className="h-10 px-4 text-left align-middle font-medium text-slate-500 dark:text-slate-400">Description</th>
-                  <th className="h-10 px-4 text-right align-middle font-medium text-slate-500 dark:text-slate-400">Qty</th>
-                  <th className="h-10 px-4 text-right align-middle font-medium text-slate-500 dark:text-slate-400">Rate</th>
-                  <th className="h-10 px-4 text-right align-middle font-medium text-slate-500 dark:text-slate-400">Amount</th>
+                  <th className="h-10 px-4 text-left align-middle font-medium text-slate-500 dark:text-slate-400">
+                    Description
+                  </th>
+                  <th className="h-10 px-4 text-right align-middle font-medium text-slate-500 dark:text-slate-400">
+                    Qty
+                  </th>
+                  <th className="h-10 px-4 text-right align-middle font-medium text-slate-500 dark:text-slate-400">
+                    Rate
+                  </th>
+                  <th className="h-10 px-4 text-right align-middle font-medium text-slate-500 dark:text-slate-400">
+                    Amount
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {invoice.items.map((item, index) => (
-                  <tr key={index} className="border-b border-slate-200 dark:border-slate-700">
+                  <tr
+                    key={index}
+                    className="border-b border-slate-200 dark:border-slate-700"
+                  >
                     <td className="p-4 align-middle">{item.description}</td>
-                    <td className="p-4 align-middle text-right">{item.quantity}</td>
-                    <td className="p-4 align-middle text-right">Rs{(item.total / item.quantity).toLocaleString()}</td>
-                    <td className="p-4 align-middle text-right font-medium">Rs{item.total.toLocaleString()}</td>
+                    <td className="p-4 align-middle text-right">
+                      {item.quantity}
+                    </td>
+                    <td className="p-4 align-middle text-right">
+                      Rs{(item.total / item.quantity).toLocaleString()}
+                    </td>
+                    <td className="p-4 align-middle text-right font-medium">
+                      Rs{item.total.toLocaleString()}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -493,9 +536,7 @@ const InvoiceCard = ({ invoice, guest, onPrint, onSendEmail, isSendingEmail, inn
 
           <div className="flex flex-col space-y-3 ml-auto w-full md:w-1/2 border rounded-md p-4 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
             <div className="flex justify-between text-slate-600 dark:text-slate-400">
-              <span className="font-medium flex items-center">
-                Room Total:
-              </span>
+              <span className="font-medium flex items-center">Room Total:</span>
               <span>Rs{invoice.subtotal.toLocaleString()}</span>
             </div>
 
@@ -503,7 +544,8 @@ const InvoiceCard = ({ invoice, guest, onPrint, onSendEmail, isSendingEmail, inn
             {guest.applyDiscount && standardDiscountAmount > 0 && (
               <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
                 <span className="font-medium flex items-center">
-                  <Percent className="h-4 w-4 mr-1 opacity-70 invoice-print-hidden" /> Standard Discount:
+                  <Percent className="h-4 w-4 mr-1 opacity-70 invoice-print-hidden" />{" "}
+                  Standard Discount:
                 </span>
                 <span>-Rs{standardDiscountAmount.toLocaleString()}</span>
               </div>
@@ -512,7 +554,8 @@ const InvoiceCard = ({ invoice, guest, onPrint, onSendEmail, isSendingEmail, inn
             {guest.additionaldiscount > 0 && (
               <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
                 <span className="font-medium flex items-center">
-                  <Percent className="h-4 w-4 mr-1 opacity-70 invoice-print-hidden" /> Additional Discount:
+                  <Percent className="h-4 w-4 mr-1 opacity-70 invoice-print-hidden" />{" "}
+                  Additional Discount:
                 </span>
                 <span>-Rs{additionalDiscountAmount.toLocaleString()}</span>
               </div>
@@ -521,7 +564,8 @@ const InvoiceCard = ({ invoice, guest, onPrint, onSendEmail, isSendingEmail, inn
             {totalDiscountAmount > 0 && (
               <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-medium">
                 <span className="flex items-center">
-                  <Percent className="h-4 w-4 mr-1 opacity-70 invoice-print-hidden" /> Total Discount:
+                  <Percent className="h-4 w-4 mr-1 opacity-70 invoice-print-hidden" />{" "}
+                  Total Discount:
                 </span>
                 <span>-Rs{totalDiscountAmount.toLocaleString()}</span>
               </div>
@@ -529,7 +573,8 @@ const InvoiceCard = ({ invoice, guest, onPrint, onSendEmail, isSendingEmail, inn
 
             <div className="flex justify-between text-slate-600 dark:text-slate-400">
               <span className="font-medium flex items-center">
-                <PieChart className="h-4 w-4 mr-1 opacity-70 invoice-print-hidden" /> Tax ({invoice.taxRate}%):
+                <PieChart className="h-4 w-4 mr-1 opacity-70 invoice-print-hidden" />{" "}
+                Tax ({invoice.taxRate}%):
               </span>
               <span>Rs{invoice.taxAmount.toLocaleString()}</span>
             </div>
@@ -538,7 +583,9 @@ const InvoiceCard = ({ invoice, guest, onPrint, onSendEmail, isSendingEmail, inn
 
             <div className="flex justify-between font-bold text-lg">
               <span>Grand Total:</span>
-              <span className="text-primary">Rs{invoice.grandTotal.toLocaleString()}</span>
+              <span className="text-primary">
+                Rs{invoice.grandTotal.toLocaleString()}
+              </span>
             </div>
 
             <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -549,10 +596,20 @@ const InvoiceCard = ({ invoice, guest, onPrint, onSendEmail, isSendingEmail, inn
         </CardContent>
 
         <CardFooter className="bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700 flex justify-end space-x-2 invoice-print-hidden">
-          <Button size="sm" variant="outline" onClick={onPrint} className="hover:bg-slate-100 dark:hover:bg-slate-700">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onPrint}
+            className="hover:bg-slate-100 dark:hover:bg-slate-700"
+          >
             <Printer className="mr-2 h-4 w-4" /> Print Invoice
           </Button>
-          <Button size="sm" onClick={onSendEmail} disabled={isSendingEmail} className="bg-primary hover:bg-primary/90">
+          <Button
+            size="sm"
+            onClick={onSendEmail}
+            disabled={isSendingEmail}
+            className="bg-primary hover:bg-primary/90"
+          >
             <Send className="mr-2 h-4 w-4" />
             {isSendingEmail ? "Sending..." : "Send Email"}
           </Button>
@@ -608,7 +665,7 @@ const GuestDetailPage = () => {
   // Add CSS for invoice-only printing
   useEffect(() => {
     // Create a style element
-    const style = document.createElement('style');
+    const style = document.createElement("style");
     style.innerHTML = `
       @media print {
         body * {
@@ -737,13 +794,18 @@ const GuestDetailPage = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div className="flex items-center">
           <Link to="/guests">
-            <Button variant="outline" className="border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">
+            <Button
+              variant="outline"
+              className="border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
               <ArrowLeft className="mr-2 h-4 w-4" /> Back to Guests
             </Button>
           </Link>
 
           {guest && (
-            <h1 className="ml-4 text-2xl font-bold text-slate-900 dark:text-white">{guest.fullName}</h1>
+            <h1 className="ml-4 text-2xl font-bold text-slate-900 dark:text-white">
+              {guest.fullName}
+            </h1>
           )}
         </div>
 
@@ -813,9 +875,11 @@ const GuestDetailPage = () => {
                     <User className="mr-2 h-5 w-5 text-primary" />
                     <span>Guest Information</span>
                   </CardTitle>
-                  
+
                   <Badge className={getStatusColor(guest.status)}>
-                    {guest.status === "checked-in" ? "Currently Staying" : "Checked Out"}
+                    {guest.status === "checked-in"
+                      ? "Currently Staying"
+                      : "Checked Out"}
                   </Badge>
                 </div>
                 <CardDescription className="text-slate-500 dark:text-slate-400">
@@ -828,24 +892,36 @@ const GuestDetailPage = () => {
                   <div className="flex items-start">
                     <User className="h-4 w-4 mr-2 mt-1 text-slate-400" />
                     <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Full Name</p>
-                      <p className="font-medium text-slate-800 dark:text-slate-200">{guest.fullName}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Full Name
+                      </p>
+                      <p className="font-medium text-slate-800 dark:text-slate-200">
+                        {guest.fullName}
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex items-start">
                     <FileText className="h-4 w-4 mr-2 mt-1 text-slate-400" />
                     <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">CNIC</p>
-                      <p className="font-medium text-slate-800 dark:text-slate-200">{guest.cnic}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        CNIC
+                      </p>
+                      <p className="font-medium text-slate-800 dark:text-slate-200">
+                        {guest.cnic}
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex items-start">
                     <Home className="h-4 w-4 mr-2 mt-1 text-slate-400" />
                     <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Address</p>
-                      <p className="font-medium text-slate-800 dark:text-slate-200">{guest.address}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Address
+                      </p>
+                      <p className="font-medium text-slate-800 dark:text-slate-200">
+                        {guest.address}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -854,8 +930,12 @@ const GuestDetailPage = () => {
                   <div className="flex items-start">
                     <Phone className="h-4 w-4 mr-2 mt-1 text-slate-400" />
                     <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Phone</p>
-                      <p className="font-medium text-slate-800 dark:text-slate-200">{guest.phone}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Phone
+                      </p>
+                      <p className="font-medium text-slate-800 dark:text-slate-200">
+                        {guest.phone}
+                      </p>
                     </div>
                   </div>
 
@@ -863,8 +943,12 @@ const GuestDetailPage = () => {
                     <div className="flex items-start">
                       <Mail className="h-4 w-4 mr-2 mt-1 text-slate-400" />
                       <div>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Email</p>
-                        <p className="font-medium text-slate-800 dark:text-slate-200">{guest.email}</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          Email
+                        </p>
+                        <p className="font-medium text-slate-800 dark:text-slate-200">
+                          {guest.email}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -872,7 +956,9 @@ const GuestDetailPage = () => {
                   <div className="flex items-start">
                     <CreditCard className="h-4 w-4 mr-2 mt-1 text-slate-400" />
                     <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Payment Method</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Payment Method
+                      </p>
                       <p className="font-medium text-slate-800 dark:text-slate-200 capitalize">
                         {guest.paymentMethod}
                       </p>
@@ -896,23 +982,35 @@ const GuestDetailPage = () => {
                   <div className="flex items-start">
                     <Home className="h-4 w-4 mr-2 mt-1 text-slate-400" />
                     <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Room Number</p>
-                      <p className="font-medium text-slate-800 dark:text-slate-200">{guest.room.roomNumber}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Room Number
+                      </p>
+                      <p className="font-medium text-slate-800 dark:text-slate-200">
+                        {guest.room.roomNumber}
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex items-start">
                     <Tag className="h-4 w-4 mr-2 mt-1 text-slate-400" />
                     <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Room Type</p>
-                      <p className="font-medium text-slate-800 dark:text-slate-200">{guest.room.category} ({guest.room.bedType})</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Room Type
+                      </p>
+                      <p className="font-medium text-slate-800 dark:text-slate-200">
+                        {guest.room.category} ({guest.room.bedType})
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex items-start">
                     <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Room Rate</p>
-                      <p className="font-medium text-slate-800 dark:text-slate-200">Rs{guest.room.rate.toLocaleString()}/night</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Room Rate
+                      </p>
+                      <p className="font-medium text-slate-800 dark:text-slate-200">
+                        Rs{guest.room.rate.toLocaleString()}/night
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -921,35 +1019,53 @@ const GuestDetailPage = () => {
                   <div className="flex items-start">
                     <Calendar className="h-4 w-4 mr-2 mt-1 text-slate-400" />
                     <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Check-in</p>
-                      <p className="font-medium text-slate-800 dark:text-slate-200">{formatDate(guest.checkInAt)}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Check-In
+                      </p>
+                      <p className="font-medium text-slate-800 dark:text-slate-200">
+                        {guest.checkOutAt
+                          ? formatDate(guest.checkInAt)
+                          : "N/A"}
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex items-start">
                     <Calendar className="h-4 w-4 mr-2 mt-1 text-slate-400" />
                     <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">{guest.checkOutAt ? "Check-out" : "Expected Check-out"}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Check-out
+                      </p>
                       <p className="font-medium text-slate-800 dark:text-slate-200">
                         {guest.checkOutAt
                           ? formatDate(guest.checkOutAt)
-                          : getExpectedCheckoutDate(guest.checkInAt, guest.stayDuration)}
+                          : "N/A"}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-start">
                     <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Total Amount</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Total Amount
+                      </p>
                       <div className="flex items-center gap-2">
-                        <p className="font-medium text-slate-800 dark:text-slate-200">Rs{guest.totalRent.toLocaleString()}</p>
+                        <p className="font-medium text-slate-800 dark:text-slate-200">
+                          Rs{guest.totalRent.toLocaleString()}
+                        </p>
                         {guest.applyDiscount && (
-                          <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-200">
+                          <Badge
+                            variant="outline"
+                            className="bg-emerald-50 text-emerald-800 border-emerald-200"
+                          >
                             Standard Discount
                           </Badge>
                         )}
                         {guest.additionaldiscount > 0 && (
-                          <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200">
+                          <Badge
+                            variant="outline"
+                            className="bg-blue-50 text-blue-800 border-blue-200"
+                          >
                             +Rs{guest.additionaldiscount} Off
                           </Badge>
                         )}
