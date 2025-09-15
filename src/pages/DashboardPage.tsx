@@ -35,13 +35,19 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useRoomContext } from "@/contexts/RoomContext";
+import { Room, useRoomContext } from "@/contexts/RoomContext";
 import { useGuestContext } from "@/contexts/GuestContext";
 import { useReservationContext } from "@/contexts/ReservationContext";
 import { isToday, isFuture, parseISO, addDays, format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
-
-// --- Sub-Components (Memoized for Performance) ---
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface StatCardProps {
   stat: {
@@ -100,76 +106,94 @@ const StatCard = memo<StatCardProps>(({ stat }) => (
   </Card>
 ));
 
-// NEW: This is the "brain" that determines the real-time state of a room.
-// NEW: This is the upgraded "brain" that finds ALL future reservations.
-const getRoomState = (room, guests, reservations) => {
+const getRoomState = (room: Room, guests: any[], reservations: any[]) => {
   const today = new Date();
 
   if (room.status === "maintenance") {
     return { state: "Maintenance", details: "Out of service" };
   }
 
+  // --- First, find ALL relevant bookings for this room ---
   const guestCheckedInNow = guests.find(
-    (g) => g.room._id === room._id && g.status === "checked-in"
+    (g: { room: { _id: any }; status: string }) =>
+      g.room._id === room._id && g.status === "checked-in"
   );
   const guestCheckingOutToday = guests.find(
-    (g) =>
+    (g: { room: { _id: any }; checkOutAt: string }) =>
       g.room._id === room._id && g.checkOutAt && isToday(parseISO(g.checkOutAt))
   );
   const reservationForToday = reservations.find(
-    (r) =>
+    (r: { room: { _id: any }; status: string; startAt: string }) =>
       (typeof r.room === "object" ? r.room._id : r.room) === room._id &&
       ["reserved", "confirmed"].includes(r.status) &&
       isToday(parseISO(r.startAt))
   );
 
+  // ALWAYS find all future reservations (excluding today's arrival if it exists)
+  const futureReservations = reservations
+    .filter(
+      (r: { room: { _id: any }; status: string; startAt: string; _id: any }) =>
+        (typeof r.room === "object" ? r.room._id : r.room) === room._id &&
+        ["reserved", "confirmed"].includes(r.status) &&
+        isFuture(parseISO(r.startAt)) && // Only dates AFTER today
+        r._id !== reservationForToday?._id // Exclude today's arrival from this list
+    )
+    .sort(
+      (a: { startAt: string }, b: { startAt: string }) =>
+        parseISO(a.startAt).getTime() - parseISO(b.startAt).getTime()
+    );
+
+  // --- Now, determine the primary state and attach all relevant details ---
   if (guestCheckingOutToday && reservationForToday) {
     return {
       state: "Back-to-Back",
-      details: `Checkout: ${guestCheckingOutToday.fullName} | Arrival: ${reservationForToday.fullName}`,
+      details: {
+        currentActivity: `Checkout: ${guestCheckingOutToday.fullName} | Arrival: ${reservationForToday.fullName}`,
+        futureBookings: futureReservations,
+      },
     };
   }
   if (guestCheckingOutToday) {
     return {
       state: "Departure Due",
-      details: `Checkout: ${guestCheckingOutToday.fullName}`,
+      details: {
+        currentActivity: `Checkout: ${guestCheckingOutToday.fullName}`,
+        futureBookings: futureReservations,
+      },
     };
   }
   if (guestCheckedInNow) {
     return {
       state: "Occupied",
-      details: `Guest: ${guestCheckedInNow.fullName}`,
+      details: {
+        currentActivity: `Guest: ${guestCheckedInNow.fullName}`,
+        futureBookings: futureReservations,
+      },
     };
   }
   if (reservationForToday) {
     return {
       state: "Arrival Due",
-      details: `Arrival: ${reservationForToday.fullName}`,
+      details: {
+        currentActivity: `Arrival: ${reservationForToday.fullName}`,
+        futureBookings: futureReservations,
+      },
     };
   }
-
-  // CHANGED: Use .filter() to find ALL future reservations, not just the first one.
-  const futureReservations = reservations
-    .filter(
-      (r) =>
-        (typeof r.room === "object" ? r.room._id : r.room) === room._id &&
-        ["reserved", "confirmed"].includes(r.status) &&
-        isFuture(parseISO(r.startAt))
-    )
-    .sort(
-      (a, b) => parseISO(a.startAt).getTime() - parseISO(b.startAt).getTime()
-    ); // Sort them by date
-
   if (futureReservations.length > 0) {
-    // Return the entire array of reservations as the details.
-    return { state: "Reserved", details: futureReservations };
+    return {
+      state: "Reserved",
+      details: {
+        currentActivity: "Free today", // No current activity, but future bookings exist
+        futureBookings: futureReservations,
+      },
+    };
   }
 
   return { state: "Available", details: "Ready for booking" };
 };
 
-// NEW: This function provides styling and icons for each state.
-const getStateStyling = (state) => {
+const getStateStyling = (state: string) => {
   switch (state) {
     case "Occupied":
       return {
@@ -202,8 +226,9 @@ const getStateStyling = (state) => {
         label: "Back-to-Back",
       };
     case "Reserved":
+      // CHANGED: Replaced the old color with a vibrant Sky Blue.
       return {
-        color: "bg-gray-100 text-gray-800 border-gray-200",
+        color: "bg-sky-100 text-sky-800 border-sky-200",
         icon: Calendar,
         label: "Reserved (Future)",
       };
@@ -224,6 +249,7 @@ const getStateStyling = (state) => {
 
 const DashboardPage = () => {
   const [isOpen, setIsOpen] = useState(true);
+  const [selectedRoomDetails, setSelectedRoomDetails] = useState(null);
   const { user } = useAuth();
   const [selectedRoomForDetails, setSelectedRoomForDetails] = useState(null);
 
@@ -420,274 +446,358 @@ const DashboardPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex overflow-hidden">
-      <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)} />
-      <div className="flex-1 lg:ml-0 overflow-hidden">
-        <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => setIsOpen(true)}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <Menu className="h-5 w-5 text-slate-700" />
-            </button>
-            <div className="flex items-center space-x-2">
-              <Crown className="h-6 w-6 text-amber-500" />
-              <span className="font-light tracking-wider text-slate-900">
-                HSQ ADMIN
-              </span>
-            </div>
-            <div className="w-9" />
-          </div>
-        </div>
-        <div className="p-8 overflow-y-auto h-screen">
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-10">
-              <h1 className="text-4xl font-light text-slate-900 tracking-wide">
-                Executive Dashboard
-              </h1>
-              <p className="text-slate-600 mt-2 font-light">
-                Real-time overview of your hotel's operations for{" "}
-                {format(new Date(), "PPP")}.
-              </p>
-            </div>
+    <>
+      <div className="min-h-screen bg-slate-50 flex overflow-hidden">
+        <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)} />
+        <div className="flex-1 lg:ml-0 overflow-hidden">
+          {/* full Screen */}
+          <div className="p-8 overflow-y-auto h-max">
+            <div className="max-w-7xl mx-auto">
+              <div className="mb-10">
+                <h1 className="text-4xl font-light text-slate-900 tracking-wide">
+                  Executive Dashboard
+                </h1>
+                <p className="text-slate-600 mt-2 font-light">
+                  Real-time overview of your hotel's operations for{" "}
+                  {format(new Date(), "PPP")}.
+                </p>
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-              {statsCardsData.map((stat) => (
-                <StatCard key={stat.title} stat={stat} />
-              ))}
-            </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+                <Card className="border-0 shadow-lg bg-white">
+                  <CardHeader>
+                    <CardTitle className="text-xl font-light">
+                      Room Status Overview
+                    </CardTitle>
+                    <CardDescription className="font-light">
+                      Current state of all rooms
+                    </CardDescription>
+                  </CardHeader>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-              <Card className="border-0 shadow-lg bg-white">
-                <CardHeader>
-                  <CardTitle className="text-xl font-light">
-                    Room Status Overview
-                  </CardTitle>
-                  <CardDescription className="font-light">
-                    Current state of all rooms
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-50">
-                      <span className="flex items-center">
-                        <CheckCircle className="inline w-5 h-5 mr-2 text-emerald-600" />
-                        Available
-                      </span>
-                      <span className="text-xl font-light">
-                        {hotelStats.availableNow}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-amber-50">
-                      <span className="flex items-center">
-                        <Key className="inline w-5 h-5 mr-2 text-amber-600" />
-                        Occupied
-                      </span>
-                      <span className="text-xl font-light">
-                        {hotelStats.occupiedNow}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50">
-                      <span className="flex items-center">
-                        <Calendar className="inline w-5 h-5 mr-2 text-blue-600" />
-                        Reserved for Today
-                      </span>
-                      <span className="text-xl font-light">
-                        {hotelStats.reservedForToday}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-red-50">
-                      <span className="flex items-center">
-                        <Wrench className="inline w-5 h-5 mr-2 text-red-600" />
-                        Maintenance
-                      </span>
-                      <span className="text-xl font-light">
-                        {hotelStats.maintenanceNow}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="mt-6 h-[200px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={roomStatusDataForChart}
-                          dataKey="value"
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={80}
-                          paddingAngle={2}
-                        >
-                          {roomStatusDataForChart.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          contentStyle={{
-                            borderRadius: "0.5rem",
-                            boxShadow:
-                              "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-                          }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-lg bg-white lg:col-span-2">
-                <CardHeader>
-                  <CardTitle className="text-xl font-light">
-                    Room Quick View
-                  </CardTitle>
-                  <CardDescription className="font-light">
-                    Real-time room state overview
-                  </CardDescription>
-                </CardHeader>
-                {/* NEW: This <CardContent> renders the grouped rooms */}
-                <CardContent>
-                  <div className="relative h-[450px] w-full">
-                    <div className="absolute inset-0 overflow-y-auto pr-2 space-y-4">
-                      <TooltipProvider>
-                        {groupDisplayOrder.map((groupName) => {
-                          const roomsInGroup = groupedRooms[groupName];
-                          if (!roomsInGroup || roomsInGroup.length === 0) {
-                            return null; // Don't render empty groups
-                          }
-                          const groupStyling = getStateStyling(groupName);
-                          return (
-                            <div key={groupName}>
-                              <h3 className="font-semibold text-slate-600 text-sm mb-2 border-b pb-1 flex items-center">
-                                <groupStyling.icon className="w-4 h-4 mr-2" />
-                                {groupStyling.label} ({roomsInGroup.length})
-                              </h3>
-                              <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-                                {roomsInGroup.map((room) => {
-                                  const { color, icon: Icon } = getStateStyling(
-                                    room.state
-                                  );
-                                  return (
-                                    <ShadTooltip key={room._id}>
-                                      <TooltipTrigger asChild>
-                                        <div
-                                          className={`p-3 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-md hover:scale-105 ${color}`}
-                                        >
-                                          <div className="text-center">
-                                            <p className="font-medium text-sm truncate">
-                                              {room.roomNumber}
-                                            </p>
-                                            <div className="mt-1 flex justify-center">
-                                              <Icon className="w-4 h-4" />
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p className="font-semibold">
-                                          {room.state}
-                                        </p>
-                                        {Array.isArray(room.details) ? (
-                                          <ul className="mt-1 space-y-1 text-xs list-disc pl-4">
-                                            {room.details.map((res) => (
-                                              <li key={res._id}>
-                                                <span className="font-medium">
-                                                  {res.fullName}:
-                                                </span>{" "}
-                                                {format(
-                                                  parseISO(res.startAt),
-                                                  "MMM d"
-                                                )}{" "}
-                                                -{" "}
-                                                {format(
-                                                  parseISO(res.endAt),
-                                                  "MMM d"
-                                                )}
-                                              </li>
-                                            ))}
-                                          </ul>
-                                        ) : (
-                                          <p className="text-sm text-gray-600">
-                                            {room.details}
-                                          </p>
-                                        )}
-                                      </TooltipContent>
-                                    </ShadTooltip>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </TooltipProvider>
-                    </div>
-                  </div>
-                  <div className="mt-6 flex items-center justify-end border-t pt-4">
-                    <Link to="/rooms">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="font-light"
-                      >
-                        Manage All Rooms <ArrowRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-lg bg-white lg:col-span-3">
-                <CardHeader>
-                  <CardTitle className="text-xl font-light">
-                    Upcoming Arrivals (Next 7 Days)
-                  </CardTitle>
-                  <CardDescription className="font-light">
-                    A look at confirmed future bookings for planning.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3 h-[300px] overflow-y-auto pr-2">
-                    {hotelStats.upcomingReservations.length > 0 ? (
-                      hotelStats.upcomingReservations.map((res) => (
-                        <div
-                          key={res._id}
-                          className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 border transition-colors"
-                        >
-                          <div>
-                            <p className="font-medium text-slate-800">
-                              {res.fullName}
-                            </p>
-                            <p className="text-sm text-slate-500">
-                              Room{" "}
-                              {typeof res.room === "object"
-                                ? res.room.roomNumber
-                                : res.roomNumber}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-slate-800">
-                              {format(parseISO(res.startAt), "EEE, MMM d")}
-                            </p>
-                            <p className="text-xs text-slate-500">Arriving</p>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="flex flex-col items-center justify-center h-full text-slate-500">
-                        <Briefcase className="w-12 h-12 text-slate-300 mb-3" />
-                        <p className="font-light">
-                          No new reservations in the next 7 days.
-                        </p>
+                  {/* LEFT_SIDE_ROOMS_STATUS */}
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-50">
+                        <span className="flex items-center">
+                          <CheckCircle className="inline w-5 h-5 mr-2 text-emerald-600" />
+                          Available
+                        </span>
+                        <span className="text-xl font-light">
+                          {hotelStats.availableNow}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-amber-50">
+                        <span className="flex items-center">
+                          <Key className="inline w-5 h-5 mr-2 text-amber-600" />
+                          Occupied
+                        </span>
+                        <span className="text-xl font-light">
+                          {hotelStats.occupiedNow}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50">
+                        <span className="flex items-center">
+                          <Calendar className="inline w-5 h-5 mr-2 text-blue-600" />
+                          Reserved
+                        </span>
+                        <span className="text-xl font-light">
+                          {hotelStats.reservedForToday}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-red-50">
+                        <span className="flex items-center">
+                          <Wrench className="inline w-5 h-5 mr-2 text-red-600" />
+                          Maintenance
+                        </span>
+                        <span className="text-xl font-light">
+                          {hotelStats.maintenanceNow}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-6 h-[200px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={roomStatusDataForChart}
+                            dataKey="value"
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={2}
+                          >
+                            {roomStatusDataForChart.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            contentStyle={{
+                              borderRadius: "0.5rem",
+                              boxShadow:
+                                "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+                            }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Room_Quick_View_RIGHT_SIDE_ROOMS_OVERVIEW */}
+                <Card className="border-0 shadow-lg bg-white lg:col-span-2 h-full">
+                  <CardHeader>
+                    <CardTitle className="text-xl font-light">
+                      Room Quick View
+                    </CardTitle>
+                    <CardDescription className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                      <svg
+                        className="w-4 h-4 text-amber-500 animate-bounce"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 15l-2 5L9 9l11 4-5 2z"
+                        />
+                      </svg>
+                      <span className="font-medium">
+                        Click on a room to view complete details
+                      </span>
+                    </CardDescription>
+                  </CardHeader>
+
+                  <CardContent>
+                    <div className="relative h-[450px] w-full">
+                      <div className="absolute inset-0 overflow-y-auto pr-2 space-y-4">
+                        <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                          {rooms.map((room) => {
+                            // We still use the "brain" to get the state and details
+                            const { state, details } = getRoomState(
+                              room,
+                              guests,
+                              reservations
+                            );
+                            const { color, icon: Icon } =
+                              getStateStyling(state);
+
+                            return (
+                              <div
+                                key={room._id}
+                                className={`relative p-3 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-md hover:scale-105 ${color}`}
+                                // The onClick handler saves all the room's info for the dialog
+                                onClick={() =>
+                                  setSelectedRoomDetails({
+                                    ...room,
+                                    state,
+                                    details,
+                                  })
+                                }
+                              >
+                                <div className="text-center">
+                                  <p className="font-medium text-sm truncate">
+                                    {room.roomNumber}
+                                  </p>
+                                  <div className="mt-1 flex justify-center">
+                                    <Icon className="w-4 h-4" />
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-6 flex items-center justify-end border-t pt-4">
+                      <Link to="/rooms">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="font-light"
+                        >
+                          Manage All Rooms{" "}
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* RIGHT_SIDE_BOTTOM_RESERVATION_OVERVIEW */}
+                <Card className="border-0 shadow-lg bg-white lg:col-span-3">
+                  <CardHeader>
+                    <CardTitle className="text-xl font-light">
+                      Upcoming Arrivals (Next 7 Days)
+                    </CardTitle>
+                    <CardDescription className="font-light">
+                      A look at confirmed future bookings for planning.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 h-[300px] overflow-y-auto pr-2">
+                      {hotelStats.upcomingReservations.length > 0 ? (
+                        hotelStats.upcomingReservations.map((res) => (
+                          <div
+                            key={res._id}
+                            className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 border transition-colors"
+                          >
+                            <div>
+                              <p className="font-medium text-slate-800">
+                                {res.fullName}
+                              </p>
+                              <p className="text-sm text-slate-500">
+                                Room{" "}
+                                {typeof res.room === "object"
+                                  ? res.room.roomNumber
+                                  : res.roomNumber}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-medium text-slate-800">
+                                {format(parseISO(res.startAt), "EEE, MMM d")}
+                              </p>
+                              <p className="text-xs text-slate-500">Arriving</p>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                          <Briefcase className="w-12 h-12 text-slate-300 mb-3" />
+                          <p className="font-light">
+                            No new reservations in the next 7 days.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* ADD THIS ENTIRE DIALOG COMPONENT AT THE END OF YOUR PAGE */}
+      <Dialog
+        open={!!selectedRoomDetails}
+        onOpenChange={() => setSelectedRoomDetails(null)}
+      >
+        {/* Replace the entire <DialogContent> block with this one */}
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              Room {selectedRoomDetails?.roomNumber} -{" "}
+              <span className="font-semibold">
+                {selectedRoomDetails?.state}
+              </span>
+            </DialogTitle>
+            <DialogDescription>
+              Detailed status and booking information for this room.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            {/* Basic Room Details */}
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <p>
+                <span className="font-medium text-gray-500">Category:</span>{" "}
+                {selectedRoomDetails?.category}
+              </p>
+              <p>
+                <span className="font-medium text-gray-500">Bed Type:</span>{" "}
+                {selectedRoomDetails?.bedType}
+              </p>
+              <p>
+                <span className="font-medium text-gray-500">View:</span>{" "}
+                {selectedRoomDetails?.view}
+              </p>
+              <p>
+                <span className="font-medium text-gray-500">Rate:</span> Rs{" "}
+                {selectedRoomDetails?.rate.toLocaleString()}/night
+              </p>
+            </div>
+
+            {/* Booking Details Section */}
+            <div>
+              <h4 className="font-semibold mb-2 border-t pt-4">
+                Booking Details
+              </h4>
+              <div className="text-sm text-gray-700 max-h-48 overflow-y-auto pr-2">
+                {/* NEW: Intelligent rendering logic */}
+                {typeof selectedRoomDetails?.details === "string" ? (
+                  // Case 1: Details is a simple string (e.g., "Available")
+                  <p>{selectedRoomDetails.details}</p>
+                ) : (
+                  // Case 2: Details is a complex object
+                  <div className="space-y-3">
+                    {/* Display the current activity */}
+                    {selectedRoomDetails?.details.currentActivity && (
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {selectedRoomDetails.details.currentActivity}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Current Activity
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Display the list of future bookings */}
+                    {selectedRoomDetails?.details.futureBookings &&
+                      selectedRoomDetails.details.futureBookings.length > 0 && (
+                        <div>
+                          <h5 className="font-medium text-gray-900 mt-3 mb-1">
+                            Upcoming Reservations
+                          </h5>
+                          <ul className="space-y-2">
+                            {selectedRoomDetails.details.futureBookings.map(
+                              (res: {
+                                _id: React.Key;
+                                fullName:
+                                  | string
+                                  | number
+                                  | boolean
+                                  | React.ReactElement<
+                                      any,
+                                      string | React.JSXElementConstructor<any>
+                                    >
+                                  | Iterable<React.ReactNode>
+                                  | React.ReactPortal;
+                                startAt: string;
+                                endAt: string;
+                              }) => (
+                                <li
+                                  key={res._id}
+                                  className="p-2 bg-gray-50 rounded-md"
+                                >
+                                  <p className="font-medium">{res.fullName}</p>
+                                  <p className="text-xs text-gray-500">
+                                    {format(parseISO(res.startAt), "MMM d")} -{" "}
+                                    {format(parseISO(res.endAt), "MMM d")}
+                                  </p>
+                                </li>
+                              )
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSelectedRoomDetails(null)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
