@@ -30,11 +30,13 @@ import {
   CheckCircle2,
   XCircle,
   Filter,
+  CalendarDays,
+  Phone,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -61,7 +63,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { format, isAfter, isBefore, parseISO } from "date-fns";
+import { format, formatDistanceStrict, isAfter, isBefore, parseISO } from "date-fns";
 
 // Hooks & Contexts
 import { useToast } from "@/hooks/use-toast";
@@ -843,122 +845,128 @@ const ReservationCard = React.memo(
       // </Card>
       <Card className="hover:shadow-lg transition-all duration-300 border-gray-100">
         <CardContent className="p-0">
-          <div className="flex flex-col md:flex-row">
-            {/* Guest Information Section */}
-            <div className="flex-1 p-6 border-b md:border-b-0 md:border-r border-gray-100">
-              <div className="space-y-1">
-                <h3 className="text-lg font-semibold text-gray-900 tracking-tight">
-                  {reservation.fullName}
-                </h3>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4 text-sm text-gray-600">
-                  <span className="flex items-center gap-1">
-                    <svg
-                      className="w-3.5 h-3.5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                      />
-                    </svg>
-                    {reservation.phone}
-                  </span>
-                </div>
+          <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
+  <div className="flex flex-col md:flex-row">
+    {/* Main Content Section (Guest & Booking Details) */}
+    <div className="flex-1">
+      {/* Card Header with Guest Info */}
+      <CardHeader className="pb-4">
+        <div className="flex justify-between items-start gap-4">
+          <div>
+            <CardTitle className="text-xl tracking-tight">
+              {reservation.fullName}
+            </CardTitle>
+            <CardDescription className="flex items-center gap-2 pt-1">
+              <Phone className="h-3.5 w-3.5" />
+              {reservation.phone}
+            </CardDescription>
+          </div>
+          <div className="flex-shrink-0">
+            {getStatusBadge(status)}
+          </div>
+        </div>
+      </CardHeader>
+
+      {/* Card Content with Room & Date Details */}
+      <CardContent className="pt-0">
+        <div className="border-t border-gray-200 pt-4">
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Room Info */}
+            <div className="flex items-start gap-3">
+              <div className="mt-1 p-2 bg-amber-100 rounded-full">
+                <Bed className="h-4 w-4 text-amber-600" />
               </div>
-            </div>
-
-            {/* Booking Details Section */}
-            <div className="p-6 bg-gray-50/50 md:w-80">
-              <div className="space-y-3">
-                {/* Room Info */}
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 bg-amber-100 rounded">
-                        <Bed className="h-3.5 w-3.5 text-amber-600" />
-                      </div>
-                      <span className="font-medium text-gray-900">
-                        Room {getRoomNumber()}
-                      </span>
-                    </div>
-                    {roomDetails && (
-                      <div className="ml-7 space-y-0.5">
-                        <p className="text-xs text-gray-600">
-                          {roomDetails.category} • {roomDetails.bedType}
-                        </p>
-                        <p className="text-sm font-semibold text-gray-900">
-                          Rs. {roomDetails.rate.toLocaleString()}
-                          <span className="text-xs font-normal text-gray-500">
-                            /night
-                          </span>
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-right">{getStatusBadge(status)}</div>
-                </div>
-
-                {/* Dates */}
-                <div className="pt-3 border-t border-gray-200">
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <p className="text-gray-500 uppercase tracking-wider mb-1">
-                        Check-in
-                      </p>
-                      <p className="font-medium text-gray-900">
-                        {format(new Date(reservation.startAt), "MMM d, yyyy")}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 uppercase tracking-wider mb-1">
-                        Check-out
-                      </p>
-                      <p className="font-medium text-gray-900">
-                        {format(new Date(reservation.endAt), "MMM d, yyyy")}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Actions Section */}
-            <div className="flex items-center p-4 bg-gray-50 border-t md:border-t-0 md:border-l border-gray-100">
-              <div className="flex flex-row md:flex-col gap-2 w-full md:w-auto">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onViewDetails}
-                  className="flex-1 md:flex-initial hover:bg-white"
-                >
-                  <Eye className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">View</span>
-                </Button>
-                {isCheckInEnabled && (
-                  <Button
-                    size="sm"
-                    onClick={onCheckIn}
-                    className="flex-1 md:flex-initial bg-emerald-600 hover:bg-emerald-700 text-white"
-                  >
-                    <CheckCircle2 className="mr-2 h-4 w-4" />
-                    <span className="hidden sm:inline">Check In</span>
-                  </Button>
+              <div>
+                <p className="text-sm font-semibold text-gray-800">
+                  Room {getRoomNumber()}
+                </p>
+                {roomDetails && (
+                  <>
+                    <p className="text-xs text-gray-500">
+                      {roomDetails.category}
+                    </p>
+                    <p className="text-sm font-medium text-gray-900 mt-1">
+                      Rs. {roomDetails.rate.toLocaleString()}
+                      <span className="text-xs font-normal text-gray-500"> / night</span>
+                    </p>
+                  </>
                 )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onDelete}
-                  className="hover:bg-red-50 hover:text-red-600"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+              </div>
+            </div>
+
+            {/* Dates */}
+            <div className="flex items-start gap-3">
+              <div className="mt-1 p-2 bg-blue-100 rounded-full">
+                <CalendarDays className="h-4 w-4 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-800">
+                  Stay Dates
+                </p>
+                <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 mt-1">
+                  <div>
+                    <span className="font-medium text-gray-700 block">
+                      {format(new Date(reservation.startAt), "MMM d, yyyy")}
+                    </span>
+                    <span className="uppercase tracking-wide text-[10px]">Check-in</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700 block">
+                      {format(new Date(reservation.endAt), "MMM d, yyyy")}
+                    </span>
+                    <span className="uppercase tracking-wide text-[10px]">Check-out</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+        </div>
+      </CardContent>
+    </div>
+
+    {/* Vertical Actions Section for Medium Screens and Up */}
+    <div className="flex md:flex-col items-center justify-between p-4 bg-gray-50/70 border-t md:border-t-0 md:border-l border-gray-200">
+      <div className="text-center md:mb-4">
+        <Badge variant="outline">
+          {formatDistanceStrict(
+            new Date(reservation.endAt),
+            new Date(reservation.startAt)
+          )} Stay
+        </Badge>
+      </div>
+      <div className="flex md:flex-col gap-2">
+        {isCheckInEnabled && (
+          <Button
+            size="sm"
+            onClick={onCheckIn}
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            <CheckCircle2 className="mr-2 h-4 w-4" />
+            Check In
+          </Button>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onViewDetails}
+          className="w-full bg-white"
+        >
+          <Eye className="mr-2 h-4 w-4" />
+          View
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onDelete}
+          className="w-full hover:bg-red-50 text-gray-500 hover:text-red-600"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  </div>
+</Card>
+          
         </CardContent>
       </Card>
     );

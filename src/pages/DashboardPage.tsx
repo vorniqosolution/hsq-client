@@ -19,6 +19,10 @@ import {
   Sun,
   Moon,
   RefreshCcw,
+  Hotel,
+  Luggage,
+  Mountain,
+  UserCheck,
 } from "lucide-react";
 import {
   Card,
@@ -29,17 +33,10 @@ import {
 } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip as ShadTooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Room, useRoomContext } from "@/contexts/RoomContext";
 import { useGuestContext } from "@/contexts/GuestContext";
 import { useReservationContext } from "@/contexts/ReservationContext";
 import { isToday, isFuture, parseISO, addDays, format } from "date-fns";
-import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -48,63 +45,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-interface StatCardProps {
-  stat: {
-    title: string;
-    value: string;
-    change: string;
-    trend: "up" | "down" | "neutral";
-    icon: React.ElementType;
-    gradient: string;
-  };
-}
-
-const StatCard = memo<StatCardProps>(({ stat }) => (
-  <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white relative overflow-hidden group">
-    <div
-      className="absolute inset-0 bg-gradient-to-br opacity-5 group-hover:opacity-10 transition-opacity duration-300"
-      style={{
-        backgroundImage: `linear-gradient(to bottom right, ${
-          stat.gradient.split(" ")[1]
-        }, ${stat.gradient.split(" ")[3]})`,
-      }}
-    />
-    <CardContent className="p-6">
-      <div className="flex items-start justify-between">
-        <div className="space-y-2">
-          <p className="text-sm font-light text-slate-600 tracking-wide uppercase">
-            {stat.title}
-          </p>
-          <p className="text-3xl font-light text-slate-900">{stat.value}</p>
-          <div className="flex items-center mt-3">
-            {stat.trend === "up" ? (
-              <TrendingUp className="w-4 h-4 text-emerald-500 mr-1.5" />
-            ) : stat.trend === "down" ? (
-              <TrendingDown className="w-4 h-4 text-rose-500 mr-1.5" />
-            ) : null}
-            <span
-              className={`text-sm font-light ${
-                stat.trend === "up"
-                  ? "text-emerald-600"
-                  : stat.trend === "down"
-                  ? "text-rose-600"
-                  : "text-slate-600"
-              }`}
-            >
-              {stat.change}
-            </span>
-          </div>
-        </div>
-        <div
-          className={`p-3 rounded-xl bg-gradient-to-br ${stat.gradient} shadow-lg`}
-        >
-          <stat.icon className="w-6 h-6 text-white" />
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-));
 
 const getRoomState = (room: Room, guests: any[], reservations: any[]) => {
   const today = new Date();
@@ -129,21 +69,19 @@ const getRoomState = (room: Room, guests: any[], reservations: any[]) => {
       isToday(parseISO(r.startAt))
   );
 
-  // ALWAYS find all future reservations (excluding today's arrival if it exists)
   const futureReservations = reservations
     .filter(
       (r: { room: { _id: any }; status: string; startAt: string; _id: any }) =>
         (typeof r.room === "object" ? r.room._id : r.room) === room._id &&
         ["reserved", "confirmed"].includes(r.status) &&
-        isFuture(parseISO(r.startAt)) && // Only dates AFTER today
-        r._id !== reservationForToday?._id // Exclude today's arrival from this list
+        isFuture(parseISO(r.startAt)) &&
+        r._id !== reservationForToday?._id
     )
     .sort(
       (a: { startAt: string }, b: { startAt: string }) =>
         parseISO(a.startAt).getTime() - parseISO(b.startAt).getTime()
     );
 
-  // --- Now, determine the primary state and attach all relevant details ---
   if (guestCheckingOutToday && reservationForToday) {
     return {
       state: "Back-to-Back",
@@ -155,7 +93,7 @@ const getRoomState = (room: Room, guests: any[], reservations: any[]) => {
   }
   if (guestCheckingOutToday) {
     return {
-      state: "Departure Due",
+      state: "Departure",
       details: {
         currentActivity: `Checkout: ${guestCheckingOutToday.fullName}`,
         futureBookings: futureReservations,
@@ -173,7 +111,7 @@ const getRoomState = (room: Room, guests: any[], reservations: any[]) => {
   }
   if (reservationForToday) {
     return {
-      state: "Arrival Due",
+      state: "Arrival",
       details: {
         currentActivity: `Arrival: ${reservationForToday.fullName}`,
         futureBookings: futureReservations,
@@ -207,15 +145,15 @@ const getStateStyling = (state: string) => {
         icon: CheckCircle,
         label: "Available",
       };
-    case "Arrival Due":
+    case "Arrival":
       return {
         color: "bg-blue-100 text-blue-800 border-blue-200",
         icon: Sun,
         label: "Arrival Today",
       };
-    case "Departure Due":
+    case "Departure":
       return {
-        color: "bg-indigo-100 text-indigo-800 border-indigo-200",
+        color: "bg-sky-600 text-sky-100 border-indigo-200",
         icon: Moon,
         label: "Departure Today",
       };
@@ -226,7 +164,6 @@ const getStateStyling = (state: string) => {
         label: "Back-to-Back",
       };
     case "Reserved":
-      // CHANGED: Replaced the old color with a vibrant Sky Blue.
       return {
         color: "bg-sky-100 text-sky-800 border-sky-200",
         icon: Calendar,
@@ -250,9 +187,6 @@ const getStateStyling = (state: string) => {
 const DashboardPage = () => {
   const [isOpen, setIsOpen] = useState(true);
   const [selectedRoomDetails, setSelectedRoomDetails] = useState(null);
-  const { user } = useAuth();
-  const [selectedRoomForDetails, setSelectedRoomForDetails] = useState(null);
-
   const { rooms, loading: roomsLoading, fetchRooms } = useRoomContext();
   const { guests, loading: guestsLoading, fetchGuests } = useGuestContext();
   const {
@@ -359,66 +293,6 @@ const DashboardPage = () => {
     };
   }, [rooms, guests, reservations]);
 
-  // ADD THIS BLOCK AFTER `hotelStats`
-  // NEW: Group rooms by their real-time state for display
-  const groupedRooms = useMemo(() => {
-    return rooms.reduce((acc, room) => {
-      const { state, details } = getRoomState(room, guests, reservations);
-      if (!acc[state]) {
-        acc[state] = [];
-      }
-      acc[state].push({ ...room, state, details });
-      return acc;
-    }, {});
-  }, [rooms, guests, reservations]);
-
-  // ADD THIS BLOCK AFTER `groupedRooms`
-  // NEW: Define the order in which to display the room groups for importance
-  const groupDisplayOrder = [
-    "Back-to-Back",
-    "Departure Due",
-    "Arrival Due",
-    "Occupied",
-    "Available",
-    "Reserved",
-    "Maintenance",
-  ];
-
-  const statsCardsData = [
-    {
-      title: "Occupancy Now",
-      value: `${hotelStats.occupancyRate}%`,
-      change: `${hotelStats.occupiedNow} of ${hotelStats.totalRooms} rooms`,
-      trend: "up" as const,
-      icon: Users,
-      gradient: "from-emerald-500 to-emerald-600",
-    },
-    {
-      title: "Available Rooms",
-      value: hotelStats.availableNow.toString(),
-      change: "Ready for guests",
-      trend: "neutral" as const,
-      icon: Bed,
-      gradient: "from-blue-500 to-blue-600",
-    },
-    {
-      title: "Arrivals Today",
-      value: hotelStats.arrivalsToday.toString(),
-      change: "New check-ins",
-      trend: "up" as const,
-      icon: Calendar,
-      gradient: "from-purple-500 to-purple-600",
-    },
-    {
-      title: "Departures Today",
-      value: hotelStats.departuresToday.toString(),
-      change: "Guests checking out",
-      trend: "down" as const,
-      icon: LogOut,
-      gradient: "from-rose-500 to-rose-600",
-    },
-  ];
-
   const roomStatusDataForChart = [
     { name: "Available", value: hotelStats.availableNow, color: "#10b981" },
     { name: "Occupied", value: hotelStats.occupiedNow, color: "#f59e0b" },
@@ -465,6 +339,7 @@ const DashboardPage = () => {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
                 <Card className="border-0 shadow-lg bg-white">
+                  {/* TOP HEADER */}
                   <CardHeader>
                     <CardTitle className="text-xl font-light">
                       Room Status Overview
@@ -624,177 +499,150 @@ const DashboardPage = () => {
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* RIGHT_SIDE_BOTTOM_RESERVATION_OVERVIEW */}
-                <Card className="border-0 shadow-lg bg-white lg:col-span-3">
-                  <CardHeader>
-                    <CardTitle className="text-xl font-light">
-                      Upcoming Arrivals (Next 7 Days)
-                    </CardTitle>
-                    <CardDescription className="font-light">
-                      A look at confirmed future bookings for planning.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3 h-[300px] overflow-y-auto pr-2">
-                      {hotelStats.upcomingReservations.length > 0 ? (
-                        hotelStats.upcomingReservations.map((res) => (
-                          <div
-                            key={res._id}
-                            className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 border transition-colors"
-                          >
-                            <div>
-                              <p className="font-medium text-slate-800">
-                                {res.fullName}
-                              </p>
-                              <p className="text-sm text-slate-500">
-                                Room{" "}
-                                {typeof res.room === "object"
-                                  ? res.room.roomNumber
-                                  : res.roomNumber}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm font-medium text-slate-800">
-                                {format(parseISO(res.startAt), "EEE, MMM d")}
-                              </p>
-                              <p className="text-xs text-slate-500">Arriving</p>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-slate-500">
-                          <Briefcase className="w-12 h-12 text-slate-300 mb-3" />
-                          <p className="font-light">
-                            No new reservations in the next 7 days.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ADD THIS ENTIRE DIALOG COMPONENT AT THE END OF YOUR PAGE */}
       <Dialog
         open={!!selectedRoomDetails}
         onOpenChange={() => setSelectedRoomDetails(null)}
       >
-        {/* Replace the entire <DialogContent> block with this one */}
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              Room {selectedRoomDetails?.roomNumber} -{" "}
-              <span className="font-semibold">
-                {selectedRoomDetails?.state}
-              </span>
-            </DialogTitle>
-            <DialogDescription>
-              Detailed status and booking information for this room.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-            {/* Basic Room Details */}
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <p>
-                <span className="font-medium text-gray-500">Category:</span>{" "}
-                {selectedRoomDetails?.category}
-              </p>
-              <p>
-                <span className="font-medium text-gray-500">Bed Type:</span>{" "}
-                {selectedRoomDetails?.bedType}
-              </p>
-              <p>
-                <span className="font-medium text-gray-500">View:</span>{" "}
-                {selectedRoomDetails?.view}
-              </p>
-              <p>
-                <span className="font-medium text-gray-500">Rate:</span> Rs{" "}
-                {selectedRoomDetails?.rate.toLocaleString()}/night
-              </p>
-            </div>
+        <DialogContent className="max-w-lg p-0">
+          {selectedRoomDetails &&
+            (() => {
+              // Get the styling once and reuse it
+              const {
+                icon: StatusIcon,
+                color,
+                label,
+              } = getStateStyling(selectedRoomDetails.state);
+              const details = selectedRoomDetails.details;
 
-            {/* Booking Details Section */}
-            <div>
-              <h4 className="font-semibold mb-2 border-t pt-4">
-                Booking Details
-              </h4>
-              <div className="text-sm text-gray-700 max-h-48 overflow-y-auto pr-2">
-                {/* NEW: Intelligent rendering logic */}
-                {typeof selectedRoomDetails?.details === "string" ? (
-                  // Case 1: Details is a simple string (e.g., "Available")
-                  <p>{selectedRoomDetails.details}</p>
-                ) : (
-                  // Case 2: Details is a complex object
-                  <div className="space-y-3">
-                    {/* Display the current activity */}
-                    {selectedRoomDetails?.details.currentActivity && (
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {selectedRoomDetails.details.currentActivity}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Current Activity
-                        </p>
+              return (
+                <>
+                  <DialogHeader className="p-6 pb-4">
+                    <DialogTitle className="flex items-center justify-between">
+                      <span className="text-2xl font-light">
+                        Room {selectedRoomDetails.roomNumber}
+                      </span>
+                      <div
+                        className={`text-xs px-2 py-1 rounded-full ${color}`}
+                      >
+                        {label}
                       </div>
-                    )}
+                    </DialogTitle>
+                  </DialogHeader>
 
-                    {/* Display the list of future bookings */}
-                    {selectedRoomDetails?.details.futureBookings &&
-                      selectedRoomDetails.details.futureBookings.length > 0 && (
+                  <div className="px-6 pb-6 space-y-6">
+                    {/* === CURRENT ACTIVITY SECTION === */}
+                    <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                      <h4 className="text-sm font-semibold text-slate-800 mb-3">
+                        Current Status
+                      </h4>
+                      <div className="flex items-start gap-4">
+                        {typeof details === "string" ? (
+                          // Case 1: Simple status like "Available" or "Maintenance"
+                          <>
+                            <div className={`p-2 rounded-full ${color}`}>
+                              <StatusIcon className="h-5 w-5" />
+                            </div>
+                            <p className="font-medium text-slate-700 mt-1">
+                              {details}
+                            </p>
+                          </>
+                        ) : (
+                          // Case 2: Complex status with guest/reservation details
+                          <>
+                            <div className={`p-2 rounded-full ${color}`}>
+                              {selectedRoomDetails.state === "Occupied" ? (
+                                <UserCheck className="h-5 w-5" />
+                              ) : (
+                                <Luggage className="h-5 w-5" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-slate-900">
+                                {details.currentActivity}
+                              </p>
+                              <p className="text-xs text-slate-500 uppercase tracking-wider">
+                                {selectedRoomDetails.state}
+                              </p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* === UPCOMING RESERVATIONS SECTION === */}
+                    {typeof details === "object" &&
+                      details.futureBookings &&
+                      details.futureBookings.length > 0 && (
                         <div>
-                          <h5 className="font-medium text-gray-900 mt-3 mb-1">
+                          <h4 className="text-sm font-semibold text-slate-800 mb-2">
                             Upcoming Reservations
-                          </h5>
-                          <ul className="space-y-2">
-                            {selectedRoomDetails.details.futureBookings.map(
-                              (res: {
-                                _id: React.Key;
-                                fullName:
-                                  | string
-                                  | number
-                                  | boolean
-                                  | React.ReactElement<
-                                      any,
-                                      string | React.JSXElementConstructor<any>
-                                    >
-                                  | Iterable<React.ReactNode>
-                                  | React.ReactPortal;
-                                startAt: string;
-                                endAt: string;
-                              }) => (
-                                <li
-                                  key={res._id}
-                                  className="p-2 bg-gray-50 rounded-md"
-                                >
-                                  <p className="font-medium">{res.fullName}</p>
-                                  <p className="text-xs text-gray-500">
-                                    {format(parseISO(res.startAt), "MMM d")} -{" "}
-                                    {format(parseISO(res.endAt), "MMM d")}
-                                  </p>
-                                </li>
-                              )
-                            )}
-                          </ul>
+                          </h4>
+                          <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                            {details.futureBookings.map((res) => (
+                              <div
+                                key={res._id}
+                                className="flex justify-between items-center p-2 bg-white rounded-md border"
+                              >
+                                <p className="text-sm font-medium text-slate-700">
+                                  {res.fullName}
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                  {format(parseISO(res.startAt), "MMM d")} -{" "}
+                                  {format(parseISO(res.endAt), "MMM d")}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
+
+                    {/* === ROOM DETAILS SECTION === */}
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-800 mb-2 pt-4 border-t">
+                        Room Details
+                      </h4>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                        <div className="flex items-center gap-2 text-slate-600">
+                          <Hotel className="h-4 w-4 text-slate-400" />
+                          <span>{selectedRoomDetails.category}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-600">
+                          <Bed className="h-4 w-4 text-slate-400" />
+                          <span>{selectedRoomDetails.bedType}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-600">
+                          <Mountain className="h-4 w-4 text-slate-400" />
+                          <span>{selectedRoomDetails.view}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-600">
+                          
+                          <span className="font-medium">
+                            Rs {selectedRoomDetails.rate.toLocaleString()} /
+                            night
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setSelectedRoomDetails(null)}
-            >
-              Close
-            </Button>
-          </DialogFooter>
+
+                  <DialogFooter className="bg-slate-50 p-4 border-t">
+                    <Button
+                      variant="outline"
+                      onClick={() => setSelectedRoomDetails(null)}
+                      className="bg-white"
+                    >
+                      Close
+                    </Button>
+                  </DialogFooter>
+                </>
+              );
+            })()}
         </DialogContent>
       </Dialog>
     </>
@@ -802,3 +650,5 @@ const DashboardPage = () => {
 };
 
 export default DashboardPage;
+
+

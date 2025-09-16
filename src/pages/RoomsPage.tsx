@@ -79,7 +79,16 @@ import Sidebar from "@/components/Sidebar";
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 const RoomsPage = () => {
-  // Enhanced context destructuring with all room management methods
+  const availableAmenities = [
+    "WiFi",
+    "TV",
+    "Air Conditioning",
+    "Mini Bar",
+    "Room Safety",
+    "Telephone",
+    "Laundry",
+  ];
+
   const {
     rooms,
     availableRooms,
@@ -96,8 +105,6 @@ const RoomsPage = () => {
 
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
-
-  // State management
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -109,12 +116,13 @@ const RoomsPage = () => {
     checkout: "",
   });
   const [hasSearched, setHasSearched] = useState(false);
-
-  // Add these state variables for image handling
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [existingImages, setExistingImages] = useState<RoomImage[]>([]);
   const [deletedImages, setDeletedImages] = useState<string[]>([]);
+  const { toast } = useToast();
+  const [isOpen, setIsOpen] = useState(true);
+  const location = useLocation();
 
   const [formData, setFormData] = useState<Partial<Room>>({
     roomNumber: "",
@@ -128,12 +136,8 @@ const RoomsPage = () => {
       | "occupied"
       | "maintenance",
     owner: "admin",
+    amenities: [],
   });
-
-  const { toast } = useToast();
-  // FOR SIDE_BAR
-  const [isOpen, setIsOpen] = useState(true);
-  const location = useLocation();
 
   useEffect(() => {
     fetchRooms().catch(console.error);
@@ -156,6 +160,7 @@ const RoomsPage = () => {
       rate: 0,
       status: "available",
       owner: "admin",
+      amenities: [],
     });
     setSelectedImages([]);
     setImagePreviews([]);
@@ -163,7 +168,22 @@ const RoomsPage = () => {
     setDeletedImages([]);
   };
 
-  // Image handling functions
+  const handleAmenityChange = (amenity: string) => {
+    setFormData((prev) => {
+      const currentAmenities = prev.amenities || [];
+      if (currentAmenities.includes(amenity)) {
+        // If it's already there, remove it
+        return {
+          ...prev,
+          amenities: currentAmenities.filter((a) => a !== amenity),
+        };
+      } else {
+        // If it's not there, add it
+        return { ...prev, amenities: [...currentAmenities, amenity] };
+      }
+    });
+  };
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const totalImages =
@@ -212,7 +232,6 @@ const RoomsPage = () => {
     setImagePreviews([]);
     setIsEditDialogOpen(true);
   };
-
   // Open room details view
   const handleViewRoom = (roomId: string) => {
     if (fetchRoomById) {
@@ -228,7 +247,6 @@ const RoomsPage = () => {
         });
     }
   };
-
   // Handle create room submission
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -242,11 +260,18 @@ const RoomsPage = () => {
         value !== undefined &&
         value !== null &&
         key !== "_id" &&
-        key !== "images"
+        key !== "images" &&
+        key !== "amenities"
       ) {
         formDataToSend.append(key, value.toString());
       }
     });
+
+    if (formData.amenities && formData.amenities.length > 0) {
+      formData.amenities.forEach((amenity) => {
+        formDataToSend.append("amenities", amenity);
+      });
+    }
 
     // Add images
     selectedImages.forEach((image) => {
@@ -269,7 +294,6 @@ const RoomsPage = () => {
       });
     }
   };
-
   // Handle update room submission
   const handleUpdateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -283,11 +307,20 @@ const RoomsPage = () => {
         value !== undefined &&
         value !== null &&
         key !== "_id" &&
-        key !== "images"
+        key !== "images" &&
+        key !== "amenities"
       ) {
         formDataToSend.append(key, value.toString());
       }
     });
+
+    // --- ADD THIS BLOCK: Handle amenities array specifically ---
+    if (formData.amenities && formData.amenities.length > 0) {
+      formData.amenities.forEach((amenity) => {
+        formDataToSend.append("amenities", amenity);
+      });
+    }
+    // --- END OF NEW BLOCK ---
 
     // Add new images
     selectedImages.forEach((image) => {
@@ -315,7 +348,6 @@ const RoomsPage = () => {
       });
     }
   };
-
   // Handle room deletion
   const handleDeleteRoom = async () => {
     if (!deleteRoom || !roomToDelete) return;
@@ -418,296 +450,339 @@ const RoomsPage = () => {
         <div className="p-6">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-              {/* <div>
-                <h1 className="text-3xl font-bold text-gray-900">Rooms</h1>
-                <p className="text-gray-600 mt-2">
-                  Manage your hotel rooms and availability
-                </p>
-              </div> */}
               <div className="w-full mb-6">
-  <Card className="p-6">
-    {/* Search Section */}
-    <div className="flex flex-col md:flex-row gap-4 items-end mb-6">
-      <div className="flex-1">
-        <Label htmlFor="checkin">Check-in Date</Label>
-        <Input
-          id="checkin"
-          type="date"
-          value={searchDates.checkin}
-          onChange={(e) =>
-            setSearchDates({
-              ...searchDates,
-              checkin: e.target.value,
-            })
-          }
-          className="mt-1"
-        />
-      </div>
-      <div className="flex-1">
-        <Label htmlFor="checkout">Check-out Date</Label>
-        <Input
-          id="checkout"
-          type="date"
-          value={searchDates.checkout}
-          onChange={(e) =>
-            setSearchDates({
-              ...searchDates,
-              checkout: e.target.value,
-            })
-          }
-          className="mt-1"
-        />
-      </div>
-      <Button
-        onClick={handleSearchAvailableRooms}
-        className="bg-amber-500 hover:bg-amber-600"
-      >
-        <Search className="h-4 w-4 mr-2" />
-        Find Available Rooms
-      </Button>
-    </div>
-
-    {/* Divider */}
-    <div className="border-t border-gray-200 my-4"></div>
-
-    {/* Room Management Section */}
-    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-      {/* Room filtering tabs */}
-      <Tabs
-        value={activeTab}
-        onValueChange={setActiveTab}
-        className="w-full sm:w-auto"
-      >
-        <TabsList className="grid grid-cols-2 w-full sm:w-[320px]">
-          <TabsTrigger value="all" className="flex items-center justify-center">
-            <Bed className="h-4 w-4 mr-2" />
-            All Rooms ({rooms?.length || 0})
-          </TabsTrigger>
-          <TabsTrigger value="available" className="flex items-center justify-center">
-            <Check className="h-4 w-4 mr-2" />
-            {hasSearched ? "Search Results" : "Available"} (
-            {availableRooms?.length || 0})
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      {/* Create Room Dialog */}
-      <Dialog
-        open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
-      >
-        <DialogTrigger asChild>
-          <Button className="bg-amber-500 hover:bg-amber-600 w-full sm:w-auto">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Room
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Add New Room</DialogTitle>
-            <DialogDescription>
-              Create a new room for your hotel
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleCreateSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="roomNumber">Room Number</Label>
-                <Input
-                  id="roomNumber"
-                  value={formData.roomNumber}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      roomNumber: e.target.value,
-                    })
-                  }
-                  placeholder="101"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="bedType">Bed Type</Label>
-                <Select
-                  value={formData.bedType}
-                  onValueChange={(val) =>
-                    setFormData({ ...formData, bedType: val })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Studio">Studio</SelectItem>
-                    <SelectItem value="One Bed">One Bed</SelectItem>
-                    <SelectItem value="Two Bed">Two Bed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="category">Category</Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(val) =>
-                    setFormData({ ...formData, category: val })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Standard">Standard</SelectItem>
-                    <SelectItem value="Duluxe-Plus">
-                      Duluxe-Plus
-                    </SelectItem>
-                    <SelectItem value="Deluxe">Deluxe</SelectItem>
-                    <SelectItem value="Executive">
-                      Executive
-                    </SelectItem>
-                    <SelectItem value="Presidential">
-                      Presidential
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="view">View</Label>
-                <Select
-                  value={formData.view}
-                  onValueChange={(val) =>
-                    setFormData({ ...formData, view: val })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Lobby Facing">
-                      Lobby Facing
-                    </SelectItem>
-                    <SelectItem value="Terrace View">
-                      Terrace View
-                    </SelectItem>
-                    <SelectItem value="Valley View">
-                      Valley View
-                    </SelectItem>
-                    <SelectItem value="Corner">Corner</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="rate">Rate per Night</Label>
-                <Input
-                  id="rate"
-                  type="number"
-                  value={formData.rate}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      rate: parseFloat(e.target.value),
-                    })
-                  }
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(val) =>
-                    setFormData({
-                      ...formData,
-                      status: val as
-                        | "available"
-                        | "reserved"
-                        | "occupied"
-                        | "maintenance",
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="available">
-                      Available
-                    </SelectItem>
-                    <SelectItem value="occupied">Occupied</SelectItem>
-                    <SelectItem value="maintenance">
-                      Maintenance
-                    </SelectItem>
-                    <SelectItem value="reserved">Reserved</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Image Upload Section */}
-            <div className="space-y-2">
-              <Label>Room Images (Max 6)</Label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-                <input
-                  type="file"
-                  id="room-images"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  className="hidden"
-                />
-                <label
-                  htmlFor="room-images"
-                  className="flex flex-col items-center cursor-pointer"
-                >
-                  <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                  <span className="text-sm text-gray-600">
-                    Click to upload images
-                  </span>
-                  <span className="text-xs text-gray-500 mt-1">
-                    JPG, PNG or GIF • Max 6 images
-                  </span>
-                </label>
-              </div>
-
-              {/* Image previews */}
-              {imagePreviews.length > 0 && (
-                <div className="grid grid-cols-3 gap-2 mt-4">
-                  {imagePreviews.map((preview, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={preview}
-                        alt={`Preview ${index + 1}`}
-                        className="w-full h-24 object-cover rounded"
+                <Card className="p-6">
+                  {/* Search Section */}
+                  <div className="flex flex-col md:flex-row gap-4 items-end mb-6">
+                    <div className="flex-1">
+                      <Label htmlFor="checkin">Check-in Date</Label>
+                      <Input
+                        id="checkin"
+                        type="date"
+                        value={searchDates.checkin}
+                        onChange={(e) =>
+                          setSearchDates({
+                            ...searchDates,
+                            checkin: e.target.value,
+                          })
+                        }
+                        className="mt-1"
                       />
-                      <button
-                        type="button"
-                        onClick={() => removeNewImage(index)}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-80 hover:opacity-100"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    <div className="flex-1">
+                      <Label htmlFor="checkout">Check-out Date</Label>
+                      <Input
+                        id="checkout"
+                        type="date"
+                        value={searchDates.checkout}
+                        onChange={(e) =>
+                          setSearchDates({
+                            ...searchDates,
+                            checkout: e.target.value,
+                          })
+                        }
+                        className="mt-1"
+                      />
+                    </div>
+                    <Button
+                      onClick={handleSearchAvailableRooms}
+                      className="bg-amber-500 hover:bg-amber-600"
+                    >
+                      <Search className="h-4 w-4 mr-2" />
+                      Find Available Rooms
+                    </Button>
+                  </div>
 
-            <Button
-              type="submit"
-              className="w-full bg-amber-500 hover:bg-amber-600"
-            >
-              Create Room
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </div>
-  </Card>
-</div>
+                  {/* Divider */}
+                  <div className="border-t border-gray-200 my-4"></div>
+
+                  {/* Room Management Section */}
+                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                    {/* Room filtering tabs */}
+                    <Tabs
+                      value={activeTab}
+                      onValueChange={setActiveTab}
+                      className="w-full sm:w-auto"
+                    >
+                      <TabsList className="grid grid-cols-2 w-full sm:w-[320px]">
+                        <TabsTrigger
+                          value="all"
+                          className="flex items-center justify-center"
+                        >
+                          <Bed className="h-4 w-4 mr-2" />
+                          All Rooms ({rooms?.length || 0})
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="available"
+                          className="flex items-center justify-center"
+                        >
+                          <Check className="h-4 w-4 mr-2" />
+                          {hasSearched ? "Search Results" : "Available"} (
+                          {availableRooms?.length || 0})
+                        </TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+
+                    {/* Create Room Dialog */}
+                    <Dialog
+                      open={isCreateDialogOpen}
+                      onOpenChange={setIsCreateDialogOpen}
+                    >
+                      <DialogTrigger asChild>
+                        <Button className="bg-amber-500 hover:bg-amber-600 w-full sm:w-auto">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Room
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                          <DialogTitle>Add New Room</DialogTitle>
+                          <DialogDescription>
+                            Create a new room for your hotel
+                          </DialogDescription>
+                        </DialogHeader>
+                        <form
+                          onSubmit={handleCreateSubmit}
+                          className="space-y-4"
+                        >
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="roomNumber">Room Number</Label>
+                              <Input
+                                id="roomNumber"
+                                value={formData.roomNumber}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    roomNumber: e.target.value,
+                                  })
+                                }
+                                placeholder="101"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="bedType">Bed Type</Label>
+                              <Select
+                                value={formData.bedType}
+                                onValueChange={(val) =>
+                                  setFormData({ ...formData, bedType: val })
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Studio">Studio</SelectItem>
+                                  <SelectItem value="One Bed">
+                                    One Bed
+                                  </SelectItem>
+                                  <SelectItem value="Two Bed">
+                                    Two Bed
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="category">Category</Label>
+                              <Select
+                                value={formData.category}
+                                onValueChange={(val) =>
+                                  setFormData({ ...formData, category: val })
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Standard">
+                                    Standard
+                                  </SelectItem>
+                                  <SelectItem value="Duluxe-Plus">
+                                    Duluxe-Plus
+                                  </SelectItem>
+                                  <SelectItem value="Deluxe">Deluxe</SelectItem>
+                                  <SelectItem value="Executive">
+                                    Executive
+                                  </SelectItem>
+                                  <SelectItem value="Presidential">
+                                    Presidential
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label htmlFor="view">View</Label>
+                              <Select
+                                value={formData.view}
+                                onValueChange={(val) =>
+                                  setFormData({ ...formData, view: val })
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Lobby Facing">
+                                    Lobby Facing
+                                  </SelectItem>
+                                  <SelectItem value="Terrace View">
+                                    Terrace View
+                                  </SelectItem>
+                                  <SelectItem value="Valley View">
+                                    Valley View
+                                  </SelectItem>
+                                  <SelectItem value="Corner">Corner</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="rate">Rate per Night</Label>
+                              <Input
+                                id="rate"
+                                type="number"
+                                value={formData.rate}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    rate: parseFloat(e.target.value),
+                                  })
+                                }
+                                required
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="status">Status</Label>
+                              <Select
+                                value={formData.status}
+                                onValueChange={(val) =>
+                                  setFormData({
+                                    ...formData,
+                                    status: val as
+                                      | "available"
+                                      | "reserved"
+                                      | "occupied"
+                                      | "maintenance",
+                                  })
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="available">
+                                    Available
+                                  </SelectItem>
+                                  <SelectItem value="occupied">
+                                    Occupied
+                                  </SelectItem>
+                                  <SelectItem value="maintenance">
+                                    Maintenance
+                                  </SelectItem>
+                                  <SelectItem value="reserved">
+                                    Reserved
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          {/* Amenities Section */}
+                          <div className="space-y-2">
+                            <Label>Amenities</Label>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 border rounded-md">
+                              {availableAmenities.map((amenity) => (
+                                <div
+                                  key={amenity}
+                                  className="flex items-center space-x-2"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    id={`amenity-${amenity}`}
+                                    checked={formData.amenities?.includes(
+                                      amenity
+                                    )}
+                                    onChange={() =>
+                                      handleAmenityChange(amenity)
+                                    }
+                                    className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                                  />
+                                  <label
+                                    htmlFor={`amenity-${amenity}`}
+                                    className="text-sm font-medium text-gray-700"
+                                  >
+                                    {amenity}
+                                  </label>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Image Upload Section */}
+                          <div className="space-y-2">
+                            <Label>Room Images (Max 6)</Label>
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                              <input
+                                type="file"
+                                id="room-images"
+                                multiple
+                                accept="image/*"
+                                onChange={handleImageSelect}
+                                className="hidden"
+                              />
+                              <label
+                                htmlFor="room-images"
+                                className="flex flex-col items-center cursor-pointer"
+                              >
+                                <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                                <span className="text-sm text-gray-600">
+                                  Click to upload images
+                                </span>
+                                <span className="text-xs text-gray-500 mt-1">
+                                  JPG, PNG or GIF • Max 6 images
+                                </span>
+                              </label>
+                            </div>
+
+                            {/* Image previews */}
+                            {imagePreviews.length > 0 && (
+                              <div className="grid grid-cols-3 gap-2 mt-4">
+                                {imagePreviews.map((preview, index) => (
+                                  <div key={index} className="relative group">
+                                    <img
+                                      src={preview}
+                                      alt={`Preview ${index + 1}`}
+                                      className="w-full h-24 object-cover rounded"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => removeNewImage(index)}
+                                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-80 hover:opacity-100"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <Button
+                            type="submit"
+                            className="w-full bg-amber-500 hover:bg-amber-600"
+                          >
+                            Create Room
+                          </Button>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </Card>
+              </div>
             </div>
 
             {/* Room Cards Grid */}
@@ -982,6 +1057,31 @@ const RoomsPage = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="space-y-2">
+                      <Label>Amenities</Label>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 border rounded-md">
+                        {availableAmenities.map((amenity) => (
+                          <div
+                            key={amenity}
+                            className="flex items-center space-x-2"
+                          >
+                            <input
+                              type="checkbox"
+                              id={`edit-amenity-${amenity}`}
+                              checked={formData.amenities?.includes(amenity)}
+                              onChange={() => handleAmenityChange(amenity)}
+                              className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                            />
+                            <label
+                              htmlFor={`edit-amenity-${amenity}`}
+                              className="text-sm font-medium text-gray-700"
+                            >
+                              {amenity}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                     {/* Image Upload Section */}
                     <div className="col-span-2 space-y-2">
                       <Label>Room Images (Max 6)</Label>
@@ -1178,6 +1278,28 @@ const RoomsPage = () => {
                         <p className="font-medium">{currentRoom.owner}</p>
                       </div>
                     </div>
+
+                    {/* --- PASTE THIS BLOCK AFTER THE GRID --- */}
+                    {currentRoom.amenities &&
+                      currentRoom.amenities.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-700 mt-4 mb-2">
+                            Amenities
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {currentRoom.amenities.map((amenity) => (
+                              <Badge
+                                key={amenity}
+                                variant="secondary"
+                                className="font-normal"
+                              >
+                                {amenity}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    {/* --- END OF BLOCK --- */}
 
                     <div className="pt-4 flex justify-end space-x-2">
                       <DialogClose asChild>
