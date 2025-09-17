@@ -540,7 +540,8 @@ const renderReportData = () => {
   // --- Discounted Guests Report ---
   if ("guests" in reportData) {
     const data = reportData as DiscountedGuestsResponse;
-    const guests = data.guests ?? [];
+  // This is the correct array to use
+  const discountedGuestList = data.guests ?? []; 
 
     return (
       <div>
@@ -556,16 +557,48 @@ const renderReportData = () => {
           </button>
         </div>
         <div className="space-y-4">
-          {guests.length > 0 ? (
-            guests.map((guest, index) => (
-              <div key={index} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                {/* ... existing guest details layout ... */}
+        {discountedGuestList.length > 0 ? (
+          discountedGuestList.map((guest, index) => ( 
+            <div key={index} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+              <div className="flex flex-col md:flex-row justify-between mb-3">
+                <div className="flex items-center space-x-2 mb-2 md:mb-0">
+                  <div className="w-8 h-8 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-sm font-medium">
+                    {guest.fullName.substring(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <h4 className="text-md font-medium text-slate-800">{guest.fullName}</h4>
+                    <p className="text-xs text-slate-500">
+                      {guest.roomCategory} - Room {guest.roomNumber}
+                    </p>
+                  </div>
+                </div>
+                {/* Use the new, correct discountAmount field */}
+                {guest.discountAmount > 0 && 
+                  <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                    Discount Applied
+                  </span>
+                }
               </div>
-            ))
-          ) : (
-            <p className="text-center text-slate-500 py-8">No discounted guests found for this period.</p>
-          )}
-        </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-slate-50 p-3 rounded">
+                  <div className="text-xs text-slate-500">Total Discount</div>
+                  <div className="text-sm font-medium text-slate-900">
+                    Rs: {(guest.discountAmount ?? 0).toLocaleString()}
+                  </div>
+                </div>
+                <div className="bg-slate-50 p-3 rounded">
+                  <div className="text-xs text-slate-500">Final Bill</div>
+                  <div className="text-sm font-medium text-slate-900">
+                    Rs: {(guest.totalRent ?? 0).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-center text-slate-500 py-8">No discounted invoices found for this period.</p>
+        )}
+      </div>
       </div>
     );
   }
