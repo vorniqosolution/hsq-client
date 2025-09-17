@@ -391,10 +391,15 @@ const InvoicesPage = () => {
                           </td>
                           <td className="py-4 px-6">
                             <p className="font-medium text-slate-800">
-                              {invoice.guest?.fullName}
+                              {invoice.guestDetails?.fullName ||
+                                invoice.guest?.fullName ||
+                                "N/A"}
                             </p>
                             <p className="text-xs text-slate-500">
-                              Room: {invoice.guest?.room?.roomNumber}
+                              Room:{" "}
+                              {invoice.roomDetails?.roomNumber ||
+                                invoice.guest?.room?.roomNumber ||
+                                "N/A"}
                             </p>
                           </td>
                           <td className="py-4 px-6 text-sm text-slate-600">

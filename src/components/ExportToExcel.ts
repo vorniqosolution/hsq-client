@@ -20,7 +20,7 @@ const transformDataForExcel = (data: any | null) => {
     const rows = report.categories.map((cat) => ({
       Category: cat.category,
       "Total Revenue": cat.totalRevenue,
-      "Total Guests": cat.totalReservations,
+      "Total Invoices": cat.invoiceCount,
     }));
     return {
       rows,

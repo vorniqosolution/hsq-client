@@ -28,7 +28,7 @@ export interface InvoiceItem {
 export interface Invoice {
   _id: string;
   invoiceNumber: string;
-  guest: Guest; // Populated guest data
+  guest?: Guest | null; // The link to the live guest record is now optional
   items: InvoiceItem[];
   subtotal: number;
   discountAmount: number;
@@ -42,6 +42,17 @@ export interface Invoice {
   pdfPath?: string;
   createdBy: { _id: string; name: string };
   createdAt: string;
+  // NEW: Add the permanent snapshot data fields
+  checkInAt: string;
+  guestDetails: {
+    fullName: string;
+    phone: string;
+    cnic: string;
+  };
+  roomDetails: {
+    roomNumber: string;
+    category: string;
+  };
 }
 
 export interface PaginatedInvoices {

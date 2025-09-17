@@ -24,7 +24,7 @@ const apiClient: AxiosInstance = axios.create({
 export interface AllRevenueResponse {
   success: boolean;
   totalRevenue: number;
-  totalReservations: number;
+  invoiceCount: number;
 }
 
 export interface MonthlyRevenueResponse {
@@ -33,7 +33,7 @@ export interface MonthlyRevenueResponse {
   year: number;
   monthlyrevenue: {
     totalRevenue: number;
-    totalReservations: number;
+    invoiceCount: number;
   };
 }
 
@@ -41,7 +41,7 @@ export interface YearlyRevenueResponse {
   success: boolean;
   year: number;
   totalRevenue: number;
-  totalReservations: number;
+  invoiceCount: number;
 }
 
 export interface RoomCategoryRevenueResponse {
@@ -51,7 +51,7 @@ export interface RoomCategoryRevenueResponse {
   categories: {
     _id: string; // category name
     totalRevenue: number;
-    totalReservations: number;
+    invoiceCount: number;
     category: string;
   }[];
 }
@@ -80,7 +80,7 @@ export interface WeeklyRevenueResponse {
   year: number;
   weeklyrevenue: {
     totalRevenue: number;
-    totalReservations: number;
+    invoiceCount: number;
   };
 }
 
@@ -90,7 +90,7 @@ export interface DailyRevenueResponse {
   month: number;
   year: number;
   totalRevenue: number;
-  totalReservations: number;
+  invoiceCount: number;
 }
 
 // --- End of Interfaces ---
