@@ -31,6 +31,7 @@ import {
   ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
   CardContent,
@@ -137,6 +138,10 @@ const RoomsPage = () => {
       | "maintenance",
     owner: "admin",
     amenities: [],
+    isPubliclyVisible: false,
+    publicDescription: "",
+    adults: 2,
+    cleaniness: "Redefining standard living our rooms.",
   });
 
   useEffect(() => {
@@ -447,7 +452,7 @@ const RoomsPage = () => {
         )}
 
         {/* Room content - enhanced with tabs and CRUD operations */}
-        <div className="p-6">
+        <div className="p-6 ">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
               <div className="w-full mb-6">
@@ -497,7 +502,7 @@ const RoomsPage = () => {
                   <div className="border-t border-gray-200 my-4"></div>
 
                   {/* Room Management Section */}
-                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between border border-red">
                     {/* Room filtering tabs */}
                     <Tabs
                       value={activeTab}
@@ -534,7 +539,7 @@ const RoomsPage = () => {
                           Add Room
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-2xl">
+                      <DialogContent className="max-w-3xl lg:max-w-4xl">
                         <DialogHeader>
                           <DialogTitle>Add New Room</DialogTitle>
                           <DialogDescription>
@@ -543,9 +548,9 @@ const RoomsPage = () => {
                         </DialogHeader>
                         <form
                           onSubmit={handleCreateSubmit}
-                          className="space-y-4"
+                          className="space-y-6 max-h-[75vh] overflow-y-auto p-1 pr-4"
                         >
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-4 gap-4">
                             <div>
                               <Label htmlFor="roomNumber">Room Number</Label>
                               <Input
@@ -583,8 +588,6 @@ const RoomsPage = () => {
                                 </SelectContent>
                               </Select>
                             </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
                             <div>
                               <Label htmlFor="category">Category</Label>
                               <Select
@@ -640,7 +643,7 @@ const RoomsPage = () => {
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                               <Label htmlFor="rate">Rate per Night</Label>
                               <Input
@@ -690,39 +693,99 @@ const RoomsPage = () => {
                                 </SelectContent>
                               </Select>
                             </div>
-                          </div>
-                          {/* Amenities Section */}
-                          <div className="space-y-2">
-                            <Label>Amenities</Label>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 border rounded-md">
-                              {availableAmenities.map((amenity) => (
-                                <div
-                                  key={amenity}
-                                  className="flex items-center space-x-2"
-                                >
-                                  <input
-                                    type="checkbox"
-                                    id={`amenity-${amenity}`}
-                                    checked={formData.amenities?.includes(
-                                      amenity
-                                    )}
-                                    onChange={() =>
-                                      handleAmenityChange(amenity)
-                                    }
-                                    className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
-                                  />
-                                  <label
-                                    htmlFor={`amenity-${amenity}`}
-                                    className="text-sm font-medium text-gray-700"
-                                  >
-                                    {amenity}
-                                  </label>
-                                </div>
-                              ))}
+                            <div>
+                              <Label htmlFor="adults">Max Adults</Label>
+                              <Input
+                                id="adults"
+                                type="number"
+                                min="1"
+                                value={formData.adults}
+                                placeholder="max: 8"
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    adults: parseInt(e.target.value, 10),
+                                  })
+                                }
+                                required
+                              />
+                            </div>
+                            <div className="flex items-center space-x-2 pt-2 col-span-2">
+                              <input
+                                type="checkbox"
+                                id="create-isPubliclyVisible"
+                                name="isPubliclyVisible"
+                                checked={!!formData.isPubliclyVisible}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    isPubliclyVisible: e.target.checked,
+                                  })
+                                }
+                                className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                              />
+                              <label
+                                htmlFor="create-isPubliclyVisible"
+                                className="text-sm font-medium text-gray-700 cursor-pointer"
+                              >
+                                Show this room on the public website
+                              </label>
                             </div>
                           </div>
 
-                          {/* Image Upload Section */}
+                          <div className="flex flex-col md:flex-row md:items-center gap-6 border-t pt-4">
+                            <div className="space-y-2 md:w-1/2">
+                              <Label>Amenities</Label>
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 border rounded-md">
+                                {availableAmenities.map((amenity) => (
+                                  <div
+                                    key={amenity}
+                                    className="flex items-center space-x-2"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      id={`amenity-${amenity}`}
+                                      checked={formData.amenities?.includes(
+                                        amenity
+                                      )}
+                                      onChange={() =>
+                                        handleAmenityChange(amenity)
+                                      }
+                                      className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                                    />
+                                    <label
+                                      htmlFor={`amenity-${amenity}`}
+                                      className="text-sm font-medium text-gray-700"
+                                    >
+                                      {amenity}
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="space-y-2 md:w-1/2">
+                              <Label htmlFor="create-publicDescription">
+                                Public Description (for Website)
+                              </Label>
+                              <Textarea
+                                id="create-publicDescription"
+                                value={formData.publicDescription || ""}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    publicDescription: e.target.value,
+                                  })
+                                }
+                                placeholder="Enter a guest-friendly description that will be shown on the public website..."
+                                className="min-h-[100px]"
+                              />
+                              <p className="text-xs text-gray-500">
+                                This text will be visible to guests on the hotel
+                                website.
+                              </p>
+                            </div>
+                          </div>
+
                           <div className="space-y-2">
                             <Label>Room Images (Max 6)</Label>
                             <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
@@ -786,7 +849,7 @@ const RoomsPage = () => {
             </div>
 
             {/* Room Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {displayedRooms.map((room) => (
                 <Card
                   key={room._id}
@@ -918,15 +981,18 @@ const RoomsPage = () => {
 
             {/* Edit Room Dialog */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-              <DialogContent>
+              <DialogContent className="max-w-3xl lg:max-w-4xl">
                 <DialogHeader>
                   <DialogTitle>Edit Room {formData.roomNumber}</DialogTitle>
                   <DialogDescription>
                     Update room details and availability
                   </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleUpdateSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                <form
+                  onSubmit={handleUpdateSubmit}
+                  className="space-y-6 max-h-[80vh] overflow-y-auto p-1 pr-4"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
                       <Label htmlFor="edit-roomNumber">Room Number</Label>
                       <Input
@@ -960,8 +1026,6 @@ const RoomsPage = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="edit-category">Category</Label>
                       <Select
@@ -1013,7 +1077,7 @@ const RoomsPage = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
                       <Label htmlFor="edit-rate">Rate per Night</Label>
                       <Input
@@ -1029,6 +1093,25 @@ const RoomsPage = () => {
                         required
                       />
                     </div>
+
+                    <div>
+                      <Label htmlFor="edit-adults">Max Adults</Label>
+                      <Input
+                        id="edit-adults"
+                        type="number"
+                        min="1"
+                        value={formData.adults}
+                        placeholder="Max: 8"
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            adults: parseInt(e.target.value, 10),
+                          })
+                        }
+                        required
+                      />
+                    </div>
+
                     <div>
                       <Label htmlFor="edit-status">Status</Label>
                       <Select
@@ -1057,9 +1140,32 @@ const RoomsPage = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
+
+                    <div className="flex items-center space-x-2 p-2 col-span-2 border rounded">
+                      <input
+                        type="checkbox"
+                        id="edit-isPubliclyVisible"
+                        name="isPubliclyVisible"
+                        checked={!!formData.isPubliclyVisible} // Use !! to safely convert undefined/null to false
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            isPubliclyVisible: e.target.checked,
+                          })
+                        }
+                        className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                      />
+                      <label
+                        htmlFor="edit-isPubliclyVisible"
+                        className="text-sm font-medium text-gray-700 cursor-pointer"
+                      >
+                        Show this room on the public website
+                      </label>
+                    </div>
+
+                    <div className="space-x-2">
                       <Label>Amenities</Label>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 border rounded-md">
+                      <div className="grid grid-cols-2 md:grid-cols-2 gap-2 p-3 w-96 border rounded-md">
                         {availableAmenities.map((amenity) => (
                           <div
                             key={amenity}
@@ -1082,6 +1188,31 @@ const RoomsPage = () => {
                         ))}
                       </div>
                     </div>
+
+                    {/* --- PASTE THIS NEW BLOCK HERE --- */}
+                    <div className="space-y-2 col-span-2">
+                      <Label htmlFor="create-publicDescription">
+                        Public Description (for Website)
+                      </Label>
+                      <Textarea
+                        id="create-publicDescription"
+                        value={formData.publicDescription || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            publicDescription: e.target.value,
+                          })
+                        }
+                        placeholder="Enter a guest-friendly description that will be shown on the public website..."
+                        className="min-h-[100px]"
+                      />
+                      <p className="text-xs text-gray-500">
+                        This text will be visible to guests on the hotel
+                        website.
+                      </p>
+                    </div>
+                    {/* --- END OF NEW BLOCK --- */}
+
                     {/* Image Upload Section */}
                     <div className="col-span-2 space-y-2">
                       <Label>Room Images (Max 6)</Label>
@@ -1206,7 +1337,7 @@ const RoomsPage = () => {
                 </DialogHeader>
 
                 {currentRoom && (
-                  <div className="space-y-6">
+                  <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-4">
                     <div className="flex justify-between items-center">
                       <h3 className="text-lg font-medium">Room Information</h3>
                       <Badge className={getStatusColor(currentRoom.status)}>
@@ -1250,7 +1381,7 @@ const RoomsPage = () => {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3 border-t pt-4">
                       <div>
                         <p className="text-sm text-gray-500">Room Number</p>
                         <p className="font-medium">{currentRoom.roomNumber}</p>
@@ -1268,18 +1399,40 @@ const RoomsPage = () => {
                         <p className="font-medium">{currentRoom.view}</p>
                       </div>
                       <div>
+                        <p className="text-sm text-gray-500">Max Adults</p>
+                        <p className="font-medium">{currentRoom.adults}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Owner</p>
+                        <p className="font-medium">{currentRoom.owner}</p>
+                      </div>
+                      <div>
                         <p className="text-sm text-gray-500">Rate per Night</p>
                         <p className="font-medium text-amber-600">
                           Rs {currentRoom.rate.toLocaleString()}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">Owner</p>
-                        <p className="font-medium">{currentRoom.owner}</p>
+                        <p className="text-sm text-gray-500">Showing on website</p>
+                        <p className="font-medium text-amber-600">
+                          {currentRoom.isPubliclyVisible ? 'Yes' : 'No'}
+                        </p>
                       </div>
                     </div>
 
-                    {/* --- PASTE THIS BLOCK AFTER THE GRID --- */}
+                    {currentRoom.cleaniness && (
+                      <div className="pt-2">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">
+                          Cleanliness
+                        </h4>
+                        <div className="p-4 bg-slate-50 border border-slate-200 rounded-md">
+                          <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                            {currentRoom.cleaniness}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     {currentRoom.amenities &&
                       currentRoom.amenities.length > 0 && (
                         <div>
@@ -1299,7 +1452,19 @@ const RoomsPage = () => {
                           </div>
                         </div>
                       )}
-                    {/* --- END OF BLOCK --- */}
+
+                    {currentRoom.publicDescription && (
+                      <div className="pt-2">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">
+                          Public Website Description
+                        </h4>
+                        <div className="p-4 bg-slate-50 border border-slate-200 rounded-md">
+                          <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                            {currentRoom.publicDescription}
+                          </p>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="pt-4 flex justify-end space-x-2">
                       <DialogClose asChild>

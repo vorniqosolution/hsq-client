@@ -31,6 +31,10 @@ export interface Room {
   dropdownLabel?: string;
   images?: RoomImage[];
   amenities?: string[];
+  isPubliclyVisible?: boolean;
+  publicDescription?: string;
+  adults?: number;
+  cleaniness?: string;
 }
 
 export interface RoomBooking {
