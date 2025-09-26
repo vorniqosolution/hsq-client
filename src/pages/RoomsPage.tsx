@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
+  Search,
+  Clock,
+  Upload,
   Plus,
   Edit,
   Trash2,
@@ -25,8 +28,10 @@ import {
   Percent,
   LucideChartNoAxesColumnDecreasing,
   Calendar,
+  ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
   CardContent,
@@ -67,13 +72,24 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Room, useRoomContext } from "../contexts/RoomContext";
+import { Room, RoomImage, useRoomContext } from "../contexts/RoomContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Sidebar from "@/components/Sidebar";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
 const RoomsPage = () => {
-  // Enhanced context destructuring with all room management methods
+  const availableAmenities = [
+    "WiFi",
+    "TV",
+    "Air Conditioning",
+    "Mini Bar",
+    "Room Safety",
+    "Telephone",
+    "Laundry",
+  ];
+
   const {
     rooms,
     availableRooms,
@@ -85,18 +101,29 @@ const RoomsPage = () => {
     fetchRoomById,
     updateRoom,
     deleteRoom,
+    fetchAvailableRooms,
   } = useRoomContext();
 
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
-
-  // State management
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("all");
   const [displayedRooms, setDisplayedRooms] = useState<Room[]>([]);
+  const [searchDates, setSearchDates] = useState({
+    checkin: "",
+    checkout: "",
+  });
+  const [hasSearched, setHasSearched] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [existingImages, setExistingImages] = useState<RoomImage[]>([]);
+  const [deletedImages, setDeletedImages] = useState<string[]>([]);
+  const { toast } = useToast();
+  const [isOpen, setIsOpen] = useState(true);
+  const location = useLocation();
 
   const [formData, setFormData] = useState<Partial<Room>>({
     roomNumber: "",
@@ -110,19 +137,17 @@ const RoomsPage = () => {
       | "occupied"
       | "maintenance",
     owner: "admin",
+    amenities: [],
+    isPubliclyVisible: false,
+    publicDescription: "",
+    adults: 2,
+    cleaniness: "Redefining standard living our rooms.",
   });
 
-  const { toast } = useToast();
-  // FOR SIDE_BAR
-  const [isOpen, setIsOpen] = useState(true);
-  const location = useLocation();
-
-  // Load available rooms when component mounts
   useEffect(() => {
     fetchRooms().catch(console.error);
   }, []);
-  // fetchAvailableRooms
-  // Update displayed rooms when tab changes
+
   useEffect(() => {
     if (activeTab === "available") {
       setDisplayedRooms(availableRooms || []);
@@ -131,7 +156,6 @@ const RoomsPage = () => {
     }
   }, [activeTab, rooms, availableRooms]);
 
-  // Reset form for create/edit
   const resetForm = () => {
     setFormData({
       roomNumber: "",
@@ -141,17 +165,78 @@ const RoomsPage = () => {
       rate: 0,
       status: "available",
       owner: "admin",
+      amenities: [],
+    });
+    setSelectedImages([]);
+    setImagePreviews([]);
+    setExistingImages([]);
+    setDeletedImages([]);
+  };
+
+  const handleAmenityChange = (amenity: string) => {
+    setFormData((prev) => {
+      const currentAmenities = prev.amenities || [];
+      if (currentAmenities.includes(amenity)) {
+        // If it's already there, remove it
+        return {
+          ...prev,
+          amenities: currentAmenities.filter((a) => a !== amenity),
+        };
+      } else {
+        // If it's not there, add it
+        return { ...prev, amenities: [...currentAmenities, amenity] };
+      }
     });
   };
 
-  // Load room data for editing
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const totalImages =
+      selectedImages.length +
+      (existingImages?.length || 0) -
+      deletedImages.length +
+      files.length;
+
+    if (totalImages > 6) {
+      toast({
+        title: "Too many images",
+        description: "You can only upload up to 6 images per room",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedImages((prev) => [...prev, ...files]);
+
+    // Create previews
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews((prev) => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeNewImage = (index: number) => {
+    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const removeExistingImage = (filename: string) => {
+    setDeletedImages((prev) => [...prev, filename]);
+  };
+
   const handleEditRoom = (room: Room) => {
     setFormData({
       ...room,
     });
+    setExistingImages(room.images || []);
+    setDeletedImages([]);
+    setSelectedImages([]);
+    setImagePreviews([]);
     setIsEditDialogOpen(true);
   };
-
   // Open room details view
   const handleViewRoom = (roomId: string) => {
     if (fetchRoomById) {
@@ -167,17 +252,42 @@ const RoomsPage = () => {
         });
     }
   };
-
   // Handle create room submission
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!createRoom) return;
 
-    const success = await createRoom(formData);
+    const formDataToSend = new FormData();
+
+    // Add room data
+    Object.entries(formData).forEach(([key, value]) => {
+      if (
+        value !== undefined &&
+        value !== null &&
+        key !== "_id" &&
+        key !== "images" &&
+        key !== "amenities"
+      ) {
+        formDataToSend.append(key, value.toString());
+      }
+    });
+
+    if (formData.amenities && formData.amenities.length > 0) {
+      formData.amenities.forEach((amenity) => {
+        formDataToSend.append("amenities", amenity);
+      });
+    }
+
+    // Add images
+    selectedImages.forEach((image) => {
+      formDataToSend.append("images", image);
+    });
+
+    const success = await createRoom(formDataToSend);
     if (success) {
       toast({
         title: "Room created",
-        description: `Room ${formData.roomNumber} has been created.`,
+        description: `Room ${formData.roomNumber} has been created with ${selectedImages.length} images.`,
       });
       setIsCreateDialogOpen(false);
       resetForm();
@@ -189,13 +299,45 @@ const RoomsPage = () => {
       });
     }
   };
-
   // Handle update room submission
   const handleUpdateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!updateRoom || !formData._id) return;
 
-    const success = await updateRoom(formData._id, formData);
+    const formDataToSend = new FormData();
+
+    // Add room data
+    Object.entries(formData).forEach(([key, value]) => {
+      if (
+        value !== undefined &&
+        value !== null &&
+        key !== "_id" &&
+        key !== "images" &&
+        key !== "amenities"
+      ) {
+        formDataToSend.append(key, value.toString());
+      }
+    });
+
+    // --- ADD THIS BLOCK: Handle amenities array specifically ---
+    if (formData.amenities && formData.amenities.length > 0) {
+      formData.amenities.forEach((amenity) => {
+        formDataToSend.append("amenities", amenity);
+      });
+    }
+    // --- END OF NEW BLOCK ---
+
+    // Add new images
+    selectedImages.forEach((image) => {
+      formDataToSend.append("images", image);
+    });
+
+    // Add deleted images if any
+    if (deletedImages.length > 0) {
+      formDataToSend.append("deletedImages", JSON.stringify(deletedImages));
+    }
+
+    const success = await updateRoom(formData._id, formDataToSend);
     if (success) {
       toast({
         title: "Room updated",
@@ -211,7 +353,6 @@ const RoomsPage = () => {
       });
     }
   };
-
   // Handle room deletion
   const handleDeleteRoom = async () => {
     if (!deleteRoom || !roomToDelete) return;
@@ -230,6 +371,30 @@ const RoomsPage = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleSearchAvailableRooms = async () => {
+    if (!searchDates.checkin || !searchDates.checkout) {
+      toast({
+        title: "Missing dates",
+        description: "Please select both check-in and check-out dates",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (new Date(searchDates.checkout) <= new Date(searchDates.checkin)) {
+      toast({
+        title: "Invalid dates",
+        description: "Check-out date must be after check-in date",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await fetchAvailableRooms(searchDates.checkin, searchDates.checkout);
+    setHasSearched(true);
+    setActiveTab("available");
   };
 
   const getStatusColor = (status: string) => {
@@ -259,23 +424,6 @@ const RoomsPage = () => {
     );
   }
 
-  // Error state
-  // if (error) {
-  //   return (
-  //     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-  //       <div className="text-center p-6 max-w-md bg-white rounded-lg shadow-lg">
-  //         <div className="text-red-500 text-5xl mb-4">⚠️</div>
-  //         <h3 className="text-xl font-medium mb-2">Failed to load rooms</h3>
-  //         <p className="text-slate-600 mb-4">{error}</p>
-  //         <Button onClick={() => fetchRooms && fetchRooms()}>
-  //           <RefreshCw className="w-4 h-4 mr-2" />
-  //           Retry
-  //         </Button>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
   return (
     <div className="min-h-screen bg-slate-50 flex">
       {/* ADD SIDE_BAR */}
@@ -304,204 +452,404 @@ const RoomsPage = () => {
         )}
 
         {/* Room content - enhanced with tabs and CRUD operations */}
-        <div className="p-6">
+        <div className="p-6 ">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Rooms</h1>
-                <p className="text-gray-600 mt-2">
-                  Manage your hotel rooms and availability
-                </p>
-              </div>
-
-              <div className="flex space-x-3">
-                {/* Room filtering tabs */}
-                <Tabs
-                  value={activeTab}
-                  onValueChange={setActiveTab}
-                  className="w-[260px]"
-                >
-                  <TabsList>
-                    <TabsTrigger value="all" className="flex-1">
-                      <Bed className="h-4 w-4 mr-2" />
-                      All Rooms ({rooms?.length || 0})
-                    </TabsTrigger>
-                    <TabsTrigger value="available" className="flex-1">
-                      <Check className="h-4 w-4 mr-2" />
-                      Available ({availableRooms?.length || 0})
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-
-                {/* Create Room Dialog */}
-                <Dialog
-                  open={isCreateDialogOpen}
-                  onOpenChange={setIsCreateDialogOpen}
-                >
-                  <DialogTrigger asChild>
-                    <Button className="bg-amber-500 hover:bg-amber-600">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Room
+              <div className="w-full mb-6">
+                <Card className="p-6">
+                  {/* Search Section */}
+                  <div className="flex flex-col md:flex-row gap-4 items-end mb-6">
+                    <div className="flex-1">
+                      <Label htmlFor="checkin">Check-in Date</Label>
+                      <Input
+                        id="checkin"
+                        type="date"
+                        value={searchDates.checkin}
+                        onChange={(e) =>
+                          setSearchDates({
+                            ...searchDates,
+                            checkin: e.target.value,
+                          })
+                        }
+                        className="mt-1"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label htmlFor="checkout">Check-out Date</Label>
+                      <Input
+                        id="checkout"
+                        type="date"
+                        value={searchDates.checkout}
+                        onChange={(e) =>
+                          setSearchDates({
+                            ...searchDates,
+                            checkout: e.target.value,
+                          })
+                        }
+                        className="mt-1"
+                      />
+                    </div>
+                    <Button
+                      onClick={handleSearchAvailableRooms}
+                      className="bg-amber-500 hover:bg-amber-600"
+                    >
+                      <Search className="h-4 w-4 mr-2" />
+                      Find Available Rooms
                     </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Add New Room</DialogTitle>
-                      <DialogDescription>
-                        Create a new room for your hotel
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleCreateSubmit} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="roomNumber">Room Number</Label>
-                          <Input
-                            id="roomNumber"
-                            value={formData.roomNumber}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                roomNumber: e.target.value,
-                              })
-                            }
-                            placeholder="101"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="bedType">Bed Type</Label>
-                          <Select
-                            value={formData.bedType}
-                            onValueChange={(val) =>
-                              setFormData({ ...formData, bedType: val })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Studio">Studio</SelectItem>
-                              <SelectItem value="One Bed">One Bed</SelectItem>
-                              <SelectItem value="Two Bed">Two Bed</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="category">Category</Label>
-                          <Select
-                            value={formData.category}
-                            onValueChange={(val) =>
-                              setFormData({ ...formData, category: val })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Standard">Standard</SelectItem>
-                              <SelectItem value="Duluxe-Plus">
-                                Duluxe-Plus
-                              </SelectItem>
-                              <SelectItem value="Deluxe">Deluxe</SelectItem>
-                              <SelectItem value="Executive">
-                                Executive
-                              </SelectItem>
-                              <SelectItem value="Presidential">
-                                Presidential
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="view">View</Label>
-                          <Select
-                            value={formData.view}
-                            onValueChange={(val) =>
-                              setFormData({ ...formData, view: val })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Lobby Facing">
-                                Lobby Facing
-                              </SelectItem>
-                              <SelectItem value="Terrace View">
-                                Terrace View
-                              </SelectItem>
-                              <SelectItem value="Valley View">
-                                Valley View
-                              </SelectItem>
-                              <SelectItem value="Corner">Corner</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
+                  </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="rate">Rate per Night</Label>
-                          <Input
-                            id="rate"
-                            type="number"
-                            value={formData.rate}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                rate: parseFloat(e.target.value),
-                              })
-                            }
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="status">Status</Label>
-                          <Select
-                            value={formData.status}
-                            onValueChange={(val) =>
-                              setFormData({
-                                ...formData,
-                                status: val as
-                                  | "available"
-                                  | "reserved"
-                                  | "occupied"
-                                  | "maintenance",
-                              })
-                            }
+                  {/* Divider */}
+                  <div className="border-t border-gray-200 my-4"></div>
+
+                  {/* Room Management Section */}
+                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between border border-red">
+                    {/* Room filtering tabs */}
+                    <Tabs
+                      value={activeTab}
+                      onValueChange={setActiveTab}
+                      className="w-full sm:w-auto"
+                    >
+                      <TabsList className="grid grid-cols-2 w-full sm:w-[320px]">
+                        <TabsTrigger
+                          value="all"
+                          className="flex items-center justify-center"
+                        >
+                          <Bed className="h-4 w-4 mr-2" />
+                          All Rooms ({rooms?.length || 0})
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="available"
+                          className="flex items-center justify-center"
+                        >
+                          <Check className="h-4 w-4 mr-2" />
+                          {hasSearched ? "Search Results" : "Available"} (
+                          {availableRooms?.length || 0})
+                        </TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+
+                    {/* Create Room Dialog */}
+                    <Dialog
+                      open={isCreateDialogOpen}
+                      onOpenChange={setIsCreateDialogOpen}
+                    >
+                      <DialogTrigger asChild>
+                        <Button className="bg-amber-500 hover:bg-amber-600 w-full sm:w-auto">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Room
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-3xl lg:max-w-4xl">
+                        <DialogHeader>
+                          <DialogTitle>Add New Room</DialogTitle>
+                          <DialogDescription>
+                            Create a new room for your hotel
+                          </DialogDescription>
+                        </DialogHeader>
+                        <form
+                          onSubmit={handleCreateSubmit}
+                          className="space-y-6 max-h-[75vh] overflow-y-auto p-1 pr-4"
+                        >
+                          <div className="grid grid-cols-4 gap-4">
+                            <div>
+                              <Label htmlFor="roomNumber">Room Number</Label>
+                              <Input
+                                id="roomNumber"
+                                value={formData.roomNumber}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    roomNumber: e.target.value,
+                                  })
+                                }
+                                placeholder="101"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="bedType">Bed Type</Label>
+                              <Select
+                                value={formData.bedType}
+                                onValueChange={(val) =>
+                                  setFormData({ ...formData, bedType: val })
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Studio">Studio</SelectItem>
+                                  <SelectItem value="One Bed">
+                                    One Bed
+                                  </SelectItem>
+                                  <SelectItem value="Two Bed">
+                                    Two Bed
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label htmlFor="category">Category</Label>
+                              <Select
+                                value={formData.category}
+                                onValueChange={(val) =>
+                                  setFormData({ ...formData, category: val })
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Standard">
+                                    Standard
+                                  </SelectItem>
+                                  <SelectItem value="Duluxe-Plus">
+                                    Duluxe-Plus
+                                  </SelectItem>
+                                  <SelectItem value="Deluxe">Deluxe</SelectItem>
+                                  <SelectItem value="Executive">
+                                    Executive
+                                  </SelectItem>
+                                  <SelectItem value="Presidential">
+                                    Presidential
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label htmlFor="view">View</Label>
+                              <Select
+                                value={formData.view}
+                                onValueChange={(val) =>
+                                  setFormData({ ...formData, view: val })
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Lobby Facing">
+                                    Lobby Facing
+                                  </SelectItem>
+                                  <SelectItem value="Terrace View">
+                                    Terrace View
+                                  </SelectItem>
+                                  <SelectItem value="Valley View">
+                                    Valley View
+                                  </SelectItem>
+                                  <SelectItem value="Corner">Corner</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                              <Label htmlFor="rate">Rate per Night</Label>
+                              <Input
+                                id="rate"
+                                type="number"
+                                value={formData.rate}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    rate: parseFloat(e.target.value),
+                                  })
+                                }
+                                required
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="status">Status</Label>
+                              <Select
+                                value={formData.status}
+                                onValueChange={(val) =>
+                                  setFormData({
+                                    ...formData,
+                                    status: val as
+                                      | "available"
+                                      | "reserved"
+                                      | "occupied"
+                                      | "maintenance",
+                                  })
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="available">
+                                    Available
+                                  </SelectItem>
+                                  <SelectItem value="occupied">
+                                    Occupied
+                                  </SelectItem>
+                                  <SelectItem value="maintenance">
+                                    Maintenance
+                                  </SelectItem>
+                                  <SelectItem value="reserved">
+                                    Reserved
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label htmlFor="adults">Max Adults</Label>
+                              <Input
+                                id="adults"
+                                type="number"
+                                min="1"
+                                value={formData.adults}
+                                placeholder="max: 8"
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    adults: parseInt(e.target.value, 10),
+                                  })
+                                }
+                                required
+                              />
+                            </div>
+                            <div className="flex items-center space-x-2 pt-2 col-span-2">
+                              <input
+                                type="checkbox"
+                                id="create-isPubliclyVisible"
+                                name="isPubliclyVisible"
+                                checked={!!formData.isPubliclyVisible}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    isPubliclyVisible: e.target.checked,
+                                  })
+                                }
+                                className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                              />
+                              <label
+                                htmlFor="create-isPubliclyVisible"
+                                className="text-sm font-medium text-gray-700 cursor-pointer"
+                              >
+                                Show this room on the public website
+                              </label>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col md:flex-row md:items-center gap-6 border-t pt-4">
+                            <div className="space-y-2 md:w-1/2">
+                              <Label>Amenities</Label>
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 border rounded-md">
+                                {availableAmenities.map((amenity) => (
+                                  <div
+                                    key={amenity}
+                                    className="flex items-center space-x-2"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      id={`amenity-${amenity}`}
+                                      checked={formData.amenities?.includes(
+                                        amenity
+                                      )}
+                                      onChange={() =>
+                                        handleAmenityChange(amenity)
+                                      }
+                                      className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                                    />
+                                    <label
+                                      htmlFor={`amenity-${amenity}`}
+                                      className="text-sm font-medium text-gray-700"
+                                    >
+                                      {amenity}
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="space-y-2 md:w-1/2">
+                              <Label htmlFor="create-publicDescription">
+                                Public Description (for Website)
+                              </Label>
+                              <Textarea
+                                id="create-publicDescription"
+                                value={formData.publicDescription || ""}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    publicDescription: e.target.value,
+                                  })
+                                }
+                                placeholder="Enter a guest-friendly description that will be shown on the public website..."
+                                className="min-h-[100px]"
+                              />
+                              <p className="text-xs text-gray-500">
+                                This text will be visible to guests on the hotel
+                                website.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Room Images (Max 6)</Label>
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                              <input
+                                type="file"
+                                id="room-images"
+                                multiple
+                                accept="image/*"
+                                onChange={handleImageSelect}
+                                className="hidden"
+                              />
+                              <label
+                                htmlFor="room-images"
+                                className="flex flex-col items-center cursor-pointer"
+                              >
+                                <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                                <span className="text-sm text-gray-600">
+                                  Click to upload images
+                                </span>
+                                <span className="text-xs text-gray-500 mt-1">
+                                  JPG, PNG or GIF • Max 6 images
+                                </span>
+                              </label>
+                            </div>
+
+                            {/* Image previews */}
+                            {imagePreviews.length > 0 && (
+                              <div className="grid grid-cols-3 gap-2 mt-4">
+                                {imagePreviews.map((preview, index) => (
+                                  <div key={index} className="relative group">
+                                    <img
+                                      src={preview}
+                                      alt={`Preview ${index + 1}`}
+                                      className="w-full h-24 object-cover rounded"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => removeNewImage(index)}
+                                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-80 hover:opacity-100"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <Button
+                            type="submit"
+                            className="w-full bg-amber-500 hover:bg-amber-600"
                           >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="available">
-                                Available
-                              </SelectItem>
-                              <SelectItem value="occupied">Occupied</SelectItem>
-                              <SelectItem value="maintenance">
-                                Maintenance
-                              </SelectItem>
-                              <SelectItem value="reserved">reserved</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <Button
-                        type="submit"
-                        className="w-full bg-amber-500 hover:bg-amber-600"
-                      >
-                        Create Room
-                      </Button>
-                    </form>
-                  </DialogContent>
-                </Dialog>
+                            Create Room
+                          </Button>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </Card>
               </div>
             </div>
 
             {/* Room Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {displayedRooms.map((room) => (
                 <Card
                   key={room._id}
@@ -523,6 +871,21 @@ const RoomsPage = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
+                    {/* Room image thumbnail */}
+                    {room.images && room.images.length > 0 ? (
+                      <div className="mb-3">
+                        <img
+                          src={`${API_BASE}${room.images[0].path}`}
+                          alt={`Room ${room.roomNumber}`}
+                          className="w-full h-40 object-cover rounded-md shadow-sm"
+                        />
+                      </div>
+                    ) : (
+                      <div className="mb-3 flex items-center justify-center h-40 bg-gray-100 rounded-md">
+                        <ImageIcon className="h-12 w-12 text-gray-300" />
+                      </div>
+                    )}
+
                     <div className="flex items-center gap-2 text-gray-600">
                       {/* <DollarSign className="h-4 w-4 text-amber-500" /> */}
                       <span>Rs {room.rate.toLocaleString()} per night</span>
@@ -598,7 +961,9 @@ const RoomsPage = () => {
                 <Bed className="h-12 w-12 text-slate-300 mx-auto mb-3" />
                 <p className="text-gray-500 text-lg">
                   {activeTab === "available"
-                    ? "No available rooms found."
+                    ? hasSearched
+                      ? "No available rooms found for the selected dates. Try different dates."
+                      : "Search for available rooms by selecting check-in and check-out dates above."
                     : "No rooms found. Create your first room to get started."}
                 </p>
                 {activeTab === "available" && (
@@ -616,15 +981,18 @@ const RoomsPage = () => {
 
             {/* Edit Room Dialog */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-              <DialogContent>
+              <DialogContent className="max-w-3xl lg:max-w-4xl">
                 <DialogHeader>
                   <DialogTitle>Edit Room {formData.roomNumber}</DialogTitle>
                   <DialogDescription>
                     Update room details and availability
                   </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleUpdateSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                <form
+                  onSubmit={handleUpdateSubmit}
+                  className="space-y-6 max-h-[80vh] overflow-y-auto p-1 pr-4"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
                       <Label htmlFor="edit-roomNumber">Room Number</Label>
                       <Input
@@ -658,8 +1026,6 @@ const RoomsPage = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="edit-category">Category</Label>
                       <Select
@@ -711,7 +1077,7 @@ const RoomsPage = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
                       <Label htmlFor="edit-rate">Rate per Night</Label>
                       <Input
@@ -727,6 +1093,25 @@ const RoomsPage = () => {
                         required
                       />
                     </div>
+
+                    <div>
+                      <Label htmlFor="edit-adults">Max Adults</Label>
+                      <Input
+                        id="edit-adults"
+                        type="number"
+                        min="1"
+                        value={formData.adults}
+                        placeholder="Max: 8"
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            adults: parseInt(e.target.value, 10),
+                          })
+                        }
+                        required
+                      />
+                    </div>
+
                     <div>
                       <Label htmlFor="edit-status">Status</Label>
                       <Select
@@ -755,6 +1140,169 @@ const RoomsPage = () => {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    <div className="flex items-center space-x-2 p-2 col-span-2 border rounded">
+                      <input
+                        type="checkbox"
+                        id="edit-isPubliclyVisible"
+                        name="isPubliclyVisible"
+                        checked={!!formData.isPubliclyVisible} // Use !! to safely convert undefined/null to false
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            isPubliclyVisible: e.target.checked,
+                          })
+                        }
+                        className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                      />
+                      <label
+                        htmlFor="edit-isPubliclyVisible"
+                        className="text-sm font-medium text-gray-700 cursor-pointer"
+                      >
+                        Show this room on the public website
+                      </label>
+                    </div>
+
+                    <div className="space-x-2">
+                      <Label>Amenities</Label>
+                      <div className="grid grid-cols-2 md:grid-cols-2 gap-2 p-3 w-96 border rounded-md">
+                        {availableAmenities.map((amenity) => (
+                          <div
+                            key={amenity}
+                            className="flex items-center space-x-2"
+                          >
+                            <input
+                              type="checkbox"
+                              id={`edit-amenity-${amenity}`}
+                              checked={formData.amenities?.includes(amenity)}
+                              onChange={() => handleAmenityChange(amenity)}
+                              className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                            />
+                            <label
+                              htmlFor={`edit-amenity-${amenity}`}
+                              className="text-sm font-medium text-gray-700"
+                            >
+                              {amenity}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* --- PASTE THIS NEW BLOCK HERE --- */}
+                    <div className="space-y-2 col-span-2">
+                      <Label htmlFor="create-publicDescription">
+                        Public Description (for Website)
+                      </Label>
+                      <Textarea
+                        id="create-publicDescription"
+                        value={formData.publicDescription || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            publicDescription: e.target.value,
+                          })
+                        }
+                        placeholder="Enter a guest-friendly description that will be shown on the public website..."
+                        className="min-h-[100px]"
+                      />
+                      <p className="text-xs text-gray-500">
+                        This text will be visible to guests on the hotel
+                        website.
+                      </p>
+                    </div>
+                    {/* --- END OF NEW BLOCK --- */}
+
+                    {/* Image Upload Section */}
+                    <div className="col-span-2 space-y-2">
+                      <Label>Room Images (Max 6)</Label>
+
+                      {/* Existing images */}
+                      {existingImages && existingImages.length > 0 && (
+                        <>
+                          <div className="text-sm text-gray-500 mb-2">
+                            Existing images:
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            {existingImages
+                              .filter(
+                                (img) => !deletedImages.includes(img.filename)
+                              )
+                              .map((image, index) => (
+                                <div key={index} className="relative group">
+                                  <img
+                                    src={`${API_BASE}${image.path}`}
+                                    alt={`Room ${formData.roomNumber} - ${
+                                      index + 1
+                                    }`}
+                                    className="w-full h-24 object-cover rounded"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      removeExistingImage(image.filename)
+                                    }
+                                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-80 hover:opacity-100"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ))}
+                          </div>
+                        </>
+                      )}
+
+                      {/* Upload new images */}
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                        <input
+                          type="file"
+                          id="edit-room-images"
+                          multiple
+                          accept="image/*"
+                          onChange={handleImageSelect}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor="edit-room-images"
+                          className="flex flex-col items-center cursor-pointer"
+                        >
+                          <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                          <span className="text-sm text-gray-600">
+                            Click to upload new images
+                          </span>
+                          <span className="text-xs text-gray-500 mt-1">
+                            JPG, PNG or GIF • Max 6 images total
+                          </span>
+                        </label>
+                      </div>
+
+                      {/* New image previews */}
+                      {imagePreviews.length > 0 && (
+                        <>
+                          <div className="text-sm text-gray-500 mb-2">
+                            New images to add:
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            {imagePreviews.map((preview, index) => (
+                              <div key={index} className="relative group">
+                                <img
+                                  src={preview}
+                                  alt={`New preview ${index + 1}`}
+                                  className="w-full h-24 object-cover rounded"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeNewImage(index)}
+                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-80 hover:opacity-100"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                   <DialogFooter>
                     <DialogClose asChild>
@@ -778,7 +1326,7 @@ const RoomsPage = () => {
               open={isViewDialogOpen && currentRoom !== null}
               onOpenChange={setIsViewDialogOpen}
             >
-              <DialogContent>
+              <DialogContent className="max-w-3xl">
                 <DialogHeader>
                   <DialogTitle>
                     Room {currentRoom?.roomNumber} Details
@@ -789,7 +1337,7 @@ const RoomsPage = () => {
                 </DialogHeader>
 
                 {currentRoom && (
-                  <div className="space-y-4">
+                  <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-4">
                     <div className="flex justify-between items-center">
                       <h3 className="text-lg font-medium">Room Information</h3>
                       <Badge className={getStatusColor(currentRoom.status)}>
@@ -798,7 +1346,42 @@ const RoomsPage = () => {
                       </Badge>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                    {/* Room Images Gallery */}
+                    {currentRoom.images && currentRoom.images.length > 0 ? (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">
+                          Room Images
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {currentRoom.images.map((image, index) => (
+                            <a
+                              key={index}
+                              href={`${API_BASE}${image.path}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block rounded-md overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                            >
+                              <img
+                                src={`${API_BASE}${image.path}`}
+                                alt={`Room ${currentRoom.roomNumber} - ${
+                                  index + 1
+                                }`}
+                                className="w-full h-32 object-cover"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                        <ImageIcon className="h-12 w-12 text-gray-300 mb-2" />
+                        <p className="text-gray-500 text-sm">
+                          No images available for this room
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3 border-t pt-4">
                       <div>
                         <p className="text-sm text-gray-500">Room Number</p>
                         <p className="font-medium">{currentRoom.roomNumber}</p>
@@ -816,16 +1399,72 @@ const RoomsPage = () => {
                         <p className="font-medium">{currentRoom.view}</p>
                       </div>
                       <div>
+                        <p className="text-sm text-gray-500">Max Adults</p>
+                        <p className="font-medium">{currentRoom.adults}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Owner</p>
+                        <p className="font-medium">{currentRoom.owner}</p>
+                      </div>
+                      <div>
                         <p className="text-sm text-gray-500">Rate per Night</p>
                         <p className="font-medium text-amber-600">
                           Rs {currentRoom.rate.toLocaleString()}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">Owner</p>
-                        <p className="font-medium">{currentRoom.owner}</p>
+                        <p className="text-sm text-gray-500">Showing on website</p>
+                        <p className="font-medium text-amber-600">
+                          {currentRoom.isPubliclyVisible ? 'Yes' : 'No'}
+                        </p>
                       </div>
                     </div>
+
+                    {currentRoom.cleaniness && (
+                      <div className="pt-2">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">
+                          Cleanliness
+                        </h4>
+                        <div className="p-4 bg-slate-50 border border-slate-200 rounded-md">
+                          <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                            {currentRoom.cleaniness}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {currentRoom.amenities &&
+                      currentRoom.amenities.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-700 mt-4 mb-2">
+                            Amenities
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {currentRoom.amenities.map((amenity) => (
+                              <Badge
+                                key={amenity}
+                                variant="secondary"
+                                className="font-normal"
+                              >
+                                {amenity}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                    {currentRoom.publicDescription && (
+                      <div className="pt-2">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">
+                          Public Website Description
+                        </h4>
+                        <div className="p-4 bg-slate-50 border border-slate-200 rounded-md">
+                          <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                            {currentRoom.publicDescription}
+                          </p>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="pt-4 flex justify-end space-x-2">
                       <DialogClose asChild>

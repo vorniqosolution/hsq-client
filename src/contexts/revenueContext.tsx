@@ -1,6 +1,3 @@
-
-
-
 import React, {
   createContext,
   useContext,
@@ -18,13 +15,10 @@ const apiClient: AxiosInstance = axios.create({
   withCredentials: true,
 });
 
-// --- TypeScript Interfaces for Backend Responses ---
-// These define the expected data shapes from your API endpoints.
-
 export interface AllRevenueResponse {
   success: boolean;
   totalRevenue: number;
-  totalReservations: number;
+  invoiceCount: number;
 }
 
 export interface MonthlyRevenueResponse {
@@ -33,7 +27,7 @@ export interface MonthlyRevenueResponse {
   year: number;
   monthlyrevenue: {
     totalRevenue: number;
-    totalReservations: number;
+    invoiceCount: number;
   };
 }
 
@@ -41,7 +35,7 @@ export interface YearlyRevenueResponse {
   success: boolean;
   year: number;
   totalRevenue: number;
-  totalReservations: number;
+  invoiceCount: number;
 }
 
 export interface RoomCategoryRevenueResponse {
@@ -51,7 +45,7 @@ export interface RoomCategoryRevenueResponse {
   categories: {
     _id: string; // category name
     totalRevenue: number;
-    totalReservations: number;
+    invoiceCount: number;
     category: string;
   }[];
 }
@@ -67,7 +61,7 @@ export interface DiscountedGuestsResponse {
     totalRent: number;
     applyDiscount: boolean;
     additionaldiscount: number;
-    discountTitle: string;
+    discountAmount: number;
     roomNumber: string;
     roomCategory: string;
     createdByEmail: string;
@@ -80,7 +74,7 @@ export interface WeeklyRevenueResponse {
   year: number;
   weeklyrevenue: {
     totalRevenue: number;
-    totalReservations: number;
+    invoiceCount: number;
   };
 }
 
@@ -90,15 +84,9 @@ export interface DailyRevenueResponse {
   month: number;
   year: number;
   totalRevenue: number;
-  totalReservations: number;
+  invoiceCount: number;
 }
 
-// --- End of Interfaces ---
-
-
-// --- REFACTORED CONTEXT ---
-
-// A Union Type to represent any possible data shape from the API
 type ReportData =
   | AllRevenueResponse
   | MonthlyRevenueResponse

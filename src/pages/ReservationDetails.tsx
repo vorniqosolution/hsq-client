@@ -99,15 +99,9 @@ const ReservationDetailsPage: React.FC = () => {
   const isAdmin = user?.role === "admin";
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const {
-    getReservationById,
-    // updateReservationStatus, // ensure your context exports this; otherwise remove handleStatusUpdate entirely
-    loading,
-    error,
-  } = useReservationContext();
+  const { getReservationById, loading, error } = useReservationContext();
 
-  const { rooms } = useRoomContext();
-  const { allRooms } = useGuestContext();
+  const { rooms: allRooms } = useRoomContext();
 
   const [reservation, setReservation] = useState<Reservation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -141,29 +135,18 @@ const ReservationDetailsPage: React.FC = () => {
   // Get room details using multiple strategies
   const roomDetails = useMemo(() => {
     if (!reservation) return null;
-
-    // First check if the room property is already populated
     if (isPopulatedRoom(reservation.room)) {
       return reservation.room;
     }
-
-    // Try to find room in allRooms from GuestContext
+    // Simple fallback: find the room in the master list from RoomContext
     if (allRooms && allRooms.length) {
-      const guestContextRoom = allRooms.find(
-        (room) => room.roomNumber === reservation.roomNumber
-      );
-      if (guestContextRoom) return guestContextRoom;
-    }
-
-    // Fallback to RoomContext if not found
-    if (rooms && rooms.length) {
       return (
-        rooms.find((room) => room.roomNumber === reservation.roomNumber) || null
+        allRooms.find((room) => room.roomNumber === reservation.roomNumber) ||
+        null
       );
     }
-
     return null;
-  }, [reservation, allRooms, rooms]);
+  }, [reservation, allRooms]);
 
   // Calculate duration and total price
   const reservationDetails = useMemo(() => {
@@ -177,7 +160,7 @@ const ReservationDetailsPage: React.FC = () => {
     let roomRate = 0;
 
     if (roomDetails) {
-      roomRate = roomDetails.rate || roomDetails.price || 0;
+      roomRate = roomDetails.rate || 0;
       totalPrice = roomRate * days;
     }
 
@@ -288,7 +271,7 @@ const ReservationDetailsPage: React.FC = () => {
   const getRoomCategory = () => {
     if (!roomDetails) return "—";
     return (
-      roomDetails.category || roomDetails.type || roomDetails.roomType || "—"
+      roomDetails.category || "—"
     );
   };
 
@@ -436,109 +419,19 @@ const ReservationDetailsPage: React.FC = () => {
                     <div className="ml-auto">
                       {getStatusBadge(reservation.status)}
                     </div>
-
-                    {/* HYBRID navigate: URL param + state prefill */}
-                    {/* <Button
-                      variant="outline"
-                      onClick={() => {
-                        const roomNum =
-                          typeof reservation.room === "object"
-                            ? reservation.room.roomNumber
-                            : reservation.roomNumber;
-                        const days = Math.max(
-                          1,
-                          differenceInCalendarDays(
-                            parseISO(reservation.endAt),
-                            parseISO(reservation.startAt)
-                          )
-                        );
-
-                        navigate(`/guests?reservation=${reservation._id}`, {
-                          state: {
-                            prefill: {
-                              fullName: reservation.fullName,
-                              address: reservation.address,
-                              email: reservation.email || "",
-                              phone: reservation.phone,
-                              cnic: reservation.cnic,
-                              roomNumber: roomNum, // <-- critical
-                              stayDuration: Math.max(
-                                1,
-                                differenceInCalendarDays(
-                                  parseISO(reservation.endAt),
-                                  parseISO(reservation.startAt)
-                                )
-                              ),
-                              paymentMethod: "cash",
-                              applyDiscount: false,
-                              additionaldiscount: 0,
-                            },
-                          },
-                        });
-                      }}
-                      disabled={
-                        reservation.status === "checked-in" ||
-                        reservation.status === "checked-out"
-                      }
-                    >
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Check In Guest
-                    </Button> */}
-
                     <Button
-  className="bg-[#0b3b91] hover:bg-[#0a357f] text-white" // navy blue
-  onClick={() => {
-    const roomNum =
-      typeof reservation.room === "object"
-        ? reservation.room.roomNumber
-        : reservation.roomNumber;
-
-    navigate(`/guests?reservation=${reservation._id}`, {
-      state: {
-        prefill: {
-          fullName: reservation.fullName,
-          address: reservation.address,
-          email: reservation.email || "",
-          phone: reservation.phone,
-          cnic: reservation.cnic,
-          roomNumber: roomNum,
-          stayDuration: Math.max(
-            1,
-            differenceInCalendarDays(
-              parseISO(reservation.endAt),
-              parseISO(reservation.startAt)
-            )
-          ),
-          paymentMethod: "cash",
-          applyDiscount: false,
-          additionaldiscount: 0,
-          reservationId: reservation._id, // <-- IMPORTANT
-        },
-      },
-    });
-  }}
-  disabled={reservation.status === "checked-in" || reservation.status === "checked-out"}
->
-  <CheckCircle className="mr-2 h-4 w-4" />
-  Check In Guest
-</Button>
-
-                    {/* <Button
-                      // variant="outline"  // remove this
-                      variant="default"
-                      className="bg-amber-500 hover:bg-amber-600 text-white disabled:bg-blue-400 disabled:opacity-70 disabled:cursor-not-allowed"
+                      className="bg-[#0b3b91] hover:bg-[#0a357f] text-white"
                       onClick={() => {
                         const roomNum =
                           typeof reservation.room === "object"
                             ? reservation.room.roomNumber
                             : reservation.roomNumber;
 
-                        const days = Math.max(
-                          1,
-                          differenceInCalendarDays(
-                            parseISO(reservation.endAt),
-                            parseISO(reservation.startAt)
-                          )
+                        // Correctly format the dates for the guest check-in form
+                        const checkInDate = format(new Date(), "yyyy-MM-dd"); // Check-in is always today
+                        const checkOutDate = format(
+                          parseISO(reservation.endAt),
+                          "yyyy-MM-dd"
                         );
 
                         navigate(`/guests?reservation=${reservation._id}`, {
@@ -550,10 +443,9 @@ const ReservationDetailsPage: React.FC = () => {
                               phone: reservation.phone,
                               cnic: reservation.cnic,
                               roomNumber: roomNum,
-                              stayDuration: days,
-                              paymentMethod: "cash",
-                              applyDiscount: false,
-                              additionaldiscount: 0,
+                              checkInDate: checkInDate, // <-- SENDS CORRECT DATA
+                              checkOutDate: checkOutDate, // <-- SENDS CORRECT DATA
+                              reservationId: reservation._id, // Pass the ID for linking
                             },
                           },
                         });
@@ -565,7 +457,7 @@ const ReservationDetailsPage: React.FC = () => {
                     >
                       <CheckCircle className="mr-2 h-4 w-4" />
                       Check In Guest
-                    </Button> */}
+                    </Button>
                   </div>
                 </CardHeader>
 

@@ -10,14 +10,12 @@ import React, {
 import axios, { AxiosError, AxiosInstance } from "axios";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Create a configured Axios instance to avoid repetition
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE,
   withCredentials: true,
 });
 
-// Type definitions
 export interface Room {
   _id: string;
   roomNumber: string;
@@ -35,7 +33,7 @@ export interface Guest {
   phone: string;
   email?: string;
   cnic: string;
-  room: Room;
+  room: Room | null; // Allow null explicitly
   checkInAt: string;
   checkOutAt?: string;
   status: "checked-in" | "checked-out";
@@ -64,19 +62,6 @@ export interface Invoice {
   pdfPath?: string;
 }
 
-// export interface CreateGuestInput {
-//   fullName: string;
-//   address: string;
-//   phone: string;
-//   cnic: string;
-//   email?: string;
-//   roomNumber: string;
-//   stayDuration: number;
-//   paymentMethod: "cash" | "card" | "online";
-//   applyDiscount: boolean;
-//   additionaldiscount: number;
-// }
-
 export interface CreateGuestInput {
   fullName: string;
   address: string;
@@ -84,24 +69,22 @@ export interface CreateGuestInput {
   cnic: string;
   email?: string;
   roomNumber: string;
-  stayDuration: number;
+  checkInDate: string; // "YYYY-MM-DD"
+  checkOutDate: string; // "YYYY-MM-DD"
   paymentMethod: "cash" | "card" | "online";
   applyDiscount: boolean;
   additionaldiscount: number;
-  reservationId?: string; // <-- NEW
+  reservationId?: string;
 }
 
 interface GuestContextType {
   guests: Guest[];
   guest: Guest | null;
   invoice: Invoice | null;
-  rooms: Room[];
   loading: boolean;
   error: string | null;
-
   fetchGuests: () => Promise<void>;
   fetchGuestsByCategory: (category: string) => Promise<void>;
-  fetchAvailableRooms: () => Promise<void>;
   fetchGuestById: (id: string) => Promise<void>;
   createGuest: (data: CreateGuestInput) => Promise<void>;
   updateGuest: (id: string, data: Partial<Guest>) => Promise<void>;
@@ -115,15 +98,12 @@ const GuestContext = createContext<GuestContextType | undefined>(undefined);
 
 export const GuestProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
-  // State
   const [guests, setGuests] = useState<Guest[]>([]);
   const [guest, setGuest] = useState<Guest | null>(null);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
-  const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Helper function to handle API calls with consistent loading/error states
   const apiCall = useCallback(
     async <T,>(
       fn: () => Promise<T>,
@@ -132,13 +112,11 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
     ): Promise<T> => {
       setLoading(true);
       setError(null);
-
       try {
         const result = await fn();
         if (onSuccess) onSuccess(result);
         return result;
       } catch (err) {
-        // Extract detailed error message if available
         let message = errorMessage;
         if (axios.isAxiosError(err)) {
           const axiosError = err as AxiosError<{ message?: string }>;
@@ -149,7 +127,6 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
         } else if (err instanceof Error) {
           message = err.message;
         }
-
         setError(message);
         throw err;
       } finally {
@@ -159,16 +136,19 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
     []
   );
 
-  // API Functions - wrapped in useCallback to maintain stable references
   const fetchGuests = useCallback(async () => {
     await apiCall(
-      async () => {
-        const res = await apiClient.get<{ guests: Guest[] }>(
-          "/api/guests/get-all-guest"
-        );
-        return res.data.guests;
-      },
-      (guests) => setGuests(guests),
+      () =>
+        apiClient
+          .get<{ guests: Guest[] }>("/api/guests/get-all-guest")
+          .then((res) =>
+            // Ensure room is null if not populated
+            res.data.guests.map((guest) => ({
+              ...guest,
+              room: guest.room || null,
+            }))
+          ),
+      (data) => setGuests(data),
       "Failed to fetch guests"
     );
   }, [apiCall]);
@@ -176,43 +156,36 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
   const fetchGuestsByCategory = useCallback(
     async (category: string) => {
       await apiCall(
-        async () => {
-          const res = await apiClient.get<{ data: Guest[] }>(
-            `/api/guests/get-guest-by-category?category=${encodeURIComponent(
-              category
-            )}`
-          );
-          return res.data.data;
-        },
-        (guests) => setGuests(guests),
+        () =>
+          apiClient
+            .get<{ data: Guest[] }>(
+              `/api/guests/get-guest-by-category?category=${encodeURIComponent(
+                category
+              )}`
+            )
+            .then((res) => res.data.data),
+        (data) => setGuests(data),
         `Failed to fetch guests in category: ${category}`
       );
     },
     [apiCall]
   );
 
-  const fetchAvailableRooms = useCallback(async () => {
-    await apiCall(
-      async () => {
-        const res = await apiClient.get<{ rooms: Room[] }>(
-          "/api/rooms/get-available-rooms"
-        );
-        return res.data.rooms;
-      },
-      (rooms) => setRooms(rooms),
-      "Failed to fetch available rooms"
-    );
-  }, [apiCall]);
-
   const fetchGuestById = useCallback(
     async (id: string) => {
       await apiCall(
-        async () => {
-          const res = await apiClient.get<{
-            data: { guest: Guest; invoice: Invoice | null };
-          }>(`/api/guests/get-Guest-By-Id/${id}`);
-          return res.data.data;
-        },
+        () =>
+          apiClient
+            .get<{ data: { guest: Guest; invoice: Invoice | null } }>(
+              `/api/guests/get-Guest-By-Id/${id}`
+            )
+            .then((res) => ({
+              ...res.data.data,
+              guest: {
+                ...res.data.data.guest,
+                room: res.data.data.guest.room || null,
+              },
+            })),
         (data) => {
           setGuest(data.guest);
           setInvoice(data.invoice);
@@ -226,31 +199,19 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
   const createGuest = useCallback(
     async (data: CreateGuestInput) => {
       await apiCall(
-        async () => {
-          await apiClient.post("/api/guests/create-guest", data);
-          
-          // We'll return nothing here
-        },
-        async () => {
-          // After successful creation, refresh data
-          await Promise.all([fetchGuests(), fetchAvailableRooms()]);
-        },
+        () => apiClient.post("/api/guests/create-guest", data),
+        () => fetchGuests(),
         "Failed to create guest"
       );
     },
-    [apiCall, fetchGuests, fetchAvailableRooms]
+    [apiCall, fetchGuests]
   );
 
   const updateGuest = useCallback(
     async (id: string, data: Partial<Guest>) => {
       await apiCall(
-        async () => {
-          await apiClient.patch(`/api/guests/update-guest/${id}`, data);
-        },
-        async () => {
-          // After successful update, refresh data
-          await Promise.all([fetchGuestById(id), fetchGuests()]);
-        },
+        () => apiClient.patch(`/api/guests/update-guest/${id}`, data),
+        () => Promise.all([fetchGuestById(id), fetchGuests()]),
         "Failed to update guest"
       );
     },
@@ -260,36 +221,21 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
   const checkoutGuest = useCallback(
     async (id: string) => {
       await apiCall(
-        async () => {
-          await apiClient.patch(
-            `/api/guests/check-out-Guest/${id}/checkout`,
-            {}
-          );
-        },
-        async () => {
-          // After successful checkout, refresh all relevant data in parallel
-          await Promise.all([
-            fetchGuests(),
-            fetchGuestById(id),
-            fetchAvailableRooms(),
-          ]);
-        },
+        () => apiClient.patch(`/api/guests/check-out-Guest/${id}/checkout`, {}),
+        () => Promise.all([fetchGuests(), fetchGuestById(id)]),
         "Failed to check out guest"
       );
     },
-    [apiCall, fetchGuests, fetchGuestById, fetchAvailableRooms]
+    [apiCall, fetchGuests, fetchGuestById]
   );
 
   const deleteGuest = useCallback(
     async (id: string) => {
       await apiCall(
-        async () => {
-          await apiClient.delete(`/api/guests/guests/${id}`);
-        },
-        async () => {
-          // Optimistic UI update
+        () => apiClient.delete(`/api/guests/guests/${id}`),
+        () => {
           setGuests((prev) => prev.filter((g) => g._id !== id));
-          await fetchGuests();
+          fetchGuests(); // Re-sync with the server
         },
         "Failed to delete guest"
       );
@@ -297,7 +243,6 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
     [apiCall, fetchGuests]
   );
 
-  // This is a synchronous function, so we don't need the apiCall helper
   const downloadInvoicePdf = useCallback((invoiceId: string) => {
     window.open(`${API_BASE}/api/invoice/${invoiceId}/download`, "_blank");
   }, []);
@@ -305,9 +250,7 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
   const sendInvoiceByEmail = useCallback(
     async (invoiceId: string) => {
       await apiCall(
-        async () => {
-          await apiClient.post(`/api/invoice/${invoiceId}/send-email`, {});
-        },
+        () => apiClient.post(`/api/invoice/${invoiceId}/send-email`, {}),
         undefined,
         "Failed to send invoice email"
       );
@@ -315,36 +258,21 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
     [apiCall]
   );
 
-  // Initial data loading
   useEffect(() => {
     if (user) {
-      const loadInitialData = async () => {
-        setLoading(true);
-        try {
-          await Promise.all([fetchGuests(), fetchAvailableRooms()]);
-        } catch (err) {
-          console.error("Failed to load initial data:", err);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      loadInitialData();
+      fetchGuests();
     }
-  }, [fetchGuests, fetchAvailableRooms, user]);
+  }, [user, fetchGuests]);
 
-  // Memoized context value to prevent unnecessary re-renders
   const contextValue = useMemo(
     () => ({
       guests,
       guest,
       invoice,
-      rooms,
       loading,
       error,
       fetchGuests,
       fetchGuestsByCategory,
-      fetchAvailableRooms,
       fetchGuestById,
       createGuest,
       updateGuest,
@@ -357,12 +285,10 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
       guests,
       guest,
       invoice,
-      rooms,
       loading,
       error,
       fetchGuests,
       fetchGuestsByCategory,
-      fetchAvailableRooms,
       fetchGuestById,
       createGuest,
       updateGuest,
