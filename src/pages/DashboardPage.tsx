@@ -55,28 +55,36 @@ const getRoomState = (room: Room, guests: any[], reservations: any[]) => {
 
   // --- First, find ALL relevant bookings for this room ---
   const guestCheckedInNow = guests.find(
-    (g: { room: { _id: any }; status: string }) =>
-      g.room._id === room._id && g.status === "checked-in"
+    (g) => g.room && g.room._id === room._id && g.status === "checked-in" // ✅ Check room exists
   );
   const guestCheckingOutToday = guests.find(
-    (g: { room: { _id: any }; checkOutAt: string }) =>
-      g.room._id === room._id && g.checkOutAt && isToday(parseISO(g.checkOutAt))
+    (g) =>
+      g.room && // ✅ Add null check
+      g.room._id === room._id &&
+      g.checkOutAt &&
+      isToday(parseISO(g.checkOutAt))
   );
-  const reservationForToday = reservations.find(
-    (r: { room: { _id: any }; status: string; startAt: string }) =>
-      (typeof r.room === "object" ? r.room._id : r.room) === room._id &&
+  const reservationForToday = reservations.find((r) => {
+    if (!r.room) return false; // ✅ Add null check
+    const roomId = typeof r.room === "object" ? r.room._id : r.room;
+    return (
+      roomId === room._id &&
       ["reserved", "confirmed"].includes(r.status) &&
       isToday(parseISO(r.startAt))
-  );
+    );
+  });
 
   const futureReservations = reservations
-    .filter(
-      (r: { room: { _id: any }; status: string; startAt: string; _id: any }) =>
-        (typeof r.room === "object" ? r.room._id : r.room) === room._id &&
+    .filter((r) => {
+      if (!r.room) return false; // ✅ Add null check
+      const roomId = typeof r.room === "object" ? r.room._id : r.room;
+      return (
+        roomId === room._id &&
         ["reserved", "confirmed"].includes(r.status) &&
         isFuture(parseISO(r.startAt)) &&
         r._id !== reservationForToday?._id
-    )
+      );
+    })
     .sort(
       (a: { startAt: string }, b: { startAt: string }) =>
         parseISO(a.startAt).getTime() - parseISO(b.startAt).getTime()
@@ -221,7 +229,9 @@ const DashboardPage = () => {
     }
 
     const occupiedNowIds = new Set(
-      guests.filter((g) => g.status === "checked-in").map((g) => g.room._id)
+      guests
+        .filter((g) => g.status === "checked-in" && g.room && g.room._id)
+        .map((g) => g.room._id)
     );
     const maintenanceNowIds = new Set(
       rooms.filter((r) => r.status === "maintenance").map((r) => r._id)
@@ -233,15 +243,21 @@ const DashboardPage = () => {
           const isRelevant = ["reserved", "confirmed"].includes(r.status);
           const startsBeforeOrToday = parseISO(r.startAt) <= today;
           const endsAfterToday = parseISO(r.endAt) > today;
+          if (!r.room) return false;
           const roomId = typeof r.room === "object" ? r.room._id : r.room;
           return (
             isRelevant &&
             startsBeforeOrToday &&
             endsAfterToday &&
+            roomId &&
             !occupiedNowIds.has(roomId)
           );
         })
-        .map((r) => (typeof r.room === "object" ? r.room._id : r.room))
+        .map((r) => {
+          if (!r.room) return null; // ✅ Safety check
+          return typeof r.room === "object" ? r.room._id : r.room;
+        })
+        .filter(Boolean) // ✅ Remove any null values
     );
 
     const occupiedNowCount = occupiedNowIds.size;
@@ -259,8 +275,8 @@ const DashboardPage = () => {
     ).length;
 
     const totalRevenue = guests
-      .filter((g) => g.status === "checked-in")
-      .reduce((sum, guest) => sum + guest.totalRent, 0);
+      .filter((g) => g.status === "checked-in" && g.totalRent) // ✅ Ensure totalRent exists
+      .reduce((sum, guest) => sum + (guest.totalRent || 0), 0); // ✅ Default to 0
 
     const occupancyRate =
       totalRooms > 0 ? Math.round((occupiedNowCount / totalRooms) * 100) : 0;
@@ -621,7 +637,6 @@ const DashboardPage = () => {
                           <span>{selectedRoomDetails.view}</span>
                         </div>
                         <div className="flex items-center gap-2 text-slate-600">
-                          
                           <span className="font-medium">
                             Rs {selectedRoomDetails.rate.toLocaleString()} /
                             night
@@ -650,5 +665,3 @@ const DashboardPage = () => {
 };
 
 export default DashboardPage;
-
-

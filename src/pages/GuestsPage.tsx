@@ -75,6 +75,7 @@ const GuestsPage: React.FC = () => {
   const isAdmin = user?.role === "admin";
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchCategory, setSearchCategory] = useState("name");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [isCheckInDialogOpen, setIsCheckInDialogOpen] = useState(false);
   const [guestToDelete, setGuestToDelete] = useState<Guest | null>(null);
@@ -124,13 +125,26 @@ const GuestsPage: React.FC = () => {
   const filteredGuests = useMemo(() => {
     if (!searchTerm) return guests;
     const searchLower = searchTerm.toLowerCase();
-    return guests.filter(
-      (g) =>
-        g.fullName.toLowerCase().includes(searchLower) ||
-        g.phone.includes(searchTerm) ||
-        (g.room && g.room.roomNumber.includes(searchTerm))
-    );
-  }, [guests, searchTerm]);
+
+    return guests.filter((guest) => {
+      switch (searchCategory) {
+        case "name":
+          return guest.fullName.toLowerCase().includes(searchLower);
+        case "phone":
+          return guest.phone.includes(searchTerm);
+        case "roomNumber":
+          return guest.room?.roomNumber?.toLowerCase().includes(searchLower);
+        case "status":
+          return guest.status.toLowerCase().includes(searchLower);
+        default:
+          return (
+            guest.fullName.toLowerCase().includes(searchLower) ||
+            guest.phone.includes(searchTerm) ||
+            guest.room?.roomNumber?.toLowerCase().includes(searchLower)
+          );
+      }
+    });
+  }, [guests, searchTerm, searchCategory]);
 
   const handleApplyCategoryFilter = useCallback(() => {
     if (categoryFilter) {
@@ -141,8 +155,9 @@ const GuestsPage: React.FC = () => {
   const handleClearFilters = useCallback(() => {
     setCategoryFilter("");
     setSearchTerm("");
+    setSearchCategory("name"); // Reset search category to default
     fetchGuests();
-  }, [fetchGuests]);
+}, [fetchGuests]);
 
   const handleDeleteConfirm = useCallback(async () => {
     if (!guestToDelete) return;
@@ -225,7 +240,39 @@ const GuestsPage: React.FC = () => {
             </Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
-            {/* Search and filter UI remains the same */}
+            {/* Search Input and Category Selector */}
+            <div className="flex items-center space-x-2 md:col-span-2">
+              <div className="relative flex-grow">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search guests..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-full"
+                />
+              </div>
+              <Select
+                value={searchCategory}
+                onValueChange={(value) => setSearchCategory(value)}
+              >
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Search by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Name</SelectItem>
+                  <SelectItem value="phone">Phone</SelectItem>
+                  <SelectItem value="roomNumber">Room</SelectItem>
+                  <SelectItem value="status">Status</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Clear Filters Button */}
+            <div className="flex items-center justify-end">
+              <Button variant="secondary" onClick={handleClearFilters}>
+                <X className="mr-2 h-4 w-4" /> Clear
+              </Button>
+            </div>
           </div>
           <div className="relative min-h-[400px]">{renderContent()}</div>
           <CheckInFormDialog
@@ -274,29 +321,6 @@ const GuestCard: React.FC<{ guest: Guest; onDelete: () => void }> = React.memo(
         : "bg-gray-100 text-gray-800";
     return (
       <Card className="hover:shadow transition-shadow">
-        {/* <CardContent className="grid grid-cols-1 md:grid-cols-4 items-center gap-4 p-4">
-          <div className="md:col-span-2 flex flex-col">
-            <p className="font-bold text-lg"> Guest Name: {guest.fullName}</p>
-            <p className="text-sm text-gray-500"> Room Number: {guest.room.roomNumber}</p>
-            <p className="text-sm text-gray-500"> Check In Date: {format(new Date(guest.checkInAt), "yyyy-MM-dd")}</p>
-            <p className="text-sm text-gray-500"> Check Out Date: {format(new Date(guest.checkOutAt), "yyyy-MM-dd")}</p>
-          </div>
-          <div className="flex justify-start md:justify-center">
-            <Badge className={getStatusColor(guest.status)}>
-              {guest.status}
-            </Badge>
-          </div>
-          <div className="flex justify-start md:justify-end items-center gap-2">
-            <Link to={`/guests/${guest._id}`}>
-              <Button variant="outline" size="sm">
-                <Eye className="mr-2 h-4 w-4" /> Details
-              </Button>
-            </Link>
-            <Button variant="destructive" size="sm" onClick={onDelete}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardContent> */}
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             {/* Guest Information Section */}
@@ -316,7 +340,15 @@ const GuestCard: React.FC<{ guest: Guest; onDelete: () => void }> = React.memo(
                     Room
                   </span>
                   <span className="font-medium text-gray-900">
-                    {guest.room.roomNumber}
+                    {guest.room?.roomNumber || "Unassigned"}
+                  </span>
+                </div>                
+                <div className="flex flex-col">
+                  <span className="text-gray-500 text-xs uppercase tracking-wider mb-1">
+                    Phone
+                  </span>
+                  <span className="font-medium text-gray-900">
+                    {guest?.phone || "Null"}
                   </span>
                 </div>
 
@@ -648,9 +680,8 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
                   }
                 />
               </SelectTrigger>
-              
+
               <SelectContent>
-                
                 {selectableRooms.length > 0 ? (
                   selectableRooms.map((r) => {
                     const isTheReservedRoom =
