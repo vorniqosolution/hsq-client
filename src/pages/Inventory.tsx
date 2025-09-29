@@ -303,25 +303,6 @@ const InventoryPage = () => {
     setItemModalOpen(true);
   };
 
-  // Open the item modal for editing an existing item
-  const handleEditItem = (item: InventoryItem) => {
-    setItemForm({
-      _id: item._id,
-      name: item.name,
-      // FIX: Safely access category ID, checking for null.
-      category:
-        typeof item.category === "object" && item.category
-          ? item.category._id
-          : String(item.category || ""),
-      unitPrice: item.unitPrice.toString(),
-      quantityOnHand: item.quantityOnHand.toString(),
-      reorderLevel: item.reorderLevel.toString(),
-      location: item.location || "",
-      defaultCheckInQty: item.defaultCheckInQty.toString(),
-    });
-    setItemModalOpen(true);
-  };
-
   // Save an item (create or update)
   const handleSaveItem = async () => {
     try {
@@ -877,13 +858,6 @@ const InventoryPage = () => {
                                   >
                                     <RefreshCw className="h-4 w-4 mr-2" />
                                     Restock
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="cursor-pointer"
-                                    onClick={() => handleEditItem(item)}
-                                  >
-                                    <Edit className="h-4 w-4 mr-2" />
-                                    Edit Item
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     className="cursor-pointer text-red-600"
