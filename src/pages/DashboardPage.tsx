@@ -23,6 +23,11 @@ import {
   Luggage,
   Mountain,
   UserCheck,
+  ArrowLeftCircle,
+  ArrowRightCircle,
+  Clock,
+  ExternalLink,
+  Hash,
 } from "lucide-react";
 import {
   Card,
@@ -552,7 +557,7 @@ const DashboardPage = () => {
                   </DialogHeader>
 
                   <div className="px-6 pb-6 space-y-6">
-                    {/* === CURRENT ACTIVITY SECTION === */}
+                    {/* // === CURRENT ACTIVITY SECTION */}
                     <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
                       <h4 className="text-sm font-semibold text-slate-800 mb-3">
                         Current Status
@@ -581,18 +586,19 @@ const DashboardPage = () => {
                             <div>
                               <p className="font-semibold text-slate-900">
                                 {details.currentActivity}
+                              </p><p className="font-semibold text-slate-900">
+                                {details.checkInAt}
                               </p>
-                              <p className="text-xs text-slate-500 uppercase tracking-wider">
+                              {/* <p className="text-xs text-slate-500 uppercase tracking-wider">
                                 {selectedRoomDetails.state}
-                              </p>
+                              </p> */}
                             </div>
                           </>
                         )}
                       </div>
                     </div>
-
-                    {/* === UPCOMING RESERVATIONS SECTION === */}
-                    {typeof details === "object" &&
+                    
+                    {/* {typeof details === "object" &&
                       details.futureBookings &&
                       details.futureBookings.length > 0 && (
                         <div>
@@ -603,7 +609,7 @@ const DashboardPage = () => {
                             {details.futureBookings.map((res) => (
                               <div
                                 key={res._id}
-                                className="flex justify-between items-center p-2 bg-white rounded-md border"
+                                className="flex justify-between items-center p-2 bg-green-300/50 rounded-md border"
                               >
                                 <p className="text-sm font-medium text-slate-700">
                                   {res.fullName}
@@ -616,9 +622,144 @@ const DashboardPage = () => {
                             ))}
                           </div>
                         </div>
-                      )}
+                      )} */}
+                      
+                       {/* === UPCOMING RESERVATIONS SECTION === */}
+                    {typeof details === "object" &&
+                      details.futureBookings &&
+                      details.futureBookings.length > 0 && (
+                        <div className="space-y-3">
+                          {/* Header with count */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-slate-500" />
+                              <h4 className="text-sm font-semibold text-slate-800">
+                                Upcoming Reservations
+                              </h4>
+                            </div>
+                            <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-full font-medium">
+                              {details.futureBookings.length}{" "}
+                              {details.futureBookings.length === 1
+                                ? "booking"
+                                : "bookings"}
+                            </span>
+                          </div>
 
-                    {/* === ROOM DETAILS SECTION === */}
+                          {/* Reservations list */}
+                          <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                            {details.futureBookings.map((res, index) => {
+                              const startDate = parseISO(res.startAt);
+                              const endDate = parseISO(res.endAt);
+                              const nights = Math.ceil(
+                                (endDate.getTime() - startDate.getTime()) /
+                                  (1000 * 60 * 60 * 24)
+                              );
+                              const daysUntilArrival = Math.ceil(
+                                (startDate.getTime() - new Date().getTime()) /
+                                  (1000 * 60 * 60 * 24)
+                              );
+
+                              return (
+                                <div
+                                  key={res._id}
+                                  className="group relative bg-white rounded-lg border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all duration-200 overflow-hidden"
+                                >
+                                  {/* Timeline indicator */}
+                                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 to-emerald-500" />
+
+                                  <div className="p-4 pl-5">
+                                    <div className="flex items-start justify-between gap-4">
+                                      {/* Guest info */}
+                                      <div className="flex items-start gap-3 flex-1">
+                                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-100 to-green-100 flex items-center justify-center flex-shrink-0">
+                                          <span className="text-sm font-semibold text-emerald-700">
+                                            {res.fullName
+                                              .split(" ")
+                                              .map((n) => n[0])
+                                              .join("")
+                                              .toUpperCase()
+                                              .slice(0, 2)}
+                                          </span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="font-medium text-slate-900 truncate">
+                                            {res.fullName}
+                                          </p>
+                                          <div className="flex items-center gap-2 mt-1">
+                                            <Clock className="h-3 w-3 text-slate-400" />
+                                            <p className="text-xs text-slate-500">
+                                              {daysUntilArrival > 0
+                                                ? `Arrives in ${daysUntilArrival} ${
+                                                    daysUntilArrival === 1
+                                                      ? "day"
+                                                      : "days"
+                                                  }`
+                                                : daysUntilArrival === 0
+                                                ? "Arriving today"
+                                                : "In progress"}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {/* Stay duration badge */}
+                                      <div className="flex flex-col items-end gap-1">
+                                        <span className="text-xs px-2 py-1 bg-emerald-50 text-emerald-700 rounded-md font-medium">
+                                          {nights}{" "}
+                                          {nights === 1 ? "night" : "nights"}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* Date range */}
+                                    <div className="mt-3 pt-3 border-t border-slate-100">
+                                      <div className="flex items-center justify-between text-xs">
+                                        <div className="flex items-center gap-4">
+                                          <div className="flex items-center gap-1.5">
+                                            <ArrowRightCircle className="h-3.5 w-3.5 text-emerald-500" />
+                                            <span className="text-slate-600 font-medium">
+                                              {format(startDate, "MMM d, yyyy")}
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center gap-1.5">
+                                            <ArrowLeftCircle className="h-3.5 w-3.5 text-slate-400" />
+                                            <span className="text-slate-600 font-medium">
+                                              {format(endDate, "MMM d, yyyy")}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Optional: Booking reference */}
+                                    {res.bookingRef && (
+                                      <div className="mt-2 flex items-center gap-1">
+                                        <Hash className="h-3 w-3 text-slate-400" />
+                                        <span className="text-xs text-slate-500">
+                                          Ref: {res.bookingRef}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Hover action (optional) */}
+                                  
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Show more indicator if many bookings */}
+                          {details.futureBookings.length > 3 && (
+                            <div className="text-center pt-2">
+                              <p className="text-xs text-slate-500">
+                                Scroll to see all reservations
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    {/* //=== ROOM DETAILS SECTION === */}
                     <div>
                       <h4 className="text-sm font-semibold text-slate-800 mb-2 pt-4 border-t">
                         Room Details
