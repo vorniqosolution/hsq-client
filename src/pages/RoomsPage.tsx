@@ -72,7 +72,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Room, RoomImage, useRoomContext } from "../contexts/RoomContext";
+import { Room, useRoomContext } from "../contexts/RoomContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Sidebar from "@/components/Sidebar";
@@ -119,7 +119,7 @@ const RoomsPage = () => {
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [existingImages, setExistingImages] = useState<RoomImage[]>([]);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
   const [deletedImages, setDeletedImages] = useState<string[]>([]);
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(true);
@@ -223,8 +223,9 @@ const RoomsPage = () => {
     setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const removeExistingImage = (filename: string) => {
-    setDeletedImages((prev) => [...prev, filename]);
+  const removeExistingImage = (imageUrl: string) => {
+    // <-- Parameter changed
+    setDeletedImages((prev) => [...prev, imageUrl]);
   };
 
   const handleEditRoom = (room: Room) => {
@@ -875,7 +876,7 @@ const RoomsPage = () => {
                     {room.images && room.images.length > 0 ? (
                       <div className="mb-3">
                         <img
-                          src={`${API_BASE}${room.images[0].path}`}
+                          src={room.images[0]}
                           alt={`Room ${room.roomNumber}`}
                           className="w-full h-40 object-cover rounded-md shadow-sm"
                         />
@@ -1226,12 +1227,12 @@ const RoomsPage = () => {
                           <div className="grid grid-cols-3 gap-2">
                             {existingImages
                               .filter(
-                                (img) => !deletedImages.includes(img.filename)
+                                (imageUrl) => !deletedImages.includes(imageUrl)
                               )
-                              .map((image, index) => (
+                              .map((imageUrl, index) => (
                                 <div key={index} className="relative group">
                                   <img
-                                    src={`${API_BASE}${image.path}`}
+                                    src={imageUrl}
                                     alt={`Room ${formData.roomNumber} - ${
                                       index + 1
                                     }`}
@@ -1240,7 +1241,7 @@ const RoomsPage = () => {
                                   <button
                                     type="button"
                                     onClick={() =>
-                                      removeExistingImage(image.filename)
+                                      removeExistingImage(imageUrl)
                                     }
                                     className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-80 hover:opacity-100"
                                   >
@@ -1353,26 +1354,18 @@ const RoomsPage = () => {
                           Room Images
                         </h4>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                          {currentRoom.images.map((image, index) => (
-                            <a
-                              key={index}
-                              href={`${API_BASE}${image.path}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block rounded-md overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-                            >
-                              <img
-                                src={`${API_BASE}${image.path}`}
-                                alt={`Room ${currentRoom.roomNumber} - ${
-                                  index + 1
-                                }`}
-                                className="w-full h-32 object-cover"
-                              />
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
+                          {currentRoom.images.map((imageUrl, index) => (
+                                        <a key={index} href={imageUrl} target="_blank" rel="noopener noreferrer" className="block rounded-md overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                                        <img
+                                            src={imageUrl}
+                                            alt={`Room ${currentRoom.roomNumber} - ${index + 1}`}
+                                            className="w-full h-32 object-cover"
+                                        />
+                                        </a>
+                                    ))}
+                                    </div>
+                                </div>
+                                ) : (
                       <div className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-lg border border-dashed border-gray-200">
                         <ImageIcon className="h-12 w-12 text-gray-300 mb-2" />
                         <p className="text-gray-500 text-sm">
@@ -1413,9 +1406,11 @@ const RoomsPage = () => {
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">Showing on website</p>
+                        <p className="text-sm text-gray-500">
+                          Showing on website
+                        </p>
                         <p className="font-medium text-amber-600">
-                          {currentRoom.isPubliclyVisible ? 'Yes' : 'No'}
+                          {currentRoom.isPubliclyVisible ? "Yes" : "No"}
                         </p>
                       </div>
                     </div>

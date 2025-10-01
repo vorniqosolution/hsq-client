@@ -29,7 +29,7 @@ export interface Room {
   status: "available" | "reserved" | "occupied" | "maintenance";
   owner: string;
   dropdownLabel?: string;
-  images?: RoomImage[];
+  images?: string[];
   amenities?: string[];
   isPubliclyVisible?: boolean;
   publicDescription?: string;
@@ -134,10 +134,25 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
     setRoomTimeline([]);
   };
 
+  // const fetchRoomById = async (id: string) => {
+  //   setLoading(true);
+  //   setError(null);
+  //   try {
+  //     const res = await axios.get<{ room: Room }>(`${API_BASE}/api/rooms/get-by-id/${id}`, { withCredentials: true });
+  //     setCurrentRoom(res.data.room);
+  //   } catch (err) {
+  //     console.error(`Fetch room ${id} error:`, err);
+  //     setError(`Failed to fetch room ${id}`);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const fetchRoomById = async (id: string) => {
     setLoading(true);
     setError(null);
     try {
+      // NOTE: The server should return a single `room` object, not `{ data: { room: Room }}`
       const res = await axios.get<{ room: Room }>(`${API_BASE}/api/rooms/get-by-id/${id}`, { withCredentials: true });
       setCurrentRoom(res.data.room);
     } catch (err) {
@@ -148,13 +163,32 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // const createRoom = async (room: Partial<Room> | FormData) => {
+  //   setError(null);
+  //   try {
+  //     const isFormData = room instanceof FormData;
+  //     await axios.post(`${API_BASE}/api/rooms/create-room`, room, {
+  //       withCredentials: true,
+  //       headers: isFormData ? { "Content-Type": "multipart/form-data" } : undefined,
+  //     });
+  //     await fetchRooms();
+  //     return true;
+  //   } catch (err) {
+  //     console.error("Create room error:", err);
+  //     setError("Failed to create room.");
+  //     return false;
+  //   }
+  // };
+
   const createRoom = async (room: Partial<Room> | FormData) => {
     setError(null);
     try {
       const isFormData = room instanceof FormData;
+      // You should not manually set the content-type header for FormData.
+      // Axios does this automatically and includes the necessary boundary.
       await axios.post(`${API_BASE}/api/rooms/create-room`, room, {
         withCredentials: true,
-        headers: isFormData ? { "Content-Type": "multipart/form-data" } : undefined,
+        // headers: isFormData ? { "Content-Type": "multipart/form-data" } : undefined, // This is optional, axios is smart
       });
       await fetchRooms();
       return true;
@@ -165,13 +199,33 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // const updateRoom = async (id: string, roomData: Partial<Room> | FormData) => {
+  //   setError(null);
+  //   try {
+  //     const isFormData = roomData instanceof FormData;
+  //     await axios.put(`${API_BASE}/api/rooms/update-room/${id}`, roomData, {
+  //       withCredentials: true,
+  //       headers: isFormData ? { "Content-Type": "multipart/form-data" } : undefined,
+  //     });
+  //     await fetchRooms();
+  //     if (currentRoom?._id === id) {
+  //       await fetchRoomById(id);
+  //     }
+  //     return true;
+  //   } catch (err) {
+  //     console.error(`Update room ${id} error:`, err);
+  //     setError(`Failed to update room ${id}`);
+  //     return false;
+  //   }
+  // };
+
   const updateRoom = async (id: string, roomData: Partial<Room> | FormData) => {
     setError(null);
     try {
       const isFormData = roomData instanceof FormData;
       await axios.put(`${API_BASE}/api/rooms/update-room/${id}`, roomData, {
         withCredentials: true,
-        headers: isFormData ? { "Content-Type": "multipart/form-data" } : undefined,
+        // headers: isFormData ? { "Content-Type": "multipart/form-data" } : undefined, // Also optional here
       });
       await fetchRooms();
       if (currentRoom?._id === id) {
@@ -200,6 +254,23 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
       return false;
     }
   };
+
+  // const deleteRoom = async (id: string) => {
+  //   setError(null);
+  //   try {
+  //     await axios.delete(`${API_BASE}/api/rooms/delete-room/${id}`, { withCredentials: true });
+  //     setRooms((prev) => prev.filter((room) => room._id !== id));
+  //     if (currentRoom?._id === id) {
+  //       setCurrentRoom(null);
+  //     }
+  //     return true;
+  //   } catch (err) {
+  //     console.error(`Delete room ${id} error:`, err);
+  //     setError(`Failed to delete room ${id}`);
+  //     return false;
+  //   }
+  // };
+  
   useEffect(() => {
     if (user) {
       setLoading(true);
