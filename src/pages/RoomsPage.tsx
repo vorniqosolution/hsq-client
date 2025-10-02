@@ -850,108 +850,128 @@ const RoomsPage = () => {
             </div>
 
             {/* Room Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-6">
               {displayedRooms.map((room) => (
                 <Card
                   key={room._id}
-                  className="hover:shadow-lg transition-shadow"
+                  className="flex flex-col lg:flex-row overflow-hidden hover:shadow-lg transition-shadow duration-300"
                 >
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-xl">
-                        Room {room.roomNumber}
-                      </CardTitle>
-                      <Badge className={getStatusColor(room.status)}>
-                        {room.status.charAt(0).toUpperCase() +
-                          room.status.slice(1)}
-                      </Badge>
-                    </div>
-                    <CardDescription>
-                      {room.dropdownLabel ||
-                        `${room.bedType} ${room.category} ${room.view}`}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {/* Room image thumbnail */}
+                  {/* Image Section */}
+                  <div className="lg:w-1/3 flex-shrink-0">
                     {room.images && room.images.length > 0 ? (
-                      <div className="mb-3">
-                        <img
-                          src={room.images[0]}
-                          alt={`Room ${room.roomNumber}`}
-                          className="w-full h-40 object-cover rounded-md shadow-sm"
-                        />
-                      </div>
+                      <img
+                        src={room.images[0]}
+                        alt={`Room ${room.roomNumber}`}
+                        className="w-full h-48 lg:h-full object-cover"
+                      />
                     ) : (
-                      <div className="mb-3 flex items-center justify-center h-40 bg-gray-100 rounded-md">
-                        <ImageIcon className="h-12 w-12 text-gray-300" />
+                      <div className="flex items-center justify-center w-full h-48 lg:h-full bg-slate-100">
+                        <ImageIcon className="h-12 w-12 text-slate-300" />
                       </div>
                     )}
+                  </div>
 
-                    <div className="flex items-center gap-2 text-gray-600">
-                      {/* <DollarSign className="h-4 w-4 text-amber-500" /> */}
-                      <span>Rs {room.rate.toLocaleString()} per night</span>
+                  {/* Content Section */}
+                  <div className="p-4 flex flex-col flex-grow justify-between lg:w-2/3">
+                    {/* Top part: Title, Description, and Status */}
+                    <div>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="text-xl font-bold text-slate-800">
+                            Room {room.roomNumber}
+                          </h3>
+                          <p className="text-sm text-slate-500 mt-1">
+                            {room.dropdownLabel ||
+                              `${room.bedType} ${room.category} ${room.view}`}
+                          </p>
+                        </div>
+                        <Badge
+                          className={`${getStatusColor(
+                            room.status
+                          )} flex-shrink-0 ml-2`}
+                        >
+                          {room.status.charAt(0).toUpperCase() +
+                            room.status.slice(1)}
+                        </Badge>
+                      </div>
                     </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-end pt-2 gap-2">
-                    {/* View Room Details */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewRoom(room._id)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
 
-                    {/* Edit Room */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditRoom(room)}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
+                    {/* Bottom part: Price and Actions */}
+                    <div className="mt-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                      <div>
+                        <p className="text-sm text-slate-600">Rate</p>
+                        <p className="text-lg font-semibold text-slate-900">
+                          Rs {room.rate.toLocaleString()}
+                          <span className="text-sm font-normal text-slate-500">
+                            {" "}
+                            / night
+                          </span>
+                        </p>
+                      </div>
 
-                    {/* Delete Room */}
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
+                        {/* View Room Details */}
                         <Button
                           variant="outline"
                           size="sm"
-                          className="text-red-600 border-red-200 hover:bg-red-50"
-                          onClick={() => setRoomToDelete(room._id)}
+                          onClick={() => handleViewRoom(room._id)}
                         >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Delete
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            Delete Room {room.roomNumber}?
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This action cannot be undone. This will permanently
-                            delete the room and all associated data.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel
-                            onClick={() => setRoomToDelete(null)}
-                          >
-                            Cancel
-                          </AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={handleDeleteRoom}
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </CardFooter>
+
+                        {/* Edit Room */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditRoom(room)}
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+
+                        {/* Delete Room */}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                              onClick={() => setRoomToDelete(room._id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Delete
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Delete Room {room.roomNumber}?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will
+                                permanently delete the room and all associated
+                                data.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel
+                                onClick={() => setRoomToDelete(null)}
+                              >
+                                Cancel
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={handleDeleteRoom}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </div>
+                  </div>
                 </Card>
               ))}
             </div>
@@ -1355,17 +1375,25 @@ const RoomsPage = () => {
                         </h4>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                           {currentRoom.images.map((imageUrl, index) => (
-                                        <a key={index} href={imageUrl} target="_blank" rel="noopener noreferrer" className="block rounded-md overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                                        <img
-                                            src={imageUrl}
-                                            alt={`Room ${currentRoom.roomNumber} - ${index + 1}`}
-                                            className="w-full h-32 object-cover"
-                                        />
-                                        </a>
-                                    ))}
-                                    </div>
-                                </div>
-                                ) : (
+                            <a
+                              key={index}
+                              href={imageUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block rounded-md overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                            >
+                              <img
+                                src={imageUrl}
+                                alt={`Room ${currentRoom.roomNumber} - ${
+                                  index + 1
+                                }`}
+                                className="w-full h-32 object-cover"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
                       <div className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-lg border border-dashed border-gray-200">
                         <ImageIcon className="h-12 w-12 text-gray-300 mb-2" />
                         <p className="text-gray-500 text-sm">
