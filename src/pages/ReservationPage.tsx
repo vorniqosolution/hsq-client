@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useRef,
 } from "react";
+
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Search,
@@ -36,7 +37,13 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -63,7 +70,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { format, formatDistanceStrict, isAfter, isBefore, parseISO } from "date-fns";
+import {
+  format,
+  formatDistanceStrict,
+  isAfter,
+  isBefore,
+  parseISO,
+} from "date-fns";
 
 // Hooks & Contexts
 import { useToast } from "@/hooks/use-toast";
@@ -75,6 +88,7 @@ import {
   CreateReservationInput,
 } from "@/contexts/ReservationContext";
 import Sidebar from "@/components/Sidebar";
+import {  isWithinInterval } from "date-fns";
 
 interface PopulatedRoom {
   _id: string;
@@ -200,32 +214,47 @@ const ReservationsPage: React.FC = () => {
     fetchReservations();
   }, [fetchReservations]);
 
-  // --- Status helpers ---
   const getReservationStatus = useCallback((reservation: Reservation) => {
-    const now = new Date();
-    const startDate = parseISO(reservation.startAt);
-    const endDate = parseISO(reservation.endAt);
+  if (reservation.status === "checked-out") {
+    return "checked-out"; 
+  }
+  if (reservation.status === "cancelled") {
+    return "cancelled";
+  }
+  const now = new Date();
+  const startDate = parseISO(reservation.startAt);
+  const endDate = parseISO(reservation.endAt);
 
-    console.log("reservation status", reservation.status);
-    if (reservation.status === "cancelled") return "cancelled";
-    // if (reservation.status === "confirmed") return "confirmed";
+  if (reservation.status === "checked-in" || isWithinInterval(now, { start: startDate, end: endDate })) {
+    return "active";
+  }
 
-    if (reservation.status === "checked-in") return "checked-in";
-    if (reservation.status === "checked-out") return "checked-out";
-    if (isAfter(startDate, now)) return "upcoming";
-    if (isBefore(endDate, now)) return "expired";
-    return "reserved";
-  }, []);
+  if (isAfter(startDate, now)) {
+    return "upcoming";
+  }
+  
+  if (isBefore(endDate, now)) {
+    return "expired";
+  }
 
-  // --- Memoized Filtering ---
+  // if (reservation.status === "reserved") {
+  //   return "confirmed";
+  // }
+
+  return reservation.status;
+}, []);
+
   const filteredReservations = useMemo(() => {
     return reservations.filter((reservation) => {
       // Apply search filter
+      const searchLower = searchTerm.toLowerCase();
+
       const matchesSearch =
         !searchTerm ||
-        reservation.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        reservation.phone.includes(searchTerm) ||
-        reservation.roomNumber.includes(searchTerm);
+        reservation.fullName?.toLowerCase().includes(searchLower) ||
+        reservation.phone?.includes(searchTerm) ||
+        // We can now use reservation.roomNumber directly and safely!
+        reservation.roomNumber?.toLowerCase().includes(searchLower);
 
       // Apply status filter
       const status = getReservationStatus(reservation);
@@ -235,7 +264,6 @@ const ReservationsPage: React.FC = () => {
     });
   }, [reservations, searchTerm, statusFilter, getReservationStatus]);
 
-  // --- Event Handlers ---
   const handleFormChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const { name, value } = e.target;
@@ -259,7 +287,6 @@ const ReservationsPage: React.FC = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   }, []);
 
-  // CREATE RESERVATION FUNCTION
   const handleCreateReservation = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -305,7 +332,6 @@ const ReservationsPage: React.FC = () => {
 
   const convertToCheckIn = useCallback(
     (reservation: Reservation) => {
-      // Navigate to the Guest Check-In page with query params
       navigate(`/guests?reservation=${reservation._id}`);
     },
     [navigate]
@@ -313,52 +339,53 @@ const ReservationsPage: React.FC = () => {
 
   const viewReservationDetails = useCallback(
     (reservation: Reservation) => {
-      // Navigate to the reservation details page
       navigate(`/reservation/${reservation._id}`);
     },
     [navigate]
   );
 
-  // --- Status Badge Helper ---
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "checked-in":
-        return (
-          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
-            Confirmed
-          </Badge>
-        );
-      // WORKING STATUSES
-      case "checked-out":
-        return <Badge className="bg-red-600 text-white">Checked Out</Badge>;
-      case "reserved":
-        return (
-          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
-            Reserved
-          </Badge>
-        );
-      case "cancelled":
-        return (
-          <Badge className="bg-red-100 text-red-800 border-red-200">
-            Cancelled
-          </Badge>
-        );
-      case "upcoming":
-        return (
-          <Badge className="bg-blue-100 text-blue-800 border-blue-200">
-            Upcoming
-          </Badge>
-        );
-      case "expired":
-        return (
-          <Badge className="bg-gray-100 text-gray-800 border-gray-200">
-            Expired
-          </Badge>
-        );
-      default:
-        return null;
-    }
-  };
+  switch (status) {
+    case "checked-out":
+      return (
+        <Badge className="bg-slate-100 text-slate-800 border-slate-200">
+          Checked Out
+        </Badge>
+      );
+    case "active":
+      return (
+        <Badge className="bg-sky-100 text-sky-800 border-sky-200">
+          Active
+        </Badge>
+      );
+    // case "confirmed":
+    //   return (
+    //     <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
+    //       Confirmed
+    //     </Badge>
+    //   );
+    case "cancelled":
+      return (
+        <Badge className="bg-red-100 text-red-800 border-red-200">
+          Cancelled
+        </Badge>
+      );
+    case "upcoming":
+      return (
+        <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+          Upcoming
+        </Badge>
+      );
+    case "expired":
+      return (
+        <Badge className="bg-gray-100 text-gray-800 border-gray-200">
+          Expired
+        </Badge>
+      );
+    default:
+      return null;
+  }
+};
 
   const ContentContainer = useCallback(
     ({ children }: { children: React.ReactNode }) => (
@@ -503,9 +530,9 @@ const ReservationsPage: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  {/* <SelectItem value="confirmed">Confirmed - Reserved </SelectItem> */}
                   <SelectItem value="upcoming">Upcoming</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="active">Active - Checked-in</SelectItem>
                   <SelectItem value="expired">Expired</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
@@ -748,7 +775,7 @@ interface ReservationCardProps {
 const ReservationCard = React.memo(
   ({
     reservation,
-    allRooms, // <-- NEW: Accept the allRooms prop
+    allRooms,
     onDelete,
     onCheckIn,
     onViewDetails,
@@ -773,200 +800,148 @@ const ReservationCard = React.memo(
       return null;
     }, [reservation.room, reservation.roomNumber, allRooms]); // <-- CHANGED: dependency updated
 
-    // Get the room number safely
-    const getRoomNumber = () => {
-      if (isPopulatedRoom(reservation.room)) {
-        return reservation.room.roomNumber;
-      }
-      return reservation.roomNumber;
-    };
+    
     return (
-      // <Card className="hover:shadow transition-shadow   duration-300 ">
-      //   <CardContent className="grid grid-cols-1 md:grid-cols-5 items-center gap-4 p-4 h-full">
-      //     <div className="md:col-span-2 flex flex-col">
-      //       <p className="font-bold text-lg truncate">{reservation.fullName}</p>
-      //       <p className="text-sm text-gray-500 truncate">
-      //         {reservation.phone}
-      //       </p>
-      //       {reservation.email && (
-      //         <p className="text-sm text-gray-500 truncate">
-      //           {reservation.email}
-      //         </p>
-      //       )}
-      //     </div>
-
-      //     <div className="flex flex-col">
-      //       <div className="flex items-center">
-      //         <Bed className="h-4 w-4 text-amber-500 mr-1" />
-      //         <p className="text-sm font-medium">Room {getRoomNumber()}</p>
-      //       </div>
-
-      //       {roomDetails && (
-      //         <div className="mt-1">
-      //           <p className="text-xs text-gray-600">
-      //             <span className="font-medium">{roomDetails.category}</span>
-      //             {roomDetails.bedType && (
-      //               <span className="ml-1">• {roomDetails.bedType}</span>
-      //             )}
-      //           </p>
-      //           <p className="text-xs text-amber-600">
-      //             Rs. {roomDetails.rate.toLocaleString()}/night
-      //           </p>
-      //         </div>
-      //       )}
-
-      //       <p className="text-xs text-gray-500 mt-1">
-      //         {format(new Date(reservation.startAt), "MMM d, yyyy")} -{" "}
-      //         {format(new Date(reservation.endAt), "MMM d, yyyy")}
-      //       </p>
-      //     </div>
-
-      //     <div className="flex gap-2">{getStatusBadge(status)}</div>
-
-      //     <div className="flex justify-end items-center gap-2">
-      //       <Button variant="outline" size="sm" onClick={onViewDetails}>
-      //         <Eye className="mr-2 h-4 w-4" /> Details
-      //       </Button>
-      //       {isCheckInEnabled && (
-      //         <Button
-      //           className="bg-blue-900 hover:bg-blue-900 text-white"
-      //           variant="outline"
-      //           size="sm"
-      //           onClick={onCheckIn}
-      //         >
-      //           <CheckCircle2 className="mr-2 h-4 w-4" /> Check In
-      //         </Button>
-      //       )}
-      //       <Button variant="destructive" size="sm" onClick={onDelete}>
-      //         <Trash2 className="h-4 w-4" />
-      //       </Button>
-      //     </div>
-      //   </CardContent>
-      // </Card>
       <Card className="hover:shadow-lg transition-all duration-300 border-gray-100">
         <CardContent className="p-0">
           <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
-  <div className="flex flex-col md:flex-row">
-    {/* Main Content Section (Guest & Booking Details) */}
-    <div className="flex-1">
-      {/* Card Header with Guest Info */}
-      <CardHeader className="pb-4">
-        <div className="flex justify-between items-start gap-4">
-          <div>
-            <CardTitle className="text-xl tracking-tight">
-              {reservation.fullName}
-            </CardTitle>
-            <CardDescription className="flex items-center gap-2 pt-1">
-              <Phone className="h-3.5 w-3.5" />
-              {reservation.phone}
-            </CardDescription>
-          </div>
-          <div className="flex-shrink-0">
-            {getStatusBadge(status)}
-          </div>
-        </div>
-      </CardHeader>
-
-      {/* Card Content with Room & Date Details */}
-      <CardContent className="pt-0">
-        <div className="border-t border-gray-200 pt-4">
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Room Info */}
-            <div className="flex items-start gap-3">
-              <div className="mt-1 p-2 bg-amber-100 rounded-full">
-                <Bed className="h-4 w-4 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-800">
-                  Room {getRoomNumber()}
-                </p>
-                {roomDetails && (
-                  <>
-                    <p className="text-xs text-gray-500">
-                      {roomDetails.category}
-                    </p>
-                    <p className="text-sm font-medium text-gray-900 mt-1">
-                      Rs. {roomDetails.rate.toLocaleString()}
-                      <span className="text-xs font-normal text-gray-500"> / night</span>
-                    </p>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Dates */}
-            <div className="flex items-start gap-3">
-              <div className="mt-1 p-2 bg-blue-100 rounded-full">
-                <CalendarDays className="h-4 w-4 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-800">
-                  Stay Dates
-                </p>
-                <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 mt-1">
-                  <div>
-                    <span className="font-medium text-gray-700 block">
-                      {format(new Date(reservation.startAt), "MMM d, yyyy")}
-                    </span>
-                    <span className="uppercase tracking-wide text-[10px]">Check-in</span>
+            <div className="flex flex-col md:flex-row">
+              {/* Main Content Section (Guest & Booking Details) */}
+              <div className="flex-1">
+                {/* Card Header with Guest Info */}
+                <CardHeader className="pb-4">
+                  <div className="flex justify-between items-start gap-4">
+                    <div>
+                      <CardTitle className="text-xl tracking-tight">
+                        {reservation.fullName}
+                      </CardTitle>
+                      <CardDescription className="flex items-center gap-2 pt-1">
+                        <Phone className="h-3.5 w-3.5" />
+                        {reservation.phone}
+                      </CardDescription>
+                    </div>
+                    <div className="flex-shrink-0">
+                      {getStatusBadge(status)}
+                    </div>
                   </div>
-                  <div>
-                    <span className="font-medium text-gray-700 block">
-                      {format(new Date(reservation.endAt), "MMM d, yyyy")}
-                    </span>
-                    <span className="uppercase tracking-wide text-[10px]">Check-out</span>
+                </CardHeader>
+
+                {/* Card Content with Room & Date Details */}
+                <CardContent className="pt-0">
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="grid md:grid-cols-2 gap-6">
+                      {/* Room Info */}
+                      <div className="flex items-start gap-3">
+                        <div className="mt-1 p-2 bg-amber-100 rounded-full">
+                          <Bed className="h-4 w-4 text-amber-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-800">
+                            
+                            Room {isPopulatedRoom(reservation.room)
+                          ? reservation.room.roomNumber
+                          : reservation.roomNumber}
+                          </p>
+                          {roomDetails && (
+                            <>
+                              <p className="text-xs text-gray-500">
+                                {roomDetails.category}
+                              </p>
+                              <p className="text-sm font-medium text-gray-900 mt-1">
+                                Rs. {roomDetails.rate.toLocaleString()}
+                                <span className="text-xs font-normal text-gray-500">
+                                  {" "}
+                                  / night
+                                </span>
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Dates */}
+                      <div className="flex items-start gap-3">
+                        <div className="mt-1 p-2 bg-blue-100 rounded-full">
+                          <CalendarDays className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-800">
+                            Stay Dates
+                          </p>
+                          <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 mt-1">
+                            <div>
+                              <span className="font-medium text-gray-700 block">
+                                {format(
+                                  new Date(reservation.startAt),
+                                  "MMM d, yyyy"
+                                )}
+                              </span>
+                              <span className="uppercase tracking-wide text-[10px]">
+                                Check-in
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700 block">
+                                {format(
+                                  new Date(reservation.endAt),
+                                  "MMM d, yyyy"
+                                )}
+                              </span>
+                              <span className="uppercase tracking-wide text-[10px]">
+                                Check-out
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                </CardContent>
+              </div>
+
+              {/* Vertical Actions Section for Medium Screens and Up */}
+              <div className="flex md:flex-col items-center justify-between p-4 bg-gray-50/70 border-t md:border-t-0 md:border-l border-gray-200">
+                <div className="text-center md:mb-4">
+                  <Badge variant="outline">
+                    {formatDistanceStrict(
+                      new Date(reservation.endAt),
+                      new Date(reservation.startAt)
+                    )}{" "}
+                    Stay
+                  </Badge>
+                </div>
+                <div className="flex md:flex-col gap-2">
+                  {isCheckInEnabled && (
+                    <Button
+                      size="sm"
+                      onClick={onCheckIn}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Check In
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onViewDetails}
+                    className="w-full bg-white"
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
+                    View
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onDelete}
+                    className="w-full hover:bg-red-50 text-gray-500 hover:text-red-600"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </CardContent>
-    </div>
-
-    {/* Vertical Actions Section for Medium Screens and Up */}
-    <div className="flex md:flex-col items-center justify-between p-4 bg-gray-50/70 border-t md:border-t-0 md:border-l border-gray-200">
-      <div className="text-center md:mb-4">
-        <Badge variant="outline">
-          {formatDistanceStrict(
-            new Date(reservation.endAt),
-            new Date(reservation.startAt)
-          )} Stay
-        </Badge>
-      </div>
-      <div className="flex md:flex-col gap-2">
-        {isCheckInEnabled && (
-          <Button
-            size="sm"
-            onClick={onCheckIn}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-          >
-            <CheckCircle2 className="mr-2 h-4 w-4" />
-            Check In
-          </Button>
-        )}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onViewDetails}
-          className="w-full bg-white"
-        >
-          <Eye className="mr-2 h-4 w-4" />
-          View
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onDelete}
-          className="w-full hover:bg-red-50 text-gray-500 hover:text-red-600"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  </div>
-</Card>
-          
+          </Card>
         </CardContent>
       </Card>
     );

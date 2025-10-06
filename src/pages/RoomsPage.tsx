@@ -123,7 +123,16 @@ const RoomsPage = () => {
   const [deletedImages, setDeletedImages] = useState<string[]>([]);
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(true);
-  const location = useLocation();
+
+  const roomCategories = [
+    "Standard",
+    "Deluxe",
+    "Duluxe-Plus",
+    "Executive",
+    "Presidential",
+  ];
+
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   const [formData, setFormData] = useState<Partial<Room>>({
     roomNumber: "",
@@ -197,10 +206,10 @@ const RoomsPage = () => {
       deletedImages.length +
       files.length;
 
-    if (totalImages > 6) {
+    if (totalImages > 3) {
       toast({
         title: "Too many images",
-        description: "You can only upload up to 6 images per room",
+        description: "You can only upload up to 3 images per room",
         variant: "destructive",
       });
       return;
@@ -208,7 +217,6 @@ const RoomsPage = () => {
 
     setSelectedImages((prev) => [...prev, ...files]);
 
-    // Create previews
     files.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -224,7 +232,6 @@ const RoomsPage = () => {
   };
 
   const removeExistingImage = (imageUrl: string) => {
-    // <-- Parameter changed
     setDeletedImages((prev) => [...prev, imageUrl]);
   };
 
@@ -238,7 +245,7 @@ const RoomsPage = () => {
     setImagePreviews([]);
     setIsEditDialogOpen(true);
   };
-  // Open room details view
+
   const handleViewRoom = (roomId: string) => {
     if (fetchRoomById) {
       fetchRoomById(roomId)
@@ -253,7 +260,7 @@ const RoomsPage = () => {
         });
     }
   };
-  // Handle create room submission
+
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!createRoom) return;
@@ -300,7 +307,7 @@ const RoomsPage = () => {
       });
     }
   };
-  // Handle update room submission
+
   const handleUpdateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!updateRoom || !formData._id) return;
@@ -354,7 +361,7 @@ const RoomsPage = () => {
       });
     }
   };
-  // Handle room deletion
+
   const handleDeleteRoom = async () => {
     if (!deleteRoom || !roomToDelete) return;
 
@@ -413,7 +420,6 @@ const RoomsPage = () => {
     }
   };
 
-  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -431,7 +437,6 @@ const RoomsPage = () => {
       <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)} />
       {/* Main content */}
       <div className={`flex-1 ${isAdmin ? "lg:ml-0" : ""}`}>
-        {/* Mobile header - only for admin */}
         {isAdmin && (
           <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4">
             <div className="flex items-center justify-between">
@@ -451,55 +456,199 @@ const RoomsPage = () => {
             </div>
           </div>
         )}
-
         {/* Room content - enhanced with tabs and CRUD operations */}
         <div className="p-6 ">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
               <div className="w-full mb-6">
                 <Card className="p-6">
-                  {/* Search Section */}
-                  <div className="flex flex-col md:flex-row gap-4 items-end mb-6">
-                    <div className="flex-1">
-                      <Label htmlFor="checkin">Check-in Date</Label>
-                      <Input
-                        id="checkin"
-                        type="date"
-                        value={searchDates.checkin}
-                        onChange={(e) =>
-                          setSearchDates({
-                            ...searchDates,
-                            checkin: e.target.value,
-                          })
-                        }
-                        className="mt-1"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <Label htmlFor="checkout">Check-out Date</Label>
-                      <Input
-                        id="checkout"
-                        type="date"
-                        value={searchDates.checkout}
-                        onChange={(e) =>
-                          setSearchDates({
-                            ...searchDates,
-                            checkout: e.target.value,
-                          })
-                        }
-                        className="mt-1"
-                      />
-                    </div>
-                    <Button
-                      onClick={handleSearchAvailableRooms}
-                      className="bg-amber-500 hover:bg-amber-600"
-                    >
-                      <Search className="h-4 w-4 mr-2" />
-                      Find Available Rooms
-                    </Button>
-                  </div>
+                  <div className="backdrop-blur-sm rounded-xl p-6 shadow-sm">
+                    <div className="flex flex-col lg:flex-row gap-4">
+                      <div className="flex-1">
+                        <Label
+                          htmlFor="checkin"
+                          className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2"
+                        >
+                          <Calendar className="h-4 w-4 " />
+                          Check-in Date
+                        </Label>
+                        <div className="relative group">
+                          <Input
+                            id="checkin"
+                            type="date"
+                            value={searchDates.checkin}
+                            min={new Date().toISOString().split("T")[0]}
+                            max={searchDates.checkout || undefined}
+                            onChange={(e) =>
+                              setSearchDates({
+                                ...searchDates,
+                                checkin: e.target.value,
+                              })
+                            }
+                            className={`
+            w-full pl-10 pr-3 py-2.5 
+            border-gray-200 rounded-lg`}
+                            required
+                          />
+                          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
 
-                  {/* Divider */}
+                          {/* Date preview */}
+                          {searchDates.checkin && (
+                            <div className="absolute -bottom-5 left-0 text-xs  font-medium">
+                              {new Date(searchDates.checkin).toLocaleDateString(
+                                "en-US",
+                                {
+                                  weekday: "short",
+                                  month: "short",
+                                  day: "numeric",
+                                }
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="hidden lg:flex items-center justify-center px-2 mt-6">
+                        <div className="flex items-center gap-1">
+                          <div className="w-8 h-[2px] bg-gradient-to-r from-amber-300 to-amber-400"></div>
+                          <Clock className="h-4 w-4 text-amber-400" />
+                          <div className="w-8 h-[2px] bg-gradient-to-r from-amber-400 to-amber-300"></div>
+                        </div>
+                      </div>
+
+                      {/* Check-out Date */}
+                      <div className="flex-1">
+                        <Label
+                          htmlFor="checkout"
+                          className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2"
+                        >
+                          <Calendar className="h-4 w-4" />
+                          Check-out Date
+                          {!searchDates.checkin && (
+                            <span className="text-xs text-gray-400 font-normal">
+                              (Select check-in first)
+                            </span>
+                          )}
+                        </Label>
+                        <div className="relative group">
+                          <Input
+                            id="checkout"
+                            type="date"
+                            value={searchDates.checkout}
+                            min={
+                              searchDates.checkin ||
+                              new Date().toISOString().split("T")[0]
+                            }
+                            onChange={(e) =>
+                              setSearchDates({
+                                ...searchDates,
+                                checkout: e.target.value,
+                              })
+                            }
+                            disabled={!searchDates.checkin}
+                            className={`
+            w-full pl-10 pr-3 py-2.5
+            border-gray-200 rounded-lg
+            focus:ring-2`}
+                            required
+                          />
+                          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+
+                          {/* Date preview */}
+                          {searchDates.checkout && (
+                            <div className="absolute -bottom-5 left-0 text-xs font-medium">
+                              {new Date(
+                                searchDates.checkout
+                              ).toLocaleDateString("en-US", {
+                                weekday: "short",
+                                month: "short",
+                                day: "numeric",
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2 items-end lg:mt-6">
+                        {/* Clear Button */}
+                        {(searchDates.checkin || searchDates.checkout) && (
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setSearchDates({ checkin: "", checkout: "" });
+                              setHasSearched(false);
+                              setActiveTab("all");
+                            }}
+                            className="px-3 py-2.5 transition-all group"
+                            title="Clear dates"
+                          >
+                            <RefreshCw className="h-4 w-4 group-hover:rotate-180 transition-transform duration-500" />
+                          </Button>
+                        )}
+
+                        {/* Search Button */}
+                        <Button
+                          onClick={handleSearchAvailableRooms}
+                          disabled={
+                            !searchDates.checkin ||
+                            !searchDates.checkout ||
+                            loading
+                          }
+                          className={`
+          relative overflow-hidden
+          px-6 py-2.5 font-medium
+          bg-gradient-to-r from-amber-500 to-amber-600
+          hover:from-amber-600 hover:to-amber-700
+          text-white rounded-lg
+          transform transition-all duration-200
+          hover:scale-105 active:scale-95
+          disabled:opacity-50 disabled:cursor-not-allowed
+          disabled:hover:scale-100
+          shadow-lg shadow-amber-500/25
+          group
+        `}
+                        >
+                          <span className="relative z-10 flex items-center gap-2">
+                            {loading ? (
+                              <>
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                                Searching...
+                              </>
+                            ) : (
+                              <>
+                                <Search className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                                Find Available Rooms
+                              </>
+                            )}
+                          </span>
+                          <div className="absolute inset-0 bg-gradient-to-r from-amber-600 to-amber-700 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300" />
+                        </Button>
+                      </div>
+                    </div>
+                    {hasSearched && (
+                      <div
+                        className={`mt-4 pt-4 border-t border-amber-100 animate-in slide-in-from-bottom-2 duration-300`}
+                      >
+                        {availableRooms && availableRooms.length > 0 ? (
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-green-700 font-medium flex items-center gap-2">
+                              <Check className="h-4 w-4 bg-green-100 rounded-full p-0.5" />
+                              Found {availableRooms.length} available room
+                              {availableRooms.length !== 1 ? "s" : ""} for your
+                              selected dates
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                            <p className="text-sm text-orange-700 flex items-center gap-2">
+                              <X className="h-4 w-4" />
+                              No rooms available for these dates. Try different
+                              dates or contact us for assistance.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <div className="border-t border-gray-200 my-4"></div>
 
                   {/* Room Management Section */}
@@ -1210,7 +1359,6 @@ const RoomsPage = () => {
                       </div>
                     </div>
 
-                    {/* --- PASTE THIS NEW BLOCK HERE --- */}
                     <div className="space-y-2 col-span-2">
                       <Label htmlFor="create-publicDescription">
                         Public Description (for Website)
@@ -1232,13 +1380,9 @@ const RoomsPage = () => {
                         website.
                       </p>
                     </div>
-                    {/* --- END OF NEW BLOCK --- */}
 
-                    {/* Image Upload Section */}
                     <div className="col-span-2 space-y-2">
-                      <Label>Room Images (Max 6)</Label>
-
-                      {/* Existing images */}
+                      <Label>Room Images (Max 3)</Label>
                       {existingImages && existingImages.length > 0 && (
                         <>
                           <div className="text-sm text-gray-500 mb-2">
@@ -1292,7 +1436,7 @@ const RoomsPage = () => {
                             Click to upload new images
                           </span>
                           <span className="text-xs text-gray-500 mt-1">
-                            JPG, PNG or GIF • Max 6 images total
+                            JPG, PNG or GIF • Max 3 images total
                           </span>
                         </label>
                       </div>
