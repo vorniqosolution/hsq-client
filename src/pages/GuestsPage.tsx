@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
-// NEW: Import `format` from date-fns for handling date strings
+import { Link, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import Sidebar from "@/components/Sidebar";
 import { Search, Eye, Trash2, UserPlus, X, Menu, Crown } from "lucide-react";
@@ -10,6 +9,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationPrevious,
+  PaginationLink,
+  PaginationNext,
+} from "@/components/ui/pagination";
 import {
   Dialog,
   DialogContent,
@@ -39,12 +46,9 @@ import {
   Guest,
   CreateGuestInput,
 } from "@/contexts/GuestContext";
-// NEW: Import RoomContext to fetch available rooms for the check-in form
 import { useRoomContext, Room } from "@/contexts/RoomContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useReservationContext } from "../contexts/ReservationContext";
-
-const ROOM_CATEGORIES = ["Standard", "Deluxe", "Executive", "Presidential"];
 
 const INITIAL_FORM_STATE: CreateGuestInput = {
   fullName: "",
@@ -66,25 +70,24 @@ const GuestsPage: React.FC = () => {
     loading: guestsLoading,
     error,
     fetchGuests,
-    fetchGuestsByCategory,
     createGuest,
     deleteGuest,
   } = useGuestContext();
 
+  const { toast } = useToast();
   const { user } = useAuth();
+  const { getReservationById } = useReservationContext();
   const isAdmin = user?.role === "admin";
+  const ITEMS_PER_PAGE = 15;
 
+
+  const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchCategory, setSearchCategory] = useState("name");
-  const [categoryFilter, setCategoryFilter] = useState("");
   const [isCheckInDialogOpen, setIsCheckInDialogOpen] = useState(false);
   const [guestToDelete, setGuestToDelete] = useState<Guest | null>(null);
-  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(true);
-
-  const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { getReservationById } = useReservationContext();
   const [prefill, setPrefill] = useState<Partial<CreateGuestInput> | null>(
     null
   );
@@ -123,6 +126,8 @@ const GuestsPage: React.FC = () => {
   }, [fetchGuests]);
 
   const filteredGuests = useMemo(() => {
+    setCurrentPage(1);
+
     if (!searchTerm) return guests;
     const searchLower = searchTerm.toLowerCase();
 
@@ -146,18 +151,18 @@ const GuestsPage: React.FC = () => {
     });
   }, [guests, searchTerm, searchCategory]);
 
-  const handleApplyCategoryFilter = useCallback(() => {
-    if (categoryFilter) {
-      fetchGuestsByCategory(categoryFilter);
-    }
-  }, [categoryFilter, fetchGuestsByCategory]);
+  const paginatedGuests = useMemo(() => {
+    const firstPageIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const lastPageIndex = firstPageIndex + ITEMS_PER_PAGE;
+    return filteredGuests.slice(firstPageIndex, lastPageIndex);
+  }, [currentPage, filteredGuests]);
+
+  const totalPages = Math.ceil(filteredGuests.length / ITEMS_PER_PAGE);
 
   const handleClearFilters = useCallback(() => {
-    setCategoryFilter("");
     setSearchTerm("");
-    setSearchCategory("name"); // Reset search category to default
     fetchGuests();
-}, [fetchGuests]);
+  }, [fetchGuests]);
 
   const handleDeleteConfirm = useCallback(async () => {
     if (!guestToDelete) return;
@@ -199,7 +204,7 @@ const GuestsPage: React.FC = () => {
     }
     return (
       <div className="space-y-4">
-        {filteredGuests.map((guest) => (
+        {paginatedGuests.map((guest) => (
           <GuestCard
             key={guest._id}
             guest={guest}
@@ -275,6 +280,65 @@ const GuestsPage: React.FC = () => {
             </div>
           </div>
           <div className="relative min-h-[400px]">{renderContent()}</div>
+
+          {/* --- ADD THIS ENTIRE PAGINATION BLOCK HERE --- */}
+          {totalPages > 1 && (
+            <Card className="mt-4">
+              <CardContent className="p-4 flex justify-center">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setCurrentPage((prev) => Math.max(prev - 1, 1));
+                        }}
+                        className={
+                          currentPage === 1
+                            ? "pointer-events-none opacity-50"
+                            : ""
+                        }
+                      />
+                    </PaginationItem>
+
+                    {[...Array(totalPages).keys()].map((num) => (
+                      <PaginationItem key={num}>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentPage(num + 1);
+                          }}
+                          isActive={currentPage === num + 1}
+                        >
+                          {num + 1}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setCurrentPage((prev) =>
+                            Math.min(prev + 1, totalPages)
+                          );
+                        }}
+                        className={
+                          currentPage === totalPages
+                            ? "pointer-events-none opacity-50"
+                            : ""
+                        }
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </CardContent>
+            </Card>
+          )}
+
           <CheckInFormDialog
             isOpen={isCheckInDialogOpen}
             setIsOpen={setIsCheckInDialogOpen}
@@ -319,9 +383,12 @@ const GuestCard: React.FC<{ guest: Guest; onDelete: () => void }> = React.memo(
       status === "checked-in"
         ? "bg-green-100 text-green-800"
         : "bg-red-100 text-red-800 border-red-200";
-    
+
     // Helper function to safely format dates
-    const formatDate = (dateValue: string | undefined, fallback: string = "N/A") => {
+    const formatDate = (
+      dateValue: string | undefined,
+      fallback: string = "N/A"
+    ) => {
       if (!dateValue) return fallback;
       try {
         const date = new Date(dateValue);
@@ -339,7 +406,7 @@ const GuestCard: React.FC<{ guest: Guest; onDelete: () => void }> = React.memo(
         const checkIn = new Date(guest.checkInAt);
         const checkOut = new Date(guest.checkOutAt);
         if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) return "N/A";
-        
+
         const nights = Math.ceil(
           (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)
         );
@@ -372,7 +439,7 @@ const GuestCard: React.FC<{ guest: Guest; onDelete: () => void }> = React.memo(
                   <span className="font-medium text-gray-900">
                     {guest.room?.roomNumber || "Unassigned"}
                   </span>
-                </div>                
+                </div>
                 <div className="flex flex-col">
                   <span className="text-gray-500 text-xs uppercase tracking-wider mb-1">
                     Phone
@@ -445,114 +512,6 @@ const GuestCard: React.FC<{ guest: Guest; onDelete: () => void }> = React.memo(
     );
   }
 );
-
-// const GuestCard: React.FC<{ guest: Guest; onDelete: () => void }> = React.memo(
-//   ({ guest, onDelete }) => {
-//     const getStatusColor = (status: string) =>
-//       status === "checked-in"
-//         ? "bg-green-100 text-green-800"
-//         : "bg-gray-100 text-gray-800";
-//     return (
-//       <Card className="hover:shadow transition-shadow">
-//         <CardContent className="p-6">
-//           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-//             {/* Guest Information Section */}
-//             <div className="flex-1 space-y-3">
-//               <div className="flex items-start justify-between md:justify-start md:items-center gap-4">
-//                 <h3 className="text-lg font-semibold text-gray-900">
-//                   {guest.fullName}
-//                 </h3>
-//                 <Badge className={`${getStatusColor(guest.status)} md:hidden`}>
-//                   {guest.status}
-//                 </Badge>
-//               </div>
-
-//               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-//                 <div className="flex flex-col">
-//                   <span className="text-gray-500 text-xs uppercase tracking-wider mb-1">
-//                     Room
-//                   </span>
-//                   <span className="font-medium text-gray-900">
-//                     {guest.room?.roomNumber || "Unassigned"}
-//                   </span>
-//                 </div>                
-//                 <div className="flex flex-col">
-//                   <span className="text-gray-500 text-xs uppercase tracking-wider mb-1">
-//                     Phone
-//                   </span>
-//                   <span className="font-medium text-gray-900">
-//                     {guest?.phone || "Null"}
-//                   </span>
-//                 </div>
-
-//                 <div className="flex flex-col">
-//                   <span className="text-gray-500 text-xs uppercase tracking-wider mb-1">
-//                     Check-in
-//                   </span>
-//                   <span className="font-medium text-gray-900">
-//                     {format(new Date(guest.checkInAt), "MMM dd, yyyy")}
-//                   </span>
-//                 </div>
-
-//                 <div className="flex flex-col">
-//                   <span className="text-gray-500 text-xs uppercase tracking-wider mb-1">
-//                     Check-out
-//                   </span>
-//                   <span className="font-medium text-gray-900">
-//                     {format(new Date(guest.checkOutAt), "MMM dd, yyyy")}
-//                   </span>
-//                 </div>
-
-//                 <div className="flex flex-col">
-//                   <span className="text-gray-500 text-xs uppercase tracking-wider mb-1">
-//                     Duration
-//                   </span>
-//                   <span className="font-medium text-gray-900">
-//                     {Math.ceil(
-//                       (new Date(guest.checkOutAt).getTime() -
-//                         new Date(guest.checkInAt).getTime()) /
-//                         (1000 * 60 * 60 * 24)
-//                     )}{" "}
-//                     nights
-//                   </span>
-//                 </div>
-//               </div>
-//             </div>
-
-//             {/* Status Badge - Hidden on mobile, shown in header instead */}
-//             <div className="hidden md:flex items-center px-4">
-//               <Badge className={getStatusColor(guest.status)}>
-//                 {guest.status}
-//               </Badge>
-//             </div>
-
-//             {/* Action Buttons */}
-//             <div className="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 md:border-l md:pl-6">
-//               <Link to={`/guests/${guest._id}`}>
-//                 <Button
-//                   variant="outline"
-//                   size="sm"
-//                   className="hover:bg-gray-50"
-//                 >
-//                   <Eye className="mr-2 h-4 w-4" />
-//                   View Details
-//                 </Button>
-//               </Link>
-//               <Button
-//                 variant="ghost"
-//                 size="sm"
-//                 onClick={onDelete}
-//                 className="hover:bg-red-50 hover:text-red-600"
-//               >
-//                 <Trash2 className="h-4 w-4" />
-//               </Button>
-//             </div>
-//           </div>
-//         </CardContent>
-//       </Card>
-//     );
-//   }
-// );
 
 const GuestListSkeleton: React.FC = () => (
   <div className="space-y-4">
