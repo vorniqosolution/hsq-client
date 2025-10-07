@@ -77,8 +77,6 @@ import {
   isBefore,
   parseISO,
 } from "date-fns";
-
-// Hooks & Contexts
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRoomContext, Room } from "@/contexts/RoomContext";
@@ -89,6 +87,14 @@ import {
 } from "@/contexts/ReservationContext";
 import Sidebar from "@/components/Sidebar";
 import { isWithinInterval } from "date-fns";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationPrevious,
+  PaginationLink,
+  PaginationNext,
+} from "@/components/ui/pagination";
 
 interface PopulatedRoom {
   _id: string;
@@ -157,21 +163,22 @@ const ReservationsPage: React.FC = () => {
     availableRooms,
     fetchAvailableRooms,
   } = useRoomContext();
+
+  const { toast } = useToast();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
 
-  // --- State Management ---
+  const ITEMS_PER_PAGE = 8;
+  const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [formData, setFormData] =
-    useState<CreateReservationInput>(INITIAL_FORM_STATE);
-  const [reservationToDelete, setReservationToDelete] =
-    useState<Reservation | null>(null);
+  const [formData, setFormData] = useState<CreateReservationInput>(INITIAL_FORM_STATE);
+  const [reservationToDelete, setReservationToDelete] = useState<Reservation | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(true);
+
   const hasLoadedRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -234,15 +241,13 @@ const ReservationsPage: React.FC = () => {
   }, []);
 
   const filteredReservations = useMemo(() => {
+    setCurrentPage(1);
     return reservations.filter((reservation) => {
-      // Apply search filter
       const searchLower = searchTerm.toLowerCase();
-
       const matchesSearch =
         !searchTerm ||
         reservation.fullName?.toLowerCase().includes(searchLower) ||
         reservation.phone?.includes(searchTerm) ||
-        // We can now use reservation.roomNumber directly and safely!
         reservation.roomNumber?.toLowerCase().includes(searchLower);
 
       // Apply status filter
@@ -252,6 +257,14 @@ const ReservationsPage: React.FC = () => {
       return matchesSearch && matchesStatus;
     });
   }, [reservations, searchTerm, statusFilter, getReservationStatus]);
+
+  const paginatedData = useMemo(() => {
+    const firstPageIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const lastPageIndex = firstPageIndex + ITEMS_PER_PAGE;
+    return filteredReservations.slice(firstPageIndex, lastPageIndex);
+  }, [currentPage, filteredReservations]);
+
+  const totalPages = Math.ceil(filteredReservations.length / ITEMS_PER_PAGE);
 
   const handleFormChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -434,7 +447,7 @@ const ReservationsPage: React.FC = () => {
 
     return (
       <div className="space-y-2 ">
-        {filteredReservations.map((reservation) => (
+        {paginatedData.map((reservation) => (
           <ReservationCard
             key={reservation._id}
             reservation={reservation}
@@ -554,6 +567,64 @@ const ReservationsPage: React.FC = () => {
 
           {/* BODY OF THE RESERVATION CARDS  define top*/}
           <ContentContainer>{renderedContent}</ContentContainer>
+
+          {totalPages > 1 && (
+            <Card className="mt-4">
+              <CardContent className="p-4 flex justify-center">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setCurrentPage((prev) => Math.max(prev - 1, 1));
+                        }}
+                        className={
+                          currentPage === 1
+                            ? "pointer-events-none opacity-50"
+                            : ""
+                        }
+                      />
+                    </PaginationItem>
+
+                    {/* This part is intentionally simple for client-side pagination */}
+                    {[...Array(totalPages).keys()].map((num) => (
+                      <PaginationItem key={num}>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentPage(num + 1);
+                          }}
+                          isActive={currentPage === num + 1}
+                        >
+                          {num + 1}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setCurrentPage((prev) =>
+                            Math.min(prev + 1, totalPages)
+                          );
+                        }}
+                        className={
+                          currentPage === totalPages
+                            ? "pointer-events-none opacity-50"
+                            : ""
+                        }
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Create Reservation Dialog */}
           <Dialog
@@ -780,20 +851,17 @@ const ReservationCard = React.memo(
     const status = getStatus(reservation);
     const isCheckInEnabled = status === "reserved" || status === "upcoming";
 
-    // Find the room details using multiple strategies
     const roomDetails = useMemo(() => {
       if (isPopulatedRoom(reservation.room)) {
         return reservation.room;
       }
-      // Fallback to finding room in the allRooms prop
       if (allRooms && allRooms.length) {
-        // <-- CHANGED: uses the new `allRooms` prop
         return allRooms.find(
           (room) => room.roomNumber === reservation.roomNumber
         );
       }
       return null;
-    }, [reservation.room, reservation.roomNumber, allRooms]); // <-- CHANGED: dependency updated
+    }, [reservation.room, reservation.roomNumber, allRooms]);
 
     return (
       <Card className="hover:shadow-lg transition-all duration-300 border-gray-100">
@@ -940,8 +1008,8 @@ const ReservationCard = React.memo(
       </Card>
     );
   },
+  
   (prevProps, nextProps) => {
-    // Advanced equality check to prevent unnecessary re-renders
     return (
       prevProps.reservation._id === nextProps.reservation._id &&
       prevProps.getStatus(prevProps.reservation) ===
