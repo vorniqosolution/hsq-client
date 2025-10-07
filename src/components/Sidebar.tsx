@@ -25,9 +25,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
+  
   useEffect(() => {
     console.log("isAdmin", isAdmin);
   }, [isAdmin]);
+
   const mainNavItems = [
     {
       name: "Dashboard",
@@ -82,7 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       roles: ["admin"],
     },
   ];
-  // Filter items based on user role
+ 
   const filteredNavItems = mainNavItems.filter(
     (item) =>
       !item.roles ||
@@ -96,7 +98,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     return location.pathname.startsWith(href);
   };
 
-  // Helper function to render navigation links
   const renderNavLinks = (
     items: Array<{ name: string; href: string; icon: React.ElementType }>
   ) => {
@@ -151,7 +152,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {/* Sidebar */}
       <div
         className={`
-        fixed inset-y-0  min-h-screen max-h-[120vh]  left-0 z-50 w-72  bottom-2 bg-gradient-to-b from-slate-900 to-slate-950
+        fixed inset-y-0 min-h-screen max-h-screen left-0 z-50 w-56  bottom-2 bg-gradient-to-b from-slate-900 to-slate-950
         shadow-2xl transform transition-transform duration-300 ease-in-out
         lg:translate-x-0 lg:static lg:inset-0
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
@@ -165,9 +166,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <h1 className="text-xl font-light tracking-wider text-white">
                 HSQ ADMIN
               </h1>
-              <p className="text-xs text-amber-400/80 tracking-widest uppercase">
-                Management Panel
-              </p>
             </div>
           </div>
           <button
@@ -185,38 +183,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               {renderNavLinks(filteredNavItems)}
             </div>
           </div>
-
-          {/* Bottom Section */}
-          {/* <div className="flex-shrink-0">
-            <div className="my-4 px-4">
-              <div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
-            </div>
-            <div className="space-y-1">
-              {renderNavLinks(systemNavItems)}
-              <button className="group flex items-center px-4 py-3 text-sm text-slate-300 rounded-lg hover:text-white hover:bg-slate-800/50 w-full transition-all duration-200">
-                <LogOut className="mr-3 h-5 w-5 text-slate-400 group-hover:text-slate-300" />
-                <span className="font-light tracking-wide">Sign out</span>
-              </button>
-            </div>
-          </div> */}
         </nav>
-
-        {/* User Profile */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-slate-800/50 bg-slate-950">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-lg">
-              <span className="text-lg font-bold text-slate-900">
-                {user.name.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-light text-white truncate">
-                {user.name}
-              </p>
-              <p className="text-xs text-slate-400 truncate">{user.email}</p>
-            </div>
-          </div>
-        </div>
       </div>
     </>
   );

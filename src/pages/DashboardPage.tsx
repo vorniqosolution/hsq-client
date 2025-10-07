@@ -58,17 +58,10 @@ const getRoomState = (room: Room, guests: any[], reservations: any[]) => {
     return { state: "Maintenance", details: "Out of service" };
   }
 
-  // --- First, find ALL relevant bookings for this room ---
   const guestCheckedInNow = guests.find(
     (g) => g.room && g.room._id === room._id && g.status === "checked-in" // ✅ Check room exists
   );
-  const guestCheckingOutToday = guests.find(
-    (g) =>
-      g.room && // ✅ Add null check
-      g.room._id === room._id &&
-      g.checkOutAt &&
-      isToday(parseISO(g.checkOutAt))
-  );
+
   const reservationForToday = reservations.find((r) => {
     if (!r.room) return false; // ✅ Add null check
     const roomId = typeof r.room === "object" ? r.room._id : r.room;
@@ -78,41 +71,24 @@ const getRoomState = (room: Room, guests: any[], reservations: any[]) => {
       isToday(parseISO(r.startAt))
     );
   });
-
+  
   const futureReservations = reservations
-    .filter((r) => {
-      if (!r.room) return false; // ✅ Add null check
-      const roomId = typeof r.room === "object" ? r.room._id : r.room;
-      return (
-        roomId === room._id &&
-        ["reserved", "confirmed"].includes(r.status) &&
-        isFuture(parseISO(r.startAt)) &&
-        r._id !== reservationForToday?._id
-      );
-    })
-    .sort(
-      (a: { startAt: string }, b: { startAt: string }) =>
-        parseISO(a.startAt).getTime() - parseISO(b.startAt).getTime()
+  .filter((r) => {
+    if (!r.room) return false;
+    const roomId = typeof r.room === "object" ? r.room._id : r.room;
+  
+    return (
+      roomId === room._id &&
+      r.status !== "cancelled" &&
+      r.status !== "checked-out" &&
+      isFuture(parseISO(r.startAt))
     );
+  })
+  .sort(
+    (a: { startAt: string }, b: { startAt: string }) =>
+      parseISO(a.startAt).getTime() - parseISO(b.startAt).getTime()
+  );
 
-  if (guestCheckingOutToday && reservationForToday) {
-    return {
-      state: "Back-to-Back",
-      details: {
-        currentActivity: `Checkout: ${guestCheckingOutToday.fullName} | Arrival: ${reservationForToday.fullName}`,
-        futureBookings: futureReservations,
-      },
-    };
-  }
-  if (guestCheckingOutToday) {
-    return {
-      state: "Departure",
-      details: {
-        currentActivity: `Checkout: ${guestCheckingOutToday.fullName}`,
-        futureBookings: futureReservations,
-      },
-    };
-  }
   if (guestCheckedInNow) {
     return {
       state: "Occupied",
@@ -160,21 +136,9 @@ const getStateStyling = (state: string) => {
       };
     case "Arrival":
       return {
-        color: "bg-blue-100 text-blue-800 border-blue-200",
+        color: "bg-purple-200 text-purple-800 border-purple-100",
         icon: Sun,
         label: "Arrival Today",
-      };
-    case "Departure":
-      return {
-        color: "bg-sky-600 text-sky-100 border-indigo-200",
-        icon: Moon,
-        label: "Departure Today",
-      };
-    case "Back-to-Back":
-      return {
-        color: "bg-purple-100 text-purple-800 border-purple-200",
-        icon: RefreshCcw,
-        label: "Back-to-Back",
       };
     case "Reserved":
       return {
@@ -215,84 +179,56 @@ const DashboardPage = () => {
   }, [fetchRooms, fetchGuests, fetchReservations]);
 
   const hotelStats = useMemo(() => {
-    const today = new Date();
     const totalRooms = rooms.length;
-
     if (totalRooms === 0) {
       return {
         totalRooms: 0,
-        occupiedNow: 0,
-        reservedForToday: 0,
-        maintenanceNow: 0,
-        availableNow: 0,
-        arrivalsToday: 0,
-        departuresToday: 0,
-        totalRevenue: 0,
         occupancyRate: 0,
+        totalRevenue: 0,
         upcomingReservations: [],
+        Available: 0,
+        Occupied: 0,
+        Arrival: 0,
+        Reserved: 0,
+        Maintenance: 0,
       };
     }
 
-    const occupiedNowIds = new Set(
-      guests
-        .filter((g) => g.status === "checked-in" && g.room && g.room._id)
-        .map((g) => g.room._id)
-    );
-    const maintenanceNowIds = new Set(
-      rooms.filter((r) => r.status === "maintenance").map((r) => r._id)
-    );
-
-    const reservedForTodayIds = new Set(
-      reservations
-        .filter((r) => {
-          const isRelevant = ["reserved", "confirmed"].includes(r.status);
-          const startsBeforeOrToday = parseISO(r.startAt) <= today;
-          const endsAfterToday = parseISO(r.endAt) > today;
-          if (!r.room) return false;
-          const roomId = typeof r.room === "object" ? r.room._id : r.room;
-          return (
-            isRelevant &&
-            startsBeforeOrToday &&
-            endsAfterToday &&
-            roomId &&
-            !occupiedNowIds.has(roomId)
-          );
-        })
-        .map((r) => {
-          if (!r.room) return null; // ✅ Safety check
-          return typeof r.room === "object" ? r.room._id : r.room;
-        })
-        .filter(Boolean) // ✅ Remove any null values
+    // This logic now only counts the remaining 5 statuses
+    const detailedRoomCounts = rooms.reduce(
+      (counts, room) => {
+        const { state } = getRoomState(room, guests, reservations);
+        counts[state] = (counts[state] || 0) + 1;
+        return counts;
+      },
+      {
+        // Initialize only the states we are using
+        Available: 0,
+        Occupied: 0,
+        Arrival: 0,
+        Reserved: 0,
+        Maintenance: 0,
+      }
     );
 
-    const occupiedNowCount = occupiedNowIds.size;
-    const reservedForTodayCount = reservedForTodayIds.size;
-    const maintenanceNowCount = maintenanceNowIds.size;
-    const busyRoomsCount =
-      occupiedNowCount + reservedForTodayCount + maintenanceNowCount;
-    const availableNowCount = Math.max(0, totalRooms - busyRoomsCount);
-
-    const arrivalsToday = guests.filter((g) =>
-      isToday(parseISO(g.checkInAt))
-    ).length;
-    const departuresToday = guests.filter(
-      (g) => g.checkOutAt && isToday(parseISO(g.checkOutAt))
-    ).length;
-
+    // Other calculations remain the same
     const totalRevenue = guests
-      .filter((g) => g.status === "checked-in" && g.totalRent) // ✅ Ensure totalRent exists
-      .reduce((sum, guest) => sum + (guest.totalRent || 0), 0); // ✅ Default to 0
+      .filter((g) => g.status === "checked-in" && g.totalRent)
+      .reduce((sum, guest) => sum + (guest.totalRent || 0), 0);
 
+    const currentlyOccupiedCount = detailedRoomCounts.Occupied; // Simplified calculation
     const occupancyRate =
-      totalRooms > 0 ? Math.round((occupiedNowCount / totalRooms) * 100) : 0;
+      totalRooms > 0
+        ? Math.round((currentlyOccupiedCount / totalRooms) * 100)
+        : 0;
 
-    const sevenDaysFromNow = addDays(today, 7);
+    const sevenDaysFromNow = addDays(new Date(), 7);
     const upcomingReservations = reservations
       .filter((r) => {
         const startDate = parseISO(r.startAt);
         return (
           ["reserved", "confirmed"].includes(r.status) &&
-          startDate >= today &&
+          isFuture(startDate) &&
           startDate <= sevenDaysFromNow
         );
       })
@@ -302,28 +238,12 @@ const DashboardPage = () => {
 
     return {
       totalRooms,
-      occupiedNow: occupiedNowCount,
-      reservedForToday: reservedForTodayCount,
-      maintenanceNow: maintenanceNowCount,
-      availableNow: availableNowCount,
-      arrivalsToday,
-      departuresToday,
-      totalRevenue,
       occupancyRate,
+      totalRevenue,
       upcomingReservations,
+      ...detailedRoomCounts,
     };
   }, [rooms, guests, reservations]);
-
-  const roomStatusDataForChart = [
-    { name: "Available", value: hotelStats.availableNow, color: "#10b981" },
-    { name: "Occupied", value: hotelStats.occupiedNow, color: "#f59e0b" },
-    {
-      name: "Reserved for Today",
-      value: hotelStats.reservedForToday,
-      color: "#3b82f6",
-    },
-    { name: "Maintenance", value: hotelStats.maintenanceNow, color: "#ef4444" },
-  ];
 
   const isLoading = roomsLoading || guestsLoading || reservationsLoading;
 
@@ -371,72 +291,62 @@ const DashboardPage = () => {
                   </CardHeader>
 
                   {/* LEFT_SIDE_ROOMS_STATUS */}
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-50">
-                        <span className="flex items-center">
-                          <CheckCircle className="inline w-5 h-5 mr-2 text-emerald-600" />
-                          Available
-                        </span>
-                        <span className="text-xl font-light">
-                          {hotelStats.availableNow}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-amber-50">
-                        <span className="flex items-center">
-                          <Key className="inline w-5 h-5 mr-2 text-amber-600" />
-                          Occupied
-                        </span>
-                        <span className="text-xl font-light">
-                          {hotelStats.occupiedNow}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50">
-                        <span className="flex items-center">
-                          <Calendar className="inline w-5 h-5 mr-2 text-blue-600" />
-                          Reserved
-                        </span>
-                        <span className="text-xl font-light">
-                          {hotelStats.reservedForToday}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-red-50">
-                        <span className="flex items-center">
-                          <Wrench className="inline w-5 h-5 mr-2 text-red-600" />
-                          Maintenance
-                        </span>
-                        <span className="text-xl font-light">
-                          {hotelStats.maintenanceNow}
-                        </span>
-                      </div>
+                  <div className="space-y-4">
+                    {/* Item 1: Available */}
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-50">
+                      <span className="flex items-center">
+                        <CheckCircle className="inline w-5 h-5 mr-2 text-emerald-600" />
+                        Available
+                      </span>
+                      <span className="text-xl font-light">
+                        {hotelStats.Available}
+                      </span>
                     </div>
-                    <div className="mt-6 h-[200px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={roomStatusDataForChart}
-                            dataKey="value"
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={80}
-                            paddingAngle={2}
-                          >
-                            {roomStatusDataForChart.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            contentStyle={{
-                              borderRadius: "0.5rem",
-                              boxShadow:
-                                "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-                            }}
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
+
+                    {/* Item 2: Occupied */}
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-amber-50">
+                      <span className="flex items-center">
+                        <Key className="inline w-5 h-5 mr-2 text-amber-600" />
+                        Occupied
+                      </span>
+                      <span className="text-xl font-light">
+                        {hotelStats.Occupied}
+                      </span>
                     </div>
-                  </CardContent>
+
+                    {/* Item 3: Arrival Today */}
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-purple-100">
+                      <span className="flex items-center">
+                        <Sun className="inline w-5 h-5 mr-2 text-blue-600" />
+                        Arrival Today
+                      </span>
+                      <span className="text-xl font-light">
+                        {hotelStats.Arrival}
+                      </span>
+                    </div>
+
+                    {/* Item 6: Reserved (Future) */}
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-sky-100 text-sky-800 border-sky-200">
+                      <span className="flex items-center">
+                        <Calendar className="inline w-5 h-5 mr-2 text-slate-600" />
+                        Reserved (Future)
+                      </span>
+                      <span className="text-xl font-light">
+                        {hotelStats.Reserved}
+                      </span>
+                    </div>
+
+                    {/* Item 7: Maintenance */}
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-red-50">
+                      <span className="flex items-center">
+                        <Wrench className="inline w-5 h-5 mr-2 text-red-600" />
+                        Maintenance
+                      </span>
+                      <span className="text-xl font-light">
+                        {hotelStats.Maintenance}
+                      </span>
+                    </div>
+                  </div>
                 </Card>
 
                 {/* Room_Quick_View_RIGHT_SIDE_ROOMS_OVERVIEW */}
@@ -586,7 +496,8 @@ const DashboardPage = () => {
                             <div>
                               <p className="font-semibold text-slate-900">
                                 {details.currentActivity}
-                              </p><p className="font-semibold text-slate-900">
+                              </p>
+                              <p className="font-semibold text-slate-900">
                                 {details.checkInAt}
                               </p>
                               {/* <p className="text-xs text-slate-500 uppercase tracking-wider">
@@ -597,7 +508,7 @@ const DashboardPage = () => {
                         )}
                       </div>
                     </div>
-                    
+
                     {/* {typeof details === "object" &&
                       details.futureBookings &&
                       details.futureBookings.length > 0 && (
@@ -623,8 +534,8 @@ const DashboardPage = () => {
                           </div>
                         </div>
                       )} */}
-                      
-                       {/* === UPCOMING RESERVATIONS SECTION === */}
+
+                    {/* === UPCOMING RESERVATIONS SECTION === */}
                     {typeof details === "object" &&
                       details.futureBookings &&
                       details.futureBookings.length > 0 && (
@@ -743,7 +654,6 @@ const DashboardPage = () => {
                                   </div>
 
                                   {/* Hover action (optional) */}
-                                  
                                 </div>
                               );
                             })}

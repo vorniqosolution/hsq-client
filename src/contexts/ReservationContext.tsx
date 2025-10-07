@@ -27,7 +27,7 @@ export interface Reservation {
   email: string;
   phone: string;
   cnic: string;
-  room: string | Room; // Handles both populated and unpopulated room
+  room: Room | null;
   roomNumber: string;
   startAt: string;
   endAt: string;

@@ -318,7 +318,37 @@ const GuestCard: React.FC<{ guest: Guest; onDelete: () => void }> = React.memo(
     const getStatusColor = (status: string) =>
       status === "checked-in"
         ? "bg-green-100 text-green-800"
-        : "bg-gray-100 text-gray-800";
+        : "bg-red-100 text-red-800 border-red-200";
+    
+    // Helper function to safely format dates
+    const formatDate = (dateValue: string | undefined, fallback: string = "N/A") => {
+      if (!dateValue) return fallback;
+      try {
+        const date = new Date(dateValue);
+        if (isNaN(date.getTime())) return fallback; // Check if date is invalid
+        return format(date, "MMM dd, yyyy");
+      } catch {
+        return fallback;
+      }
+    };
+
+    // Helper function to calculate duration safely
+    const calculateDuration = () => {
+      if (!guest.checkInAt || !guest.checkOutAt) return "N/A";
+      try {
+        const checkIn = new Date(guest.checkInAt);
+        const checkOut = new Date(guest.checkOutAt);
+        if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) return "N/A";
+        
+        const nights = Math.ceil(
+          (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        return `${nights} nights`;
+      } catch {
+        return "N/A";
+      }
+    };
+
     return (
       <Card className="hover:shadow transition-shadow">
         <CardContent className="p-6">
@@ -348,7 +378,7 @@ const GuestCard: React.FC<{ guest: Guest; onDelete: () => void }> = React.memo(
                     Phone
                   </span>
                   <span className="font-medium text-gray-900">
-                    {guest?.phone || "Null"}
+                    {guest?.phone || "N/A"}
                   </span>
                 </div>
 
@@ -357,7 +387,7 @@ const GuestCard: React.FC<{ guest: Guest; onDelete: () => void }> = React.memo(
                     Check-in
                   </span>
                   <span className="font-medium text-gray-900">
-                    {format(new Date(guest.checkInAt), "MMM dd, yyyy")}
+                    {formatDate(guest.checkInAt)}
                   </span>
                 </div>
 
@@ -366,7 +396,7 @@ const GuestCard: React.FC<{ guest: Guest; onDelete: () => void }> = React.memo(
                     Check-out
                   </span>
                   <span className="font-medium text-gray-900">
-                    {format(new Date(guest.checkOutAt), "MMM dd, yyyy")}
+                    {formatDate(guest.checkOutAt)}
                   </span>
                 </div>
 
@@ -375,12 +405,7 @@ const GuestCard: React.FC<{ guest: Guest; onDelete: () => void }> = React.memo(
                     Duration
                   </span>
                   <span className="font-medium text-gray-900">
-                    {Math.ceil(
-                      (new Date(guest.checkOutAt).getTime() -
-                        new Date(guest.checkInAt).getTime()) /
-                        (1000 * 60 * 60 * 24)
-                    )}{" "}
-                    nights
+                    {calculateDuration()}
                   </span>
                 </div>
               </div>
@@ -420,6 +445,114 @@ const GuestCard: React.FC<{ guest: Guest; onDelete: () => void }> = React.memo(
     );
   }
 );
+
+// const GuestCard: React.FC<{ guest: Guest; onDelete: () => void }> = React.memo(
+//   ({ guest, onDelete }) => {
+//     const getStatusColor = (status: string) =>
+//       status === "checked-in"
+//         ? "bg-green-100 text-green-800"
+//         : "bg-gray-100 text-gray-800";
+//     return (
+//       <Card className="hover:shadow transition-shadow">
+//         <CardContent className="p-6">
+//           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+//             {/* Guest Information Section */}
+//             <div className="flex-1 space-y-3">
+//               <div className="flex items-start justify-between md:justify-start md:items-center gap-4">
+//                 <h3 className="text-lg font-semibold text-gray-900">
+//                   {guest.fullName}
+//                 </h3>
+//                 <Badge className={`${getStatusColor(guest.status)} md:hidden`}>
+//                   {guest.status}
+//                 </Badge>
+//               </div>
+
+//               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+//                 <div className="flex flex-col">
+//                   <span className="text-gray-500 text-xs uppercase tracking-wider mb-1">
+//                     Room
+//                   </span>
+//                   <span className="font-medium text-gray-900">
+//                     {guest.room?.roomNumber || "Unassigned"}
+//                   </span>
+//                 </div>                
+//                 <div className="flex flex-col">
+//                   <span className="text-gray-500 text-xs uppercase tracking-wider mb-1">
+//                     Phone
+//                   </span>
+//                   <span className="font-medium text-gray-900">
+//                     {guest?.phone || "Null"}
+//                   </span>
+//                 </div>
+
+//                 <div className="flex flex-col">
+//                   <span className="text-gray-500 text-xs uppercase tracking-wider mb-1">
+//                     Check-in
+//                   </span>
+//                   <span className="font-medium text-gray-900">
+//                     {format(new Date(guest.checkInAt), "MMM dd, yyyy")}
+//                   </span>
+//                 </div>
+
+//                 <div className="flex flex-col">
+//                   <span className="text-gray-500 text-xs uppercase tracking-wider mb-1">
+//                     Check-out
+//                   </span>
+//                   <span className="font-medium text-gray-900">
+//                     {format(new Date(guest.checkOutAt), "MMM dd, yyyy")}
+//                   </span>
+//                 </div>
+
+//                 <div className="flex flex-col">
+//                   <span className="text-gray-500 text-xs uppercase tracking-wider mb-1">
+//                     Duration
+//                   </span>
+//                   <span className="font-medium text-gray-900">
+//                     {Math.ceil(
+//                       (new Date(guest.checkOutAt).getTime() -
+//                         new Date(guest.checkInAt).getTime()) /
+//                         (1000 * 60 * 60 * 24)
+//                     )}{" "}
+//                     nights
+//                   </span>
+//                 </div>
+//               </div>
+//             </div>
+
+//             {/* Status Badge - Hidden on mobile, shown in header instead */}
+//             <div className="hidden md:flex items-center px-4">
+//               <Badge className={getStatusColor(guest.status)}>
+//                 {guest.status}
+//               </Badge>
+//             </div>
+
+//             {/* Action Buttons */}
+//             <div className="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 md:border-l md:pl-6">
+//               <Link to={`/guests/${guest._id}`}>
+//                 <Button
+//                   variant="outline"
+//                   size="sm"
+//                   className="hover:bg-gray-50"
+//                 >
+//                   <Eye className="mr-2 h-4 w-4" />
+//                   View Details
+//                 </Button>
+//               </Link>
+//               <Button
+//                 variant="ghost"
+//                 size="sm"
+//                 onClick={onDelete}
+//                 className="hover:bg-red-50 hover:text-red-600"
+//               >
+//                 <Trash2 className="h-4 w-4" />
+//               </Button>
+//             </div>
+//           </div>
+//         </CardContent>
+//       </Card>
+//     );
+//   }
+// );
 
 const GuestListSkeleton: React.FC = () => (
   <div className="space-y-4">

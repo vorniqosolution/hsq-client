@@ -35,7 +35,7 @@ export interface Guest {
   cnic: string;
   room: Room | null; // Allow null explicitly
   checkInAt: string;
-  checkOutAt?: string;
+  checkOutAt: string;
   status: "checked-in" | "checked-out";
   paymentMethod: "cash" | "card" | "online";
   stayDuration: number;
