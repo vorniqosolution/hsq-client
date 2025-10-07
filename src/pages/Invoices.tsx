@@ -29,11 +29,7 @@ import {
   Percent,
   Calendar,
 } from "lucide-react";
-
-// Import the context hook and types
 import { useInvoiceContext, Invoice } from "@/contexts/InvoiceContext";
-
-// UI Components
 import {
   Card,
   CardContent,
@@ -55,9 +51,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import Sidebar from "@/components/Sidebar";
 
-// Note: The Sidebar component has been extracted for brevity, but the logic is the same as your original file.
-// You can keep it inline or move it to its own component file.
-
 const InvoicesPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -67,7 +60,6 @@ const InvoicesPage = () => {
     "all" | "pending" | "paid" | "cancelled"
   >("all");
 
-  // --- Connect to InvoiceContext ---
   const {
     paginatedInvoices,
     invoices: searchResults, // Use a different name for search results

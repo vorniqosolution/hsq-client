@@ -318,7 +318,7 @@ const GuestCard: React.FC<{ guest: Guest; onDelete: () => void }> = React.memo(
     const getStatusColor = (status: string) =>
       status === "checked-in"
         ? "bg-green-100 text-green-800"
-        : "bg-gray-100 text-gray-800";
+        : "bg-red-100 text-red-800 border-red-200";
     
     // Helper function to safely format dates
     const formatDate = (dateValue: string | undefined, fallback: string = "N/A") => {

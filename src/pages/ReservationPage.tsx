@@ -88,7 +88,7 @@ import {
   CreateReservationInput,
 } from "@/contexts/ReservationContext";
 import Sidebar from "@/components/Sidebar";
-import {  isWithinInterval } from "date-fns";
+import { isWithinInterval } from "date-fns";
 
 interface PopulatedRoom {
   _id: string;
@@ -207,7 +207,6 @@ const ReservationsPage: React.FC = () => {
     };
   }, [fetchReservations, loading]);
 
-  // Manual refresh function - force refetch
   const handleManualRefresh = useCallback(() => {
     hasLoadedRef.current = false;
     setIsInitialLoad(true);
@@ -215,34 +214,24 @@ const ReservationsPage: React.FC = () => {
   }, [fetchReservations]);
 
   const getReservationStatus = useCallback((reservation: Reservation) => {
-  if (reservation.status === "checked-out") {
-    return "checked-out"; 
-  }
-  if (reservation.status === "cancelled") {
-    return "cancelled";
-  }
-  const now = new Date();
-  const startDate = parseISO(reservation.startAt);
-  const endDate = parseISO(reservation.endAt);
+    if (reservation.status === "checked-out") return "checked-out";
+    if (reservation.status === "cancelled") return "cancelled";
 
-  if (reservation.status === "checked-in" || isWithinInterval(now, { start: startDate, end: endDate })) {
-    return "active";
-  }
+    if (reservation.status === "checked-in") return "active";
 
-  if (isAfter(startDate, now)) {
-    return "upcoming";
-  }
-  
-  if (isBefore(endDate, now)) {
-    return "expired";
-  }
+    const now = new Date();
+    const startDate = parseISO(reservation.startAt);
+    const endDate = parseISO(reservation.endAt);
 
-  // if (reservation.status === "reserved") {
-  //   return "confirmed";
-  // }
+    if (isBefore(endDate, now)) {
+      return "expired";
+    }
 
-  return reservation.status;
-}, []);
+    if (isAfter(startDate, now)) {
+      return "upcoming";
+    }
+    return "reserved";
+  }, []);
 
   const filteredReservations = useMemo(() => {
     return reservations.filter((reservation) => {
@@ -345,47 +334,53 @@ const ReservationsPage: React.FC = () => {
   );
 
   const getStatusBadge = (status: string) => {
-  switch (status) {
-    case "checked-out":
-      return (
-        <Badge className="bg-slate-100 text-slate-800 border-slate-200">
-          Checked Out
-        </Badge>
-      );
-    case "active":
-      return (
-        <Badge className="bg-sky-100 text-sky-800 border-sky-200">
-          Active
-        </Badge>
-      );
-    // case "confirmed":
-    //   return (
-    //     <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
-    //       Confirmed
-    //     </Badge>
-    //   );
-    case "cancelled":
-      return (
-        <Badge className="bg-red-100 text-red-800 border-red-200">
-          Cancelled
-        </Badge>
-      );
-    case "upcoming":
-      return (
-        <Badge className="bg-blue-100 text-blue-800 border-blue-200">
-          Upcoming
-        </Badge>
-      );
-    case "expired":
-      return (
-        <Badge className="bg-gray-100 text-gray-800 border-gray-200">
-          Expired
-        </Badge>
-      );
-    default:
-      return null;
-  }
-};
+    switch (status) {
+      case "checked-out":
+        return (
+          <Badge className="bg-slate-100 text-slate-800 border-slate-200">
+            Checked Out
+          </Badge>
+        );
+      case "active":
+        return (
+          <Badge className="bg-sky-100 text-sky-800 border-sky-200">
+            Active
+          </Badge>
+        );
+      case "confirmed":
+        return (
+          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
+            Confirmed
+          </Badge>
+        );
+      case "cancelled":
+        return (
+          <Badge className="bg-red-100 text-red-800 border-red-200">
+            Cancelled
+          </Badge>
+        );
+      case "reserved":
+        return (
+          <Badge className="bg-sky-100 text-sky-800 border-sky-200">
+            Reserved
+          </Badge>
+        );
+      case "upcoming":
+        return (
+          <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+            Upcoming
+          </Badge>
+        );
+      case "expired":
+        return (
+          <Badge className="bg-gray-100 text-gray-800 border-gray-200">
+            Expired
+          </Badge>
+        );
+      default:
+        return null;
+    }
+  };
 
   const ContentContainer = useCallback(
     ({ children }: { children: React.ReactNode }) => (
@@ -530,9 +525,9 @@ const ReservationsPage: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  {/* <SelectItem value="confirmed">Confirmed - Reserved </SelectItem> */}
+                  <SelectItem value="reserved">Reserved</SelectItem>
                   <SelectItem value="upcoming">Upcoming</SelectItem>
-                  <SelectItem value="active">Active - Checked-in</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="expired">Expired</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
@@ -800,7 +795,6 @@ const ReservationCard = React.memo(
       return null;
     }, [reservation.room, reservation.roomNumber, allRooms]); // <-- CHANGED: dependency updated
 
-    
     return (
       <Card className="hover:shadow-lg transition-all duration-300 border-gray-100">
         <CardContent className="p-0">
@@ -837,10 +831,10 @@ const ReservationCard = React.memo(
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-gray-800">
-                            
-                            Room {isPopulatedRoom(reservation.room)
-                          ? reservation.room.roomNumber
-                          : reservation.roomNumber}
+                            Room{" "}
+                            {isPopulatedRoom(reservation.room)
+                              ? reservation.room.roomNumber
+                              : reservation.roomNumber}
                           </p>
                           {roomDetails && (
                             <>
