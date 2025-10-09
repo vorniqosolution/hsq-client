@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
 import {
   Search,
   Clock,
@@ -7,26 +6,13 @@ import {
   Plus,
   Edit,
   Trash2,
-  DollarSign,
   Menu,
   X,
-  Users,
   Bed,
-  Settings,
-  LogOut,
-  Home,
   Crown,
-  Star,
-  Sparkles,
-  Archive,
-  FileText,
-  Ticket,
   Eye,
-  Filter,
   Check,
   RefreshCw,
-  Percent,
-  LucideChartNoAxesColumnDecreasing,
   Calendar,
   ImageIcon,
 } from "lucide-react";
@@ -34,11 +20,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
 import {
   Dialog,
@@ -74,7 +55,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Room, useRoomContext } from "../contexts/RoomContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Sidebar from "@/components/Sidebar";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
