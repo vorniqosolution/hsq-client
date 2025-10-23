@@ -5,7 +5,8 @@ import React, {
   useCallback,
   useRef,
 } from "react";
-
+import DatePicker from "react-datepicker"; // <-- ADD THIS LINE
+import "react-datepicker/dist/react-datepicker.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Search,
@@ -173,12 +174,14 @@ const ReservationsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [formData, setFormData] = useState<CreateReservationInput>(INITIAL_FORM_STATE);
-  const [reservationToDelete, setReservationToDelete] = useState<Reservation | null>(null);
+  const [formData, setFormData] =
+    useState<CreateReservationInput>(INITIAL_FORM_STATE);
+  const [reservationToDelete, setReservationToDelete] =
+    useState<Reservation | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [isOpen, setIsOpen] = useState(true);
-
+  const [dateFilter, setDateFilter] = useState<Date | null>(null);
   const hasLoadedRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -214,11 +217,11 @@ const ReservationsPage: React.FC = () => {
     };
   }, [fetchReservations, loading]);
 
-  const handleManualRefresh = useCallback(() => {
-    hasLoadedRef.current = false;
-    setIsInitialLoad(true);
-    fetchReservations();
-  }, [fetchReservations]);
+  // const handleManualRefresh = useCallback(() => {
+  //   hasLoadedRef.current = false;
+  //   setIsInitialLoad(true);
+  //   fetchReservations();
+  // }, [fetchReservations]);
 
   const getReservationStatus = useCallback((reservation: Reservation) => {
     if (reservation.status === "checked-out") return "checked-out";
@@ -241,8 +244,10 @@ const ReservationsPage: React.FC = () => {
   }, []);
 
   const filteredReservations = useMemo(() => {
-    setCurrentPage(1);
+    setCurrentPage(1); // Reset to page 1 on any filter change
+
     return reservations.filter((reservation) => {
+      // --- Search Filter Logic (no change) ---
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch =
         !searchTerm ||
@@ -250,13 +255,43 @@ const ReservationsPage: React.FC = () => {
         reservation.phone?.includes(searchTerm) ||
         reservation.roomNumber?.toLowerCase().includes(searchLower);
 
-      // Apply status filter
+      // --- Status Filter Logic (no change) ---
       const status = getReservationStatus(reservation);
       const matchesStatus = statusFilter === "all" || status === statusFilter;
 
-      return matchesSearch && matchesStatus;
+      // --- NEW: Date Filter Logic ---
+      const matchesDate =
+        !dateFilter ||
+        (() => {
+          // Use UTC dates for consistent filtering across timezones, matching the backend
+          const dateStr = dateFilter.toISOString().split("T")[0];
+          const dayStart = new Date(`${dateStr}T00:00:00.000Z`);
+          const dayEnd = new Date(`${dateStr}T23:59:59.999Z`);
+
+          // Parse reservation dates from strings into Date objects
+          const startAt = parseISO(reservation.startAt);
+          const endAt = parseISO(reservation.endAt);
+          const createdAt = parseISO(reservation.createdAt);
+          const updatedAt = parseISO(reservation.updatedAt);
+
+          // Check if any of the date conditions are met
+          const stayOverlaps = startAt <= dayEnd && endAt >= dayStart;
+          const createdOnDate = createdAt >= dayStart && createdAt <= dayEnd;
+          const updatedOnDate = updatedAt >= dayStart && updatedAt <= dayEnd;
+
+          return stayOverlaps || createdOnDate || updatedOnDate;
+        })();
+
+      // Return true only if all active filters match
+      return matchesSearch && matchesStatus && matchesDate;
     });
-  }, [reservations, searchTerm, statusFilter, getReservationStatus]);
+  }, [
+    reservations,
+    searchTerm,
+    statusFilter,
+    dateFilter,
+    getReservationStatus,
+  ]); // <-- ADD dateFilter to the dependency array
 
   const paginatedData = useMemo(() => {
     const firstPageIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -518,12 +553,14 @@ const ReservationsPage: React.FC = () => {
           </div>
 
           {/* Toolbar - fixed height */}
-          {/* input form */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50 ">
-            <div className="md:col-span-1">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50">
+            {/* Filter 1: Search */}
+            <div className="md:col-span-1 space-y-1.5">
+              <Label htmlFor="search-input">Search</Label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
+                  id="search-input"
                   placeholder="Search by name, phone, or room..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -531,13 +568,16 @@ const ReservationsPage: React.FC = () => {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:col-span-2">
+
+            {/* Filter 2: Status */}
+            <div className="md:col-span-1 space-y-1.5">
+              <Label htmlFor="status-filter">Status</Label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="sm:col-span-1">
+                <SelectTrigger id="status-filter">
                   <SelectValue placeholder="Filter by Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="reserved">Reserved</SelectItem>
                   <SelectItem value="upcoming">Upcoming</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
@@ -545,27 +585,26 @@ const ReservationsPage: React.FC = () => {
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
-              <Button
-                onClick={() => setStatusFilter("all")}
-                variant="outline"
-                className="w-full sm:col-span-1"
-                disabled={statusFilter === "all"}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Clear
-              </Button>
-              <Button
-                onClick={handleManualRefresh}
-                variant="outline"
-                className="w-full sm:col-span-1"
-              >
-                <Filter className="h-4 w-4 mr-2" />
-                Refresh
-              </Button>
+            </div>
+
+            {/* Filter 3: Date Picker */}
+            <div className="md:col-span-1 space-y-1.5">
+              <Label htmlFor="date-filter">Filter by Date</Label>
+              <div className="relative">
+                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <DatePicker
+                  id="date-filter"
+                  selected={dateFilter}
+                  onChange={(date: Date | null) => setDateFilter(date)}
+                  dateFormat="yyyy-MM-dd"
+                  placeholderText="Any Date" // Shows when no date is selected
+                  isClearable // Adds a small 'x' button to clear the date
+                  className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                />
+              </div>
             </div>
           </div>
 
-          {/* BODY OF THE RESERVATION CARDS  define top*/}
           <ContentContainer>{renderedContent}</ContentContainer>
 
           {totalPages > 1 && (
@@ -588,7 +627,6 @@ const ReservationsPage: React.FC = () => {
                       />
                     </PaginationItem>
 
-                    {/* This part is intentionally simple for client-side pagination */}
                     {[...Array(totalPages).keys()].map((num) => (
                       <PaginationItem key={num}>
                         <PaginationLink
@@ -1008,7 +1046,7 @@ const ReservationCard = React.memo(
       </Card>
     );
   },
-  
+
   (prevProps, nextProps) => {
     return (
       prevProps.reservation._id === nextProps.reservation._id &&

@@ -777,6 +777,17 @@ const GuestDetailPage = () => {
     []
   );
 
+  // NEW: Format date for display (DATE ONLY)
+  const formatOnlyDate = (dateString) => {
+    if (!dateString) return "N/A";
+    // Use the planned date (which is checkOutAt) and format it without time options.
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
   // Format date for display
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleString("en-US", {
@@ -1023,12 +1034,24 @@ const GuestDetailPage = () => {
                         Check-In
                       </p>
                       <p className="font-medium text-slate-800 dark:text-slate-200">
-                        {guest.checkOutAt
-                          ? formatDate(guest.checkInAt)
-                          : "N/A"}
+                        {guest.checkOutAt ? formatDate(guest.checkInAt) : "N/A"}
                       </p>
                     </div>
                   </div>
+
+                  {/* <div className="flex items-start">
+                    <Calendar className="h-4 w-4 mr-2 mt-1 text-slate-400" />
+                    <div>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Check-out
+                      </p>
+                      <p className="font-medium text-slate-800 dark:text-slate-200">
+                        {guest.checkOutAt
+                          ? formatDate(guest.checkOutAt)
+                          : "N/A"}
+                      </p>
+                    </div>
+                  </div> */}
 
                   <div className="flex items-start">
                     <Calendar className="h-4 w-4 mr-2 mt-1 text-slate-400" />
@@ -1038,7 +1061,9 @@ const GuestDetailPage = () => {
                       </p>
                       <p className="font-medium text-slate-800 dark:text-slate-200">
                         {guest.checkOutAt
-                          ? formatDate(guest.checkOutAt)
+                          ? guest.status === "checked-in"
+                            ? formatOnlyDate(guest.checkOutAt) // <-- Fix: Date ONLY while active
+                            : formatDate(guest.checkOutAt) // <-- Show Date and Time after checkout
                           : "N/A"}
                       </p>
                     </div>
