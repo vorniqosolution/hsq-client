@@ -5,35 +5,22 @@ import React, {
   useCallback,
   useRef,
 } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DatePicker from "react-datepicker"; // <-- ADD THIS LINE
 import "react-datepicker/dist/react-datepicker.css";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Eye,
   Trash2,
-  UserPlus,
-  X,
   Menu,
-  Users,
   Bed,
   Calendar,
-  Settings,
-  LogOut,
-  Home,
   Crown,
-  Star,
-  Sparkles,
-  Archive,
-  FileText,
-  Ticket,
-  Percent,
-  CalendarClock,
   CheckCircle2,
-  XCircle,
-  Filter,
   CalendarDays,
   Phone,
+  User,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -87,7 +74,7 @@ import {
   CreateReservationInput,
 } from "@/contexts/ReservationContext";
 import Sidebar from "@/components/Sidebar";
-import { isWithinInterval } from "date-fns";
+// import { isWithinInterval } from "date-fns";
 import {
   Pagination,
   PaginationContent,
@@ -157,6 +144,8 @@ const ReservationsPage: React.FC = () => {
     fetchReservations,
     createReservation,
     deleteReservation,
+    dailyActivityReport,
+    fetchDailyActivityReport,
   } = useReservationContext();
 
   const {
@@ -181,47 +170,31 @@ const ReservationsPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [isOpen, setIsOpen] = useState(true);
-  const [dateFilter, setDateFilter] = useState<Date | null>(null);
+  const [viewMode, setViewMode] = useState<"list" | "report">("list");
+  const [reportDate, setReportDate] = useState(new Date());
   const hasLoadedRef = useRef(false);
-  const abortControllerRef = useRef<AbortController | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (hasLoadedRef.current && !loading) return;
-
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
     const loadData = async () => {
-      try {
-        setIsInitialLoad(true);
-        await fetchReservations();
-        hasLoadedRef.current = true;
-      } catch (error) {
-        if (error.name !== "AbortError") {
-          console.error("Failed to load data:", error);
-        }
-      } finally {
-        setIsInitialLoad(false);
-      }
-    };
-    loadData();
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, [fetchReservations, loading]);
+      const formatDateToYYYYMMDD = (date: Date) =>
+        date.toISOString().split("T")[0];
 
-  // const handleManualRefresh = useCallback(() => {
-  //   hasLoadedRef.current = false;
-  //   setIsInitialLoad(true);
-  //   fetchReservations();
-  // }, [fetchReservations]);
+      setIsInitialLoad(true);
+      if (viewMode === "report") {
+        const dateString = formatDateToYYYYMMDD(reportDate);
+        await fetchDailyActivityReport(dateString);
+      } else {
+        if (!hasLoadedRef.current) {
+          await fetchReservations();
+          hasLoadedRef.current = true;
+        }
+      }
+      setIsInitialLoad(false);
+    };
+
+    loadData();
+  }, [viewMode, reportDate, fetchDailyActivityReport, fetchReservations]);
 
   const getReservationStatus = useCallback((reservation: Reservation) => {
     if (reservation.status === "checked-out") return "checked-out";
@@ -247,7 +220,7 @@ const ReservationsPage: React.FC = () => {
     setCurrentPage(1); // Reset to page 1 on any filter change
 
     return reservations.filter((reservation) => {
-      // --- Search Filter Logic (no change) ---
+      // Search Filter Logic
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch =
         !searchTerm ||
@@ -255,43 +228,20 @@ const ReservationsPage: React.FC = () => {
         reservation.phone?.includes(searchTerm) ||
         reservation.roomNumber?.toLowerCase().includes(searchLower);
 
-      // --- Status Filter Logic (no change) ---
+      // Status Filter Logic
       const status = getReservationStatus(reservation);
       const matchesStatus = statusFilter === "all" || status === statusFilter;
 
-      // --- NEW: Date Filter Logic ---
-      const matchesDate =
-        !dateFilter ||
-        (() => {
-          // Use UTC dates for consistent filtering across timezones, matching the backend
-          const dateStr = dateFilter.toISOString().split("T")[0];
-          const dayStart = new Date(`${dateStr}T00:00:00.000Z`);
-          const dayEnd = new Date(`${dateStr}T23:59:59.999Z`);
-
-          // Parse reservation dates from strings into Date objects
-          const startAt = parseISO(reservation.startAt);
-          const endAt = parseISO(reservation.endAt);
-          const createdAt = parseISO(reservation.createdAt);
-          const updatedAt = parseISO(reservation.updatedAt);
-
-          // Check if any of the date conditions are met
-          const stayOverlaps = startAt <= dayEnd && endAt >= dayStart;
-          const createdOnDate = createdAt >= dayStart && createdAt <= dayEnd;
-          const updatedOnDate = updatedAt >= dayStart && updatedAt <= dayEnd;
-
-          return stayOverlaps || createdOnDate || updatedOnDate;
-        })();
-
-      // Return true only if all active filters match
-      return matchesSearch && matchesStatus && matchesDate;
+      // The date filter logic is removed. Only search and status apply to this view.
+      return matchesSearch && matchesStatus;
     });
   }, [
     reservations,
     searchTerm,
     statusFilter,
-    dateFilter,
+    // The 'dateFilter' dependency is now removed
     getReservationStatus,
-  ]); // <-- ADD dateFilter to the dependency array
+  ]);
 
   const paginatedData = useMemo(() => {
     const firstPageIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -443,6 +393,164 @@ const ReservationsPage: React.FC = () => {
     []
   );
 
+    // This is the helper component that needs to be robust
+  const ReportList = ({ data, type }: { data: any[], type: string }) => {
+    
+    // THIS IS THE CORRECT, DEFENSIVE VERSION OF THE HELPER FUNCTION
+    const getRelevantInfo = (item: any, reportType: string): string => {
+      // We will check for the existence of each date field before using it
+      switch (reportType) {
+        case 'arrivals':
+          if (!item.startAt) return 'No schedule info';
+          return `Scheduled for ${format(new Date(item.startAt), "MMM d")}`;
+        
+        case 'checkIns':
+          // This is the critical fix. We check if item.checkInAt exists.
+          if (!item.checkInAt) return 'No check-in time';
+          return `Checked in at ${format(new Date(item.checkInAt), "p")}`;
+        
+        case 'checkOuts':
+          if (!item.checkOutAt) return 'No check-out time';
+          return `Checked out at ${format(new Date(item.checkOutAt), "p")}`;
+        
+        case 'newBookings':
+          if (!item.createdAt) return 'No creation time';
+          return `Booked at ${format(new Date(item.createdAt), "p")}`;
+        
+        case 'cancellations':
+          if (!item.updatedAt) return 'No cancellation time';
+          return `Cancelled at ${format(new Date(item.updatedAt), "p")}`;
+        
+        default:
+          return '';
+      }
+    };
+
+    if (data.length === 0) {
+      return <p className="text-sm text-muted-foreground p-4 text-center">No activity in this category.</p>;
+    }
+
+    return (
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          {data.map(item => (
+            <div
+              key={item._id}
+              className="flex items-center justify-between p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors"
+            >
+              {/* Left side: Icon, Name, and Room */}
+              <div className="flex items-center gap-4">
+                <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full">
+                  <User className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">{item.fullName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Room {item.room?.roomNumber || "N/A"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Right side: Relevant Time and Optional View Button */}
+              <div className="flex items-center gap-4">
+                <p className="text-xs text-muted-foreground hidden sm:block">
+                  {getRelevantInfo(item, type)}
+                </p>
+                {item.type === 'reservation' && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => navigate(`/reservation/${item._id}`)}
+                    title="View reservation details"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // const ReportList = ({ data, type }: { data: any[]; type: string }) => {
+  //   // Helper to get the most relevant time/date for each category
+  //   const getRelevantInfo = (item: any, reportType: string): string => {
+  //     try {
+  //       switch (reportType) {
+  //         case "arrivals":
+  //           return `Scheduled for ${format(new Date(item.startAt), "MMM d")}`;
+  //         case "checkIns":
+  //           return `Checked in at ${format(new Date(item.checkInAt), "p")}`;
+  //         case "checkOuts":
+  //           return `Checked out at ${format(new Date(item.checkOutAt), "p")}`;
+  //         case "newBookings":
+  //           return `Booked at ${format(new Date(item.createdAt), "p")}`;
+  //         case "cancellations":
+  //           return `Cancelled at ${format(new Date(item.updatedAt), "p")}`;
+  //         default:
+  //           return "";
+  //       }
+  //     } catch {
+  //       return "Invalid date";
+  //     }
+  //   };
+
+  //   if (data.length === 0) {
+  //     return (
+  //       <p className="text-sm text-muted-foreground p-4 text-center">
+  //         No activity in this category.
+  //       </p>
+  //     );
+  //   }
+
+  //   return (
+  //     <Card>
+  //       <CardContent className="p-4 space-y-3">
+  //         {data.map((item) => (
+  //           <div
+  //             key={item._id}
+  //             className="flex items-center justify-between p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors"
+  //           >
+  //             {/* Left side: Icon, Name, and Room */}
+  //             <div className="flex items-center gap-4">
+  //               <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full">
+  //                 <User className="h-5 w-5 text-muted-foreground" />
+  //               </div>
+  //               <div>
+  //                 <p className="font-semibold text-sm">{item.fullName}</p>
+  //                 <p className="text-xs text-muted-foreground">
+  //                   Room {item.room?.roomNumber || "N/A"}
+  //                 </p>
+  //               </div>
+  //             </div>
+
+  //             {/* Right side: Relevant Time and View Button */}
+  //             <div className="flex items-center gap-4">
+  //               <p className="text-xs text-muted-foreground hidden sm:block">
+  //                 {getRelevantInfo(item, type)}
+  //               </p>
+  //               {item.type === "reservation" && (
+  //                 <Button
+  //                   variant="ghost"
+  //                   size="sm"
+  //                   onClick={() => navigate(`/reservation/${item._id}`)}
+  //                   title="View reservation details"
+  //                 >
+  //                   <Eye className="h-4 w-4 mr-2" />
+  //                   View
+  //                 </Button>
+  //               )}
+  //             </div>
+  //           </div>
+  //         ))}
+  //       </CardContent>
+  //     </Card>
+  //   );
+  // };
+
   const renderedContent = useMemo(() => {
     if (isInitialLoad || loading) {
       return <ReservationListSkeleton />;
@@ -458,6 +566,71 @@ const ReservationsPage: React.FC = () => {
         </div>
       );
     }
+
+    if (viewMode === "report") {
+      if (loading) return <ReservationListSkeleton />; // Reuse your nice skeleton loader
+      if (!dailyActivityReport) {
+        return (
+          <div className="text-center text-gray-500 p-6">
+            <p>Select a date to generate the report.</p>
+          </div>
+        );
+      }
+
+      return (
+        <Tabs defaultValue="arrivals" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+            <TabsTrigger value="arrivals">
+              Arrivals ({dailyActivityReport.summary.arrivals})
+            </TabsTrigger>
+            <TabsTrigger value="checkIns">
+              Check-Ins ({dailyActivityReport.summary.checkIns})
+            </TabsTrigger>
+            <TabsTrigger value="checkOuts">
+              Check-Outs ({dailyActivityReport.summary.checkOuts})
+            </TabsTrigger>
+            <TabsTrigger value="newBookings">
+              New Bookings ({dailyActivityReport.summary.newBookings})
+            </TabsTrigger>
+            <TabsTrigger value="cancellations">
+              Cancellations ({dailyActivityReport.summary.cancellations})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="arrivals" className="mt-4">
+            <ReportList
+              data={dailyActivityReport.data.arrivals}
+              type="arrivals"
+            />
+          </TabsContent>
+          <TabsContent value="checkIns" className="mt-4">
+            <ReportList
+              data={dailyActivityReport.data.checkIns}
+              type="checkIns"
+            />
+          </TabsContent>
+          <TabsContent value="checkOuts" className="mt-4">
+            <ReportList
+              data={dailyActivityReport.data.checkOuts}
+              type="checkOuts"
+            />
+          </TabsContent>
+          <TabsContent value="newBookings" className="mt-4">
+            <ReportList
+              data={dailyActivityReport.data.newBookings}
+              type="newBookings"
+            />
+          </TabsContent>
+          <TabsContent value="cancellations" className="mt-4">
+            <ReportList
+              data={dailyActivityReport.data.cancellations}
+              type="cancellations"
+            />
+          </TabsContent>
+        </Tabs>
+      );
+    }
+    // =================================================================
 
     if (filteredReservations.length === 0) {
       return (
@@ -500,12 +673,15 @@ const ReservationsPage: React.FC = () => {
     isInitialLoad,
     loading,
     error,
+    viewMode,
+    dailyActivityReport, // New dependencies
     filteredReservations,
-    statusFilter,
-    convertToCheckIn,
-    viewReservationDetails,
+    paginatedData,
+    allRooms, // Existing dependencies
     getReservationStatus,
     getStatusBadge,
+    convertToCheckIn,
+    viewReservationDetails,
   ]);
 
   return (
@@ -554,55 +730,77 @@ const ReservationsPage: React.FC = () => {
 
           {/* Toolbar - fixed height */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50">
-            {/* Filter 1: Search */}
+            {/* Column 1: View Mode Selector - Always visible */}
             <div className="md:col-span-1 space-y-1.5">
-              <Label htmlFor="search-input">Search</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  id="search-input"
-                  placeholder="Search by name, phone, or room..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10"
-                />
-              </div>
-            </div>
-
-            {/* Filter 2: Status */}
-            <div className="md:col-span-1 space-y-1.5">
-              <Label htmlFor="status-filter">Status</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger id="status-filter">
-                  <SelectValue placeholder="Filter by Status" />
+              <Label htmlFor="view-mode-select">
+                Check reservation or calender
+              </Label>
+              <Select
+                value={viewMode}
+                onValueChange={(v) => setViewMode(v as "list" | "report")}
+              >
+                <SelectTrigger id="view-mode-select">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="reserved">Reserved</SelectItem>
-                  <SelectItem value="upcoming">Upcoming</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="expired">Expired</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="list">All Reservations List</SelectItem>
+                  <SelectItem value="report">Daily Reservations</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Filter 3: Date Picker */}
-            <div className="md:col-span-1 space-y-1.5">
-              <Label htmlFor="date-filter">Filter by Date</Label>
-              <div className="relative">
-                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <DatePicker
-                  id="date-filter"
-                  selected={dateFilter}
-                  onChange={(date: Date | null) => setDateFilter(date)}
-                  dateFormat="yyyy-MM-dd"
-                  placeholderText="Any Date" // Shows when no date is selected
-                  isClearable // Adds a small 'x' button to clear the date
-                  className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                />
+            {/* Conditionally render the appropriate filters for the selected view */}
+            {viewMode === "list" ? (
+              <>
+                {/* Filter 2: Search (for 'list' mode) */}
+                <div className="md:col-span-1 space-y-1.5">
+                  <Label htmlFor="search-input">Search</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="search-input"
+                      placeholder="Search by name, phone...."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10"
+                    />
+                  </div>
+                </div>
+
+                {/* Filter 3: Status (for 'list' mode) */}
+                <div className="md:col-span-1 space-y-1.5">
+                  <Label htmlFor="status-filter">Status</Label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger id="status-filter">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="reserved">Reserved</SelectItem>
+                      <SelectItem value="upcoming">Upcoming</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="expired">Expired</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            ) : (
+              // Date Picker (for 'report' mode)
+              <div className="md:col-span-2 space-y-1.5">
+                <Label htmlFor="report-date-picker">Report Date</Label>
+                <div className="relative">
+                  <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <DatePicker
+                    id="report-date-picker"
+                    selected={reportDate}
+                    onChange={(date: Date) => setReportDate(date)}
+                    dateFormat="yyyy-MM-dd"
+                    className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background"
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <ContentContainer>{renderedContent}</ContentContainer>
