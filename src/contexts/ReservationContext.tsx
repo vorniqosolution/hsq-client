@@ -58,6 +58,7 @@ export interface Reservation {
   createdBy: string | { _id: string; name: string; email: string; };
 }
 
+
 export interface CreateReservationInput {
   fullName: string;
   address: string;
