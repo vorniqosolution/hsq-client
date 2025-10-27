@@ -10,33 +10,25 @@ import React, {
 import axios, { AxiosError, AxiosInstance } from "axios";
 import { useAuth } from "./AuthContext";
 
-export interface CreatedOnDateSummary {
-  totalCreated: number;
-  byStatus: {
-    reserved: number;
-    'checked-in': number;
-    'checked-out': number;
-    cancelled: number;
-  };
+export interface DailyActivityData {
+  arrivals: any[];
+  checkIns: any[];
+  checkOuts: any[];
+  newBookings: any[];
+  cancellations: any[];
 }
 
-export interface CreatedOnDateReservation {
-  _id: string;
-  fullName: string;
-  phone: string;
-  status: string;
-  source: string;
-  roomNumber?: string;
-  checkIn: string;
-  checkOut: string;
-  totalDays: number;
-  createdBy?: string;
-  createdAt: string;
+export interface DailyActivitySummary {
+  arrivals: number;
+  checkIns: number;
+  checkOuts: number;
+  newBookings: number;
+  cancellations: number;
 }
 
-export interface CreatedOnDateResponse {
-  summary: CreatedOnDateSummary;
-  data: CreatedOnDateReservation[];
+export interface DailyActivityResponse {
+  summary: DailyActivitySummary;
+  data: DailyActivityData;
 }
 
 export interface Room {
@@ -66,6 +58,7 @@ export interface Reservation {
   createdBy: string | { _id: string; name: string; email: string; };
 }
 
+
 export interface CreateReservationInput {
   fullName: string;
   address: string;
@@ -89,9 +82,8 @@ interface ReservationContextType {
   loading: boolean;
   error: string | null;
 
-  createdOnDateReservations: CreatedOnDateReservation[];
-  createdOnDateSummary: CreatedOnDateSummary | null;
-  fetchReservationsCreatedOnDate: (date: string) => Promise<void>;
+  dailyActivityReport: DailyActivityResponse | null;
+  fetchDailyActivityReport: (date: string) => Promise<void>;
 
   fetchReservations: () => Promise<void>;
   createReservation: (data: CreateReservationInput) => Promise<void>;
@@ -100,15 +92,15 @@ interface ReservationContextType {
 }
 
 const ReservationContext = createContext<ReservationContextType | undefined>(undefined);
-
 export const ReservationProvider = ({ children }: { children: ReactNode }) => {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [currentReservation, setCurrentReservation] = useState<Reservation | null>(null);
-   const [createdOnDateReservations, setCreatedOnDateReservations] = useState<CreatedOnDateReservation[]>([]);
-  const [createdOnDateSummary, setCreatedOnDateSummary] = useState<CreatedOnDateSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+
+  const [dailyActivityReport, setDailyActivityReport] = useState<DailyActivityResponse | null>(null);
+
 
   const apiCall = useCallback(async <T,>(
     fn: () => Promise<T>,
@@ -136,23 +128,19 @@ export const ReservationProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const fetchReservationsCreatedOnDate = useCallback(async (date: string) => {
-    // Clear previous results while fetching new ones for a better user experience
-    setCreatedOnDateReservations([]);
-    setCreatedOnDateSummary(null);
-
+  const fetchDailyActivityReport = useCallback(async (date: string) => {
+    // Clear previous report data before fetching new data
+    setDailyActivityReport(null);
     await apiCall(
-      // The API call to your new endpoint
-      () => apiClient.get<CreatedOnDateResponse>(`/api/reservation/created-on?date=${date}`).then(res => res.data),
-      
-      // On success, update the new state variables
+      // This calls the new, powerful backend endpoint
+      () => apiClient.get<DailyActivityResponse>(`/api/reservation/reports/daily-activity?date=${date}`).then(res => res.data),
       (response) => {
-        setCreatedOnDateReservations(response.data);
-        setCreatedOnDateSummary(response.summary);
+        setDailyActivityReport(response);
       },
-      "Failed to fetch reservations created on this date"
+      "Failed to fetch daily activity report"
     );
   }, [apiCall]);
+
 
   const fetchReservations = useCallback(async () => {
     await apiCall(
@@ -198,60 +186,35 @@ export const ReservationProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user, fetchReservations]);
 
-    const contextValue = useMemo(() => ({
+  const contextValue = useMemo(() => ({
     reservations,
     currentReservation,
     loading,
     error,
 
-    createdOnDateReservations, // Included
-    createdOnDateSummary,      // Included
-    fetchReservationsCreatedOnDate, // Included
+    dailyActivityReport,
+    fetchDailyActivityReport,
 
     fetchReservations,
     createReservation,
     deleteReservation,
     getReservationById,
   }), [
-    // Add the new dependencies here
     reservations,
     currentReservation,
     loading,
     error,
-    
-    createdOnDateReservations, // ADD THIS
-    createdOnDateSummary,      // ADD THIS
-    
+
+
+    dailyActivityReport,
+    fetchDailyActivityReport,
+
     fetchReservations,
     createReservation,
     deleteReservation,
     getReservationById,
-    fetchReservationsCreatedOnDate, // ADD THIS
   ]);
 
-  // const contextValue = useMemo(() => ({
-  //   reservations,
-  //   currentReservation,
-  //   loading,
-  //   error,
-
-  //   createdOnDateReservations,
-  //   createdOnDateSummary,
-  //   fetchReservationsCreatedOnDate,
-  //   fetchReservations,
-  //   createReservation,
-  //   deleteReservation,
-  //   getReservationById,
-  // }), [
-  //   reservations,
-  //   currentReservation,
-  //   loading,
-  //   error,
-  //   fetchReservations,
-  //   createReservation,
-  //   deleteReservation,
-  //   getReservationById,
-  // ]);
 
   return (
     <ReservationContext.Provider value={contextValue}>
