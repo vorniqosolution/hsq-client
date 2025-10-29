@@ -1,8 +1,22 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
+import DatePicker from "react-datepicker";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Sidebar from "@/components/Sidebar";
-import { Search, Eye, Trash2, UserPlus, X, Menu, Crown } from "lucide-react";
+import {
+  Search,
+  Eye,
+  Trash2,
+  UserPlus,
+  X,
+  Menu,
+  Crown,
+  CheckCircle2,
+  LogOut,
+  CalendarDays,
+  User,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -72,6 +86,9 @@ const GuestsPage: React.FC = () => {
     fetchGuests,
     createGuest,
     deleteGuest,
+    // ADD THESE
+    guestActivityReport,
+    fetchGuestActivityReport,
   } = useGuestContext();
 
   const { toast } = useToast();
@@ -79,8 +96,6 @@ const GuestsPage: React.FC = () => {
   const { getReservationById } = useReservationContext();
   const isAdmin = user?.role === "admin";
   const ITEMS_PER_PAGE = 15;
-
-
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchCategory, setSearchCategory] = useState("name");
@@ -88,6 +103,8 @@ const GuestsPage: React.FC = () => {
   const [guestToDelete, setGuestToDelete] = useState<Guest | null>(null);
   const [isOpen, setIsOpen] = useState(true);
   const [searchParams] = useSearchParams();
+  const [viewMode, setViewMode] = useState<"list" | "report">("list");
+  const [reportDate, setReportDate] = useState(new Date());
   const [prefill, setPrefill] = useState<Partial<CreateGuestInput> | null>(
     null
   );
@@ -122,8 +139,23 @@ const GuestsPage: React.FC = () => {
   }, [searchParams, getReservationById]);
 
   useEffect(() => {
-    fetchGuests();
-  }, [fetchGuests]);
+    const loadData = async () => {
+      // A timezone-safe helper function
+      const formatDateToYYYYMMDD = (date: Date) =>
+        date.toISOString().split("T")[0];
+
+      if (viewMode === "report") {
+        // If in report mode, fetch the guest activity report
+        const dateString = formatDateToYYYYMMDD(reportDate);
+        await fetchGuestActivityReport(dateString);
+      } else {
+        // If in list mode, fetch the main list of all guests
+        await fetchGuests();
+      }
+    };
+
+    loadData();
+  }, [viewMode, reportDate, fetchGuestActivityReport, fetchGuests]);
 
   const filteredGuests = useMemo(() => {
     setCurrentPage(1);
@@ -195,6 +227,71 @@ const GuestsPage: React.FC = () => {
     if (guestsLoading) return <GuestListSkeleton />;
     if (error)
       return <div className="text-center text-red-500 p-6">{error}</div>;
+
+    if (viewMode === "report") {
+      if (!guestActivityReport) {
+        return (
+          <div className="text-center text-gray-500 p-6">
+            Select a date to generate the report.
+          </div>
+        );
+      }
+
+      // Helper component to render a list of guests
+      const ReportList = ({ data }) => (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            {data.length > 0 ? (
+              data.map((item) => (
+                <div
+                  key={item._id}
+                  className="flex items-center justify-between p-3 border rounded-lg bg-background hover:bg-muted/50"
+                >
+                  <div className="flex items-center gap-4">
+                    <User className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="font-semibold text-sm">{item.fullName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Room {item.room?.roomNumber || "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                  <Link to={`/guests/${item._id}`}>
+                    <Button variant="ghost" size="sm">
+                      <Eye className="h-4 w-4 mr-2" /> View
+                    </Button>
+                  </Link>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground text-center">
+                No activity.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      );
+
+      return (
+        <Tabs defaultValue="checkIns" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="checkIns">
+              Check-Ins ({guestActivityReport.summary.checkIns})
+            </TabsTrigger>
+            <TabsTrigger value="checkOuts">
+              Check-Outs ({guestActivityReport.summary.checkOuts})
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="checkIns" className="mt-4">
+            <ReportList data={guestActivityReport.data.checkIns} />
+          </TabsContent>
+          <TabsContent value="checkOuts" className="mt-4">
+            <ReportList data={guestActivityReport.data.checkOuts} />
+          </TabsContent>
+        </Tabs>
+      );
+    }
+
     if (filteredGuests.length === 0) {
       return (
         <div className="text-center text-gray-500 p-6">
@@ -244,8 +341,8 @@ const GuestsPage: React.FC = () => {
               Check In Guest
             </Button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
-            {/* Search Input and Category Selector */}
+
+          {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
             <div className="flex items-center space-x-2 md:col-span-2">
               <div className="relative flex-grow">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -272,16 +369,80 @@ const GuestsPage: React.FC = () => {
               </Select>
             </div>
 
-            {/* Clear Filters Button */}
             <div className="flex items-center justify-end">
               <Button variant="secondary" onClick={handleClearFilters}>
                 <X className="mr-2 h-4 w-4" /> Clear
               </Button>
             </div>
+          </div> */}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
+            {/* Column 1: View Mode Selector */}
+            <div className="md:col-span-1 space-y-1.5">
+              <Label htmlFor="view-mode-select">View Mode</Label>
+              <Select
+                value={viewMode}
+                onValueChange={(v) => setViewMode(v as "list" | "report")}
+              >
+                <SelectTrigger id="view-mode-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="list">All Guests List</SelectItem>
+                  <SelectItem value="report">Daily Activity Report</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {viewMode === "list" ? (
+              <>
+                {/* Your original search and category selectors go here */}
+                <div className="flex items-center space-x-2 md:col-span-2">
+                  <div className="relative flex-grow">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search guests..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 w-full"
+                    />
+                  </div>
+                  <Select
+                    value={searchCategory}
+                    onValueChange={(value) => setSearchCategory(value)}
+                  >
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="name">Name</SelectItem>
+                      <SelectItem value="phone">Phone</SelectItem>
+                      <SelectItem value="roomNumber">Room</SelectItem>
+                      <SelectItem value="status">Status</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            ) : (
+              // Date Picker for the report view
+              <div className="md:col-span-2 space-y-1.5">
+                <Label htmlFor="report-date-picker">Report Date</Label>
+                <div className="relative">
+                  <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <DatePicker
+                    id="report-date-picker"
+                    selected={reportDate}
+                    onChange={(date: Date) => setReportDate(date)}
+                    dateFormat="yyyy-MM-dd"
+                    className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ..."
+                  />
+                </div>
+              </div>
+            )}
           </div>
+
           <div className="relative min-h-[400px]">{renderContent()}</div>
 
-          {/* --- ADD THIS ENTIRE PAGINATION BLOCK HERE --- */}
           {totalPages > 1 && (
             <Card className="mt-4">
               <CardContent className="p-4 flex justify-center">
@@ -541,6 +702,7 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
   const [formData, setFormData] =
     useState<CreateGuestInput>(INITIAL_FORM_STATE);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState({ phone: "", cnic: "" });
   const { toast } = useToast();
 
   const {
@@ -614,15 +776,53 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
   };
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type } = e.currentTarget;
-    const isCheckbox = type === "checkbox";
-    const checked = (e.currentTarget as HTMLInputElement).checked;
+    const { name, value } = e.currentTarget;
 
+    // Create a copy of the current errors to modify
+    const newErrors = { ...formErrors };
+
+    // Validate CNIC field
+    if (name === "cnic") {
+      // Check if the value is not empty and doesn't match the 13-digit pattern
+      if (value && !/^\d{13}$/.test(value)) {
+        newErrors.cnic = "CNIC must be exactly 13 digits.";
+      } else {
+        newErrors.cnic = ""; // Clear the error if it's valid or empty
+      }
+    }
+
+    // Validate Phone field
+    if (name === "phone") {
+      // Check if the value is not empty and doesn't match the 11-digit pattern
+      if (value && !/^\d{11}$/.test(value)) {
+        newErrors.phone = "Phone must be exactly 11 digits.";
+      } else {
+        newErrors.phone = ""; // Clear the error if it's valid or empty
+      }
+    }
+
+    // Update the error state with any new messages
+    setFormErrors(newErrors);
+
+    // Update the form data state as before
+    const isCheckbox = e.currentTarget.type === "checkbox";
+    const checked = e.currentTarget.checked;
     setFormData((prev) => ({
       ...prev,
       [name]: isCheckbox ? checked : value,
     }));
   };
+
+  // const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const { name, value, type } = e.currentTarget;
+  //   const isCheckbox = type === "checkbox";
+  //   const checked = (e.currentTarget as HTMLInputElement).checked;
+
+  //   setFormData((prev) => ({
+  //     ...prev,
+  //     [name]: isCheckbox ? checked : value,
+  //   }));
+  // };
 
   const handleSelectChange = (
     name: "roomNumber" | "paymentMethod",
@@ -705,15 +905,23 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
               placeholder="Phone Number"
               required
               disabled={isSubmitting}
+              maxLength={11} // Optional: Helps guide the user
             />
+            {formErrors.phone && (
+              <p className="text-xs text-red-500 mt-1">{formErrors.phone}</p>
+            )}
             <Input
               name="cnic"
               value={formData.cnic}
               onChange={handleFormChange}
-              placeholder="CNIC"
+              placeholder="CNIC (e.g., 3520212345678)"
               required
               disabled={isSubmitting}
+              maxLength={13} // Optional: Helps guide the user
             />
+            {formErrors.cnic && (
+              <p className="text-xs text-red-500 mt-1">{formErrors.cnic}</p>
+            )}
           </div>
           <Input
             name="email"
@@ -843,7 +1051,12 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
           <Button
             type="submit"
             className="w-full"
-            disabled={isSubmitting || !formData.roomNumber}
+            disabled={
+              isSubmitting ||
+              !formData.roomNumber ||
+              formErrors.phone !== "" ||
+              formErrors.cnic !== ""
+            }
           >
             {isSubmitting ? "Processing..." : "Submit Check-In"}
           </Button>
