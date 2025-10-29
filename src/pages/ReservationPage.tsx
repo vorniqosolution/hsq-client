@@ -68,13 +68,11 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRoomContext, Room } from "@/contexts/RoomContext";
-import { useGuestContext } from "@/contexts/GuestContext";
 import {
   useReservationContext,
   CreateReservationInput,
 } from "@/contexts/ReservationContext";
 import Sidebar from "@/components/Sidebar";
-// import { isWithinInterval } from "date-fns";
 import {
   Pagination,
   PaginationContent,
@@ -144,6 +142,7 @@ const ReservationsPage: React.FC = () => {
     fetchReservations,
     createReservation,
     deleteReservation,
+    hardDeleteReservation,
     dailyActivityReport,
     fetchDailyActivityReport,
   } = useReservationContext();
@@ -157,16 +156,19 @@ const ReservationsPage: React.FC = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
-
   const ITEMS_PER_PAGE = 8;
+
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [formData, setFormData] =
     useState<CreateReservationInput>(INITIAL_FORM_STATE);
+  const [formErrors, setFormErrors] = useState({ phone: "", cnic: "" });
   const [reservationToDelete, setReservationToDelete] =
     useState<Reservation | null>(null);
+  const [reservationToHardDelete, setReservationToHardDelete] =
+    useState<Reservation | null>(null); // <-- Add
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [isOpen, setIsOpen] = useState(true);
@@ -216,8 +218,9 @@ const ReservationsPage: React.FC = () => {
     return "reserved";
   }, []);
 
+  // ================ searchTerm =======================
   const filteredReservations = useMemo(() => {
-    setCurrentPage(1); // Reset to page 1 on any filter change
+    setCurrentPage(1);
 
     return reservations.filter((reservation) => {
       // Search Filter Logic
@@ -232,16 +235,10 @@ const ReservationsPage: React.FC = () => {
       const status = getReservationStatus(reservation);
       const matchesStatus = statusFilter === "all" || status === statusFilter;
 
-      // The date filter logic is removed. Only search and status apply to this view.
+      // The date filtering logic has been correctly removed.
       return matchesSearch && matchesStatus;
     });
-  }, [
-    reservations,
-    searchTerm,
-    statusFilter,
-    // The 'dateFilter' dependency is now removed
-    getReservationStatus,
-  ]);
+  }, [reservations, searchTerm, statusFilter, getReservationStatus]);
 
   const paginatedData = useMemo(() => {
     const firstPageIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -254,12 +251,35 @@ const ReservationsPage: React.FC = () => {
   const handleFormChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const { name, value } = e.target;
+
+      // Create a copy of the current errors
+      const newErrors = { ...formErrors };
+
+      // Validate CNIC field as the user types
+      if (name === "cnic") {
+        if (value && !/^\d{13}$/.test(value)) {
+          newErrors.cnic = "CNIC must be exactly 13 digits.";
+        } else {
+          newErrors.cnic = ""; // Clear error if valid
+        }
+      }
+
+      // Validate Phone field as the user types
+      if (name === "phone") {
+        if (value && !/^\d{11}$/.test(value)) {
+          newErrors.phone = "Phone must be exactly 11 digits.";
+        } else {
+          newErrors.phone = ""; // Clear error if valid
+        }
+      }
+
+      setFormErrors(newErrors); // Update the error state
+
       const newFormData = { ...formData, [name]: value };
       setFormData(newFormData);
 
-      // If both dates are present and valid, fetch available rooms
+      // Your existing logic for fetching available rooms remains the same
       if (name === "checkin" || name === "checkout") {
-        // Reset the room selection whenever a date changes
         setFormData((prev) => ({ ...prev, [name]: value, roomNumber: "" }));
         const { checkin, checkout } = newFormData;
         if (checkin && checkout && new Date(checkout) > new Date(checkin)) {
@@ -267,8 +287,27 @@ const ReservationsPage: React.FC = () => {
         }
       }
     },
-    [formData, fetchAvailableRooms]
-  );
+    [formData, formErrors, fetchAvailableRooms]
+  ); // Add formErrors to dependency array
+
+  // const handleFormChange = useCallback(
+  //   (e: React.ChangeEvent<HTMLInputElement>) => {
+  //     const { name, value } = e.target;
+  //     const newFormData = { ...formData, [name]: value };
+  //     setFormData(newFormData);
+
+  //     // If both dates are present and valid, fetch available rooms
+  //     if (name === "checkin" || name === "checkout") {
+  //       // Reset the room selection whenever a date changes
+  //       setFormData((prev) => ({ ...prev, [name]: value, roomNumber: "" }));
+  //       const { checkin, checkout } = newFormData;
+  //       if (checkin && checkout && new Date(checkout) > new Date(checkin)) {
+  //         fetchAvailableRooms(checkin, checkout);
+  //       }
+  //     }
+  //   },
+  //   [formData, fetchAvailableRooms]
+  // );
 
   const handleSelectChange = useCallback((name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -314,6 +353,26 @@ const ReservationsPage: React.FC = () => {
       });
     } finally {
       setReservationToDelete(null);
+    }
+  };
+
+  const handleHardDelete = async () => {
+    if (!reservationToHardDelete) return;
+
+    try {
+      await hardDeleteReservation(reservationToHardDelete._id);
+      toast({
+        title: "Success",
+        description: `Reservation for ${reservationToHardDelete.fullName} has been permanently deleted.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to delete the reservation. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setReservationToHardDelete(null); // Close the dialog
     }
   };
 
@@ -382,58 +441,57 @@ const ReservationsPage: React.FC = () => {
 
   const ContentContainer = useCallback(
     ({ children }: { children: React.ReactNode }) => (
-      <div
-        ref={contentRef}
-        // className="h "
-        style={{ willChange: "transform" }} // Optimize for GPU acceleration
-      >
+      <div ref={contentRef} style={{ willChange: "transform" }}>
         <div className="">{children}</div>
       </div>
     ),
     []
   );
 
-    // This is the helper component that needs to be robust
-  const ReportList = ({ data, type }: { data: any[], type: string }) => {
-    
+  // This is the helper component that needs to be robust
+  const ReportList = ({ data, type }: { data: any[]; type: string }) => {
     // THIS IS THE CORRECT, DEFENSIVE VERSION OF THE HELPER FUNCTION
     const getRelevantInfo = (item: any, reportType: string): string => {
       // We will check for the existence of each date field before using it
       switch (reportType) {
-        case 'arrivals':
-          if (!item.startAt) return 'No schedule info';
+        case "arrivals":
+          if (!item.startAt) return "No schedule info";
           return `Scheduled for ${format(new Date(item.startAt), "MMM d")}`;
-        
-        case 'checkIns':
+
+        case "checkIns":
           // This is the critical fix. We check if item.checkInAt exists.
-          if (!item.checkInAt) return 'No check-in time';
+          if (!item.checkInAt) return "No check-in time";
           return `Checked in at ${format(new Date(item.checkInAt), "p")}`;
-        
-        case 'checkOuts':
-          if (!item.checkOutAt) return 'No check-out time';
+
+        case "checkOuts":
+          if (!item.checkOutAt) return "No check-out time";
           return `Checked out at ${format(new Date(item.checkOutAt), "p")}`;
-        
-        case 'newBookings':
-          if (!item.createdAt) return 'No creation time';
+
+        case "newBookings":
+          if (!item.createdAt) return "No creation time";
           return `Booked at ${format(new Date(item.createdAt), "p")}`;
-        
-        case 'cancellations':
-          if (!item.updatedAt) return 'No cancellation time';
+
+        case "cancellations":
+          if (!item.updatedAt) return "No cancellation time";
           return `Cancelled at ${format(new Date(item.updatedAt), "p")}`;
-        
+
         default:
-          return '';
+          return "";
       }
     };
 
     if (data.length === 0) {
-      return <p className="text-sm text-muted-foreground p-4 text-center">No activity in this category.</p>;
+      return (
+        <p className="text-sm text-muted-foreground p-4 text-center">
+          No activity in this category.
+        </p>
+      );
     }
 
     return (
       <Card>
         <CardContent className="p-4 space-y-3">
-          {data.map(item => (
+          {data.map((item) => (
             <div
               key={item._id}
               className="flex items-center justify-between p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors"
@@ -456,9 +514,9 @@ const ReservationsPage: React.FC = () => {
                 <p className="text-xs text-muted-foreground hidden sm:block">
                   {getRelevantInfo(item, type)}
                 </p>
-                {item.type === 'reservation' && (
-                  <Button 
-                    variant="ghost" 
+                {item.type === "reservation" && (
+                  <Button
+                    variant="ghost"
                     size="sm"
                     onClick={() => navigate(`/reservation/${item._id}`)}
                     title="View reservation details"
@@ -474,82 +532,6 @@ const ReservationsPage: React.FC = () => {
       </Card>
     );
   };
-
-  // const ReportList = ({ data, type }: { data: any[]; type: string }) => {
-  //   // Helper to get the most relevant time/date for each category
-  //   const getRelevantInfo = (item: any, reportType: string): string => {
-  //     try {
-  //       switch (reportType) {
-  //         case "arrivals":
-  //           return `Scheduled for ${format(new Date(item.startAt), "MMM d")}`;
-  //         case "checkIns":
-  //           return `Checked in at ${format(new Date(item.checkInAt), "p")}`;
-  //         case "checkOuts":
-  //           return `Checked out at ${format(new Date(item.checkOutAt), "p")}`;
-  //         case "newBookings":
-  //           return `Booked at ${format(new Date(item.createdAt), "p")}`;
-  //         case "cancellations":
-  //           return `Cancelled at ${format(new Date(item.updatedAt), "p")}`;
-  //         default:
-  //           return "";
-  //       }
-  //     } catch {
-  //       return "Invalid date";
-  //     }
-  //   };
-
-  //   if (data.length === 0) {
-  //     return (
-  //       <p className="text-sm text-muted-foreground p-4 text-center">
-  //         No activity in this category.
-  //       </p>
-  //     );
-  //   }
-
-  //   return (
-  //     <Card>
-  //       <CardContent className="p-4 space-y-3">
-  //         {data.map((item) => (
-  //           <div
-  //             key={item._id}
-  //             className="flex items-center justify-between p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors"
-  //           >
-  //             {/* Left side: Icon, Name, and Room */}
-  //             <div className="flex items-center gap-4">
-  //               <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full">
-  //                 <User className="h-5 w-5 text-muted-foreground" />
-  //               </div>
-  //               <div>
-  //                 <p className="font-semibold text-sm">{item.fullName}</p>
-  //                 <p className="text-xs text-muted-foreground">
-  //                   Room {item.room?.roomNumber || "N/A"}
-  //                 </p>
-  //               </div>
-  //             </div>
-
-  //             {/* Right side: Relevant Time and View Button */}
-  //             <div className="flex items-center gap-4">
-  //               <p className="text-xs text-muted-foreground hidden sm:block">
-  //                 {getRelevantInfo(item, type)}
-  //               </p>
-  //               {item.type === "reservation" && (
-  //                 <Button
-  //                   variant="ghost"
-  //                   size="sm"
-  //                   onClick={() => navigate(`/reservation/${item._id}`)}
-  //                   title="View reservation details"
-  //                 >
-  //                   <Eye className="h-4 w-4 mr-2" />
-  //                   View
-  //                 </Button>
-  //               )}
-  //             </div>
-  //           </div>
-  //         ))}
-  //       </CardContent>
-  //     </Card>
-  //   );
-  // };
 
   const renderedContent = useMemo(() => {
     if (isInitialLoad || loading) {
@@ -630,7 +612,6 @@ const ReservationsPage: React.FC = () => {
         </Tabs>
       );
     }
-    // =================================================================
 
     if (filteredReservations.length === 0) {
       return (
@@ -651,7 +632,6 @@ const ReservationsPage: React.FC = () => {
         </div>
       );
     }
-    // CARDS OF RESERVATIONS
 
     return (
       <div className="space-y-2 ">
@@ -661,6 +641,7 @@ const ReservationsPage: React.FC = () => {
             reservation={reservation}
             allRooms={allRooms} // <-- NEW: Pass the master room list as a prop
             onDelete={() => setReservationToDelete(reservation)}
+            onHardDelete={() => setReservationToHardDelete(reservation)}
             onCheckIn={() => convertToCheckIn(reservation)}
             onViewDetails={() => viewReservationDetails(reservation)}
             getStatus={getReservationStatus}
@@ -749,7 +730,6 @@ const ReservationsPage: React.FC = () => {
               </Select>
             </div>
 
-            {/* Conditionally render the appropriate filters for the selected view */}
             {viewMode === "list" ? (
               <>
                 {/* Filter 2: Search (for 'list' mode) */}
@@ -876,60 +856,20 @@ const ReservationsPage: React.FC = () => {
                 onSubmit={handleCreateReservation}
                 className="space-y-4 pt-4"
               >
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Guest Name</Label>
-                  <Input
-                    id="fullName"
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleFormChange}
-                    placeholder="John Doe"
-                    disabled={isSubmitting}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Input
-                    id="address"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleFormChange}
-                    placeholder="123 Main St, Anytown"
-                    disabled={isSubmitting}
-                    required
-                  />
-                </div>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
+                    <Label htmlFor="fullName">Guest Name</Label>
                     <Input
-                      id="phone"
-                      name="phone"
-                      value={formData.phone}
+                      id="fullName"
+                      name="fullName"
+                      value={formData.fullName}
                       onChange={handleFormChange}
-                      placeholder="+92 300 1234567"
+                      placeholder="John Doe"
                       disabled={isSubmitting}
                       required
                     />
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email (Optional)</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email || ""}
-                      onChange={handleFormChange}
-                      placeholder="guest@example.com"
-                      disabled={isSubmitting}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label htmlFor="cnic">CNIC</Label>
                     <Input
                       id="cnic"
@@ -940,49 +880,25 @@ const ReservationsPage: React.FC = () => {
                       disabled={isSubmitting}
                       required
                     />
-                  </div>
+                  </div> */}
 
                   <div className="space-y-2">
-                    <Label>Room</Label>
-                    <Select
-                      name="roomNumber"
-                      value={formData.roomNumber}
-                      onValueChange={(v) => handleSelectChange("roomNumber", v)}
-                      disabled={
-                        isSubmitting ||
-                        !formData.checkin ||
-                        !formData.checkout ||
-                        loading
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder={
-                            loading
-                              ? "Fetching rooms..."
-                              : !formData.checkout
-                              ? "Select dates to see rooms"
-                              : "Select an available room"
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableRooms.length > 0 ? (
-                          availableRooms.map((r) => (
-                            <SelectItem key={r._id} value={r.roomNumber}>
-                              Room {r.roomNumber} — {r.category} — (Rs{r.rate}
-                              /night)
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <div className="px-2 py-4 text-center text-gray-500">
-                            {formData.checkout
-                              ? "No rooms available"
-                              : "Select dates first"}
-                          </div>
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="cnic">CNIC</Label>
+                    <Input
+                      id="cnic"
+                      name="cnic"
+                      value={formData.cnic}
+                      onChange={handleFormChange}
+                      placeholder="1234567890123"
+                      disabled={isSubmitting}
+                      required
+                      maxLength={13} // Helps guide the user
+                    />
+                    {formErrors.cnic && (
+                      <p className="text-xs text-red-500 mt-1">
+                        {formErrors.cnic}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -1019,10 +935,118 @@ const ReservationsPage: React.FC = () => {
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <Label>Select Room</Label>
+                  <Select
+                    name="roomNumber"
+                    value={formData.roomNumber}
+                    onValueChange={(v) => handleSelectChange("roomNumber", v)}
+                    disabled={
+                      isSubmitting ||
+                      !formData.checkin ||
+                      !formData.checkout ||
+                      loading
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          loading
+                            ? "Fetching rooms..."
+                            : !formData.checkout
+                            ? "Select dates to see rooms"
+                            : "Select an available room"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableRooms.length > 0 ? (
+                        availableRooms.map((r) => (
+                          <SelectItem key={r._id} value={r.roomNumber}>
+                            Room {r.roomNumber} — {r.category} — (Rs{r.rate}
+                            /night)
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="px-2 py-4 text-center text-gray-500">
+                          {formData.checkout
+                            ? "No rooms available"
+                            : "Select dates first"}
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleFormChange}
+                      placeholder="+92 300 1234567"
+                      disabled={isSubmitting}
+                      required
+                    />
+                  </div> */}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleFormChange}
+                      placeholder="+92 300 1234567"
+                      disabled={isSubmitting}
+                      required
+                      maxLength={11} // Helps guide the user
+                    />
+                    {formErrors.phone && (
+                      <p className="text-xs text-red-500 mt-1">
+                        {formErrors.phone}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Address</Label>
+                    <Input
+                      id="address"
+                      name="address"
+                      value={formData.address}
+                      onChange={handleFormChange}
+                      placeholder="123 Main St, Anytown"
+                      disabled={isSubmitting}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email (Optional)</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={formData.email || ""}
+                      onChange={handleFormChange}
+                      placeholder="guest@example.com"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                </div>
+
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={isSubmitting || !formData.roomNumber}
+                  disabled={
+                    isSubmitting ||
+                    !formData.roomNumber ||
+                    formErrors.phone !== "" ||
+                    formErrors.cnic !== ""
+                  }
                 >
                   {isSubmitting ? "Processing..." : "Create Reservation"}
                 </Button>
@@ -1058,6 +1082,37 @@ const ReservationsPage: React.FC = () => {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          <AlertDialog
+            open={!!reservationToHardDelete} // This dialog is controlled by our new state variable
+            onOpenChange={(open) => !open && setReservationToHardDelete(null)} // Allows closing the dialog
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action is irreversible. It will{" "}
+                  <span className="font-bold text-red-600">
+                    PERMANENTLY DELETE
+                  </span>{" "}
+                  the reservation record for{" "}
+                  <span className="font-semibold">
+                    {reservationToHardDelete?.fullName}
+                  </span>
+                  . All associated data will be lost forever.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>{" "}
+                {/* The safe "no" option */}
+                <AlertDialogAction
+                  onClick={handleHardDelete} // Calls the new handler function when the user confirms
+                  className="bg-red-600 hover:bg-red-700" // Styled to look dangerous
+                >
+                  Confirm Permanent Deletion
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </div>
@@ -1068,6 +1123,7 @@ interface ReservationCardProps {
   reservation: Reservation;
   allRooms: Room[];
   onDelete: () => void;
+  onHardDelete: () => void; // Prop for the new permanent delete action
   onCheckIn: () => void;
   onViewDetails: () => void;
   getStatus: (reservation: Reservation) => string;
@@ -1081,9 +1137,13 @@ const ReservationCard = React.memo(
     onDelete,
     onCheckIn,
     onViewDetails,
+    onHardDelete,
     getStatus,
     getStatusBadge,
   }: ReservationCardProps) => {
+    const { user } = useAuth();
+    const isAdmin = user?.role === "admin";
+
     const status = getStatus(reservation);
     const isCheckInEnabled = status === "reserved" || status === "upcoming";
 
@@ -1197,7 +1257,6 @@ const ReservationCard = React.memo(
                 </CardContent>
               </div>
 
-              {/* Vertical Actions Section for Medium Screens and Up */}
               <div className="flex md:flex-col items-center justify-between p-4 bg-gray-50/70 border-t md:border-t-0 md:border-l border-gray-200">
                 <div className="text-center md:mb-4">
                   <Badge variant="outline">
@@ -1208,7 +1267,10 @@ const ReservationCard = React.memo(
                     Stay
                   </Badge>
                 </div>
-                <div className="flex md:flex-col gap-2">
+
+                {/* This is the main container for all action buttons */}
+                <div className="flex md:flex-col gap-2 w-full">
+                  {/* CHECK IN BUTTON (No Change) */}
                   {isCheckInEnabled && (
                     <Button
                       size="sm"
@@ -1219,6 +1281,8 @@ const ReservationCard = React.memo(
                       Check In
                     </Button>
                   )}
+
+                  {/* VIEW BUTTON (No Change) */}
                   <Button
                     variant="outline"
                     size="sm"
@@ -1228,14 +1292,30 @@ const ReservationCard = React.memo(
                     <Eye className="mr-2 h-4 w-4" />
                     View
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onDelete}
-                    className="w-full hover:bg-red-50 text-gray-500 hover:text-red-600"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {(status === "reserved" || status === "upcoming") && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={onDelete}
+                      className="w-full hover:bg-red-50 text-gray-500 hover:text-red-600 justify-start md:justify-center"
+                      title="Cancel this reservation"
+                    >
+                      <Trash2 className="h-4 w-4 md:mr-0" />
+                      <span className="md:hidden ml-2">Cancel</span>
+                    </Button>
+                  )}
+                  {isAdmin && status === "cancelled" && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={onHardDelete}
+                      className="w-full"
+                      title="Permanently delete this reservation"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

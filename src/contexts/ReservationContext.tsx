@@ -55,9 +55,8 @@ export interface Reservation {
   status: "reserved" | "cancelled" | "checked-in" | "checked-out";
   createdAt: string;
   updatedAt: string;
-  createdBy: string | { _id: string; name: string; email: string; };
+  createdBy: string | { _id: string; name: string; email: string };
 }
-
 
 export interface CreateReservationInput {
   fullName: string;
@@ -83,102 +82,156 @@ interface ReservationContextType {
   error: string | null;
 
   dailyActivityReport: DailyActivityResponse | null;
-  fetchDailyActivityReport: (date: string) => Promise<void>;
 
+  fetchDailyActivityReport: (date: string) => Promise<void>;
   fetchReservations: () => Promise<void>;
   createReservation: (data: CreateReservationInput) => Promise<void>;
   deleteReservation: (id: string) => Promise<void>;
+  hardDeleteReservation: (id: string) => Promise<void>;
   getReservationById: (id: string) => Promise<Reservation>;
 }
 
-const ReservationContext = createContext<ReservationContextType | undefined>(undefined);
+const ReservationContext = createContext<ReservationContextType | undefined>(
+  undefined
+);
 export const ReservationProvider = ({ children }: { children: ReactNode }) => {
   const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [currentReservation, setCurrentReservation] = useState<Reservation | null>(null);
+  const [currentReservation, setCurrentReservation] =
+    useState<Reservation | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  const [dailyActivityReport, setDailyActivityReport] = useState<DailyActivityResponse | null>(null);
+  const [dailyActivityReport, setDailyActivityReport] =
+    useState<DailyActivityResponse | null>(null);
 
-
-  const apiCall = useCallback(async <T,>(
-    fn: () => Promise<T>,
-    onSuccess?: (data: T) => void,
-    errorMessage = "An error occurred"
-  ): Promise<T> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await fn();
-      if (onSuccess) onSuccess(result);
-      return result;
-    } catch (err) {
-      let message = errorMessage;
-      if (axios.isAxiosError(err)) {
-        const axiosError = err as AxiosError<{ message?: string }>;
-        message = axiosError.response?.data?.message || axiosError.message || errorMessage;
-      } else if (err instanceof Error) {
-        message = err.message;
+  const apiCall = useCallback(
+    async <T,>(
+      fn: () => Promise<T>,
+      onSuccess?: (data: T) => void,
+      errorMessage = "An error occurred"
+    ): Promise<T> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await fn();
+        if (onSuccess) onSuccess(result);
+        return result;
+      } catch (err) {
+        let message = errorMessage;
+        if (axios.isAxiosError(err)) {
+          const axiosError = err as AxiosError<{ message?: string }>;
+          message =
+            axiosError.response?.data?.message ||
+            axiosError.message ||
+            errorMessage;
+        } else if (err instanceof Error) {
+          message = err.message;
+        }
+        setError(message);
+        throw err;
+      } finally {
+        setLoading(false);
       }
-      setError(message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    []
+  );
 
-  const fetchDailyActivityReport = useCallback(async (date: string) => {
-    // Clear previous report data before fetching new data
-    setDailyActivityReport(null);
-    await apiCall(
-      // This calls the new, powerful backend endpoint
-      () => apiClient.get<DailyActivityResponse>(`/api/reservation/reports/daily-activity?date=${date}`).then(res => res.data),
-      (response) => {
-        setDailyActivityReport(response);
-      },
-      "Failed to fetch daily activity report"
-    );
-  }, [apiCall]);
-
+  const fetchDailyActivityReport = useCallback(
+    async (date: string) => {
+      // Clear previous report data before fetching new data
+      setDailyActivityReport(null);
+      await apiCall(
+        // This calls the new, powerful backend endpoint
+        () =>
+          apiClient
+            .get<DailyActivityResponse>(
+              `/api/reservation/reports/daily-activity?date=${date}`
+            )
+            .then((res) => res.data),
+        (response) => {
+          setDailyActivityReport(response);
+        },
+        "Failed to fetch daily activity report"
+      );
+    },
+    [apiCall]
+  );
 
   const fetchReservations = useCallback(async () => {
     await apiCall(
-      () => apiClient.get<{ data: Reservation[] }>("/api/reservation/get-reservations").then(res => res.data.data || []),
+      () =>
+        apiClient
+          .get<{ data: Reservation[] }>("/api/reservation/get-reservations")
+          .then((res) => res.data.data || []),
       (data) => setReservations(data),
       "Failed to fetch reservations"
     );
   }, [apiCall]);
 
-  const createReservation = useCallback(async (data: CreateReservationInput) => {
-    await apiCall(
-      () => apiClient.post<{ data: Reservation }>("/api/reservation/create-reservation", data).then(res => res.data.data),
-      (newReservation) => {
-        setReservations((prev) => [...prev, newReservation]);
-      },
-      "Failed to create reservation"
-    );
-  }, [apiCall]);
+  const createReservation = useCallback(
+    async (data: CreateReservationInput) => {
+      await apiCall(
+        () =>
+          apiClient
+            .post<{ data: Reservation }>(
+              "/api/reservation/create-reservation",
+              data
+            )
+            .then((res) => res.data.data),
+        (newReservation) => {
+          setReservations((prev) => [...prev, newReservation]);
+        },
+        "Failed to create reservation"
+      );
+    },
+    [apiCall]
+  );
 
-  const deleteReservation = useCallback(async (id: string) => {
+  const deleteReservation = useCallback(
+    async (id: string) => {
+      await apiCall(
+        () =>
+          apiClient.delete(`/api/reservation/cancel-reservation/${id}/cancel`),
+        () => {
+          setReservations((prev) => prev.filter((r) => r._id !== id));
+        },
+        "Failed to cancel reservation"
+      );
+    },
+    [apiCall]
+  );
+
+  const hardDeleteReservation = useCallback(async (id: string) => {
     await apiCall(
-      () => apiClient.delete(`/api/reservation/cancel-reservation/${id}/cancel`),
+      // This calls the new, admin-only DELETE endpoint
+      () => apiClient.delete(`/api/reservation/${id}`), // Use the simplified, correct path
       () => {
+        // On success, remove the reservation from all local state arrays
         setReservations((prev) => prev.filter((r) => r._id !== id));
+        // You could also update the dailyActivityReport state if needed
       },
-      "Failed to cancel reservation"
+      "Failed to permanently delete reservation"
     );
   }, [apiCall]);
 
-  const getReservationById = useCallback(async (id: string): Promise<Reservation> => {
-    return await apiCall(
-      () => apiClient.get<{ data: Reservation }>(`/api/reservation/get-reservation/${id}`).then(res => res.data.data),
-      (reservation) => {
-        setCurrentReservation(reservation);
-      },
-      "Failed to fetch reservation"
-    );
-  }, [apiCall]);
+  const getReservationById = useCallback(
+    async (id: string): Promise<Reservation> => {
+      return await apiCall(
+        () =>
+          apiClient
+            .get<{ data: Reservation }>(
+              `/api/reservation/get-reservation/${id}`
+            )
+            .then((res) => res.data.data),
+        (reservation) => {
+          setCurrentReservation(reservation);
+        },
+        "Failed to fetch reservation"
+      );
+    },
+    [apiCall]
+  );
 
   useEffect(() => {
     if (user) {
@@ -186,35 +239,38 @@ export const ReservationProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user, fetchReservations]);
 
-  const contextValue = useMemo(() => ({
-    reservations,
-    currentReservation,
-    loading,
-    error,
+  const contextValue = useMemo(
+    () => ({
+      reservations,
+      currentReservation,
+      loading,
+      error,
 
-    dailyActivityReport,
-    fetchDailyActivityReport,
+      dailyActivityReport,
+      fetchDailyActivityReport,
 
-    fetchReservations,
-    createReservation,
-    deleteReservation,
-    getReservationById,
-  }), [
-    reservations,
-    currentReservation,
-    loading,
-    error,
+      fetchReservations,
+      createReservation,
+      deleteReservation,
+      hardDeleteReservation,
+      getReservationById,
+    }),
+    [
+      reservations,
+      currentReservation,
+      loading,
+      error,
 
+      dailyActivityReport,
+      fetchDailyActivityReport,
 
-    dailyActivityReport,
-    fetchDailyActivityReport,
-
-    fetchReservations,
-    createReservation,
-    deleteReservation,
-    getReservationById,
-  ]);
-
+      fetchReservations,
+      createReservation,
+      deleteReservation,
+      hardDeleteReservation,
+      getReservationById,
+    ]
+  );
 
   return (
     <ReservationContext.Provider value={contextValue}>
@@ -225,6 +281,9 @@ export const ReservationProvider = ({ children }: { children: ReactNode }) => {
 
 export const useReservationContext = () => {
   const context = useContext(ReservationContext);
-  if (!context) throw new Error("useReservationContext must be used within ReservationProvider");
+  if (!context)
+    throw new Error(
+      "useReservationContext must be used within ReservationProvider"
+    );
   return context;
 };

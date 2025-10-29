@@ -16,6 +16,21 @@ const apiClient: AxiosInstance = axios.create({
   withCredentials: true,
 });
 
+export interface GuestActivityData {
+  checkIns: any[];
+  checkOuts: any[];
+}
+
+export interface GuestActivitySummary {
+  checkIns: number;
+  checkOuts: number;
+}
+
+export interface GuestActivityResponse {
+  summary: GuestActivitySummary;
+  data: GuestActivityData;
+}
+
 export interface Room {
   _id: string;
   roomNumber: string;
@@ -94,6 +109,28 @@ interface GuestContextType {
   sendInvoiceByEmail: (invoiceId: string) => Promise<void>;
 }
 
+interface GuestContextType {
+  guests: Guest[];
+  guest: Guest | null;
+  invoice: Invoice | null;
+  loading: boolean;
+  error: string | null;
+
+  // Add the new state and function for the report
+  guestActivityReport: GuestActivityResponse | null;
+  fetchGuestActivityReport: (date: string) => Promise<void>;
+
+  fetchGuests: () => Promise<void>;
+  fetchGuestsByCategory: (category: string) => Promise<void>;
+  fetchGuestById: (id: string) => Promise<void>;
+  createGuest: (data: CreateGuestInput) => Promise<void>;
+  updateGuest: (id: string, data: Partial<Guest>) => Promise<void>;
+  checkoutGuest: (id: string) => Promise<void>;
+  deleteGuest: (id: string) => Promise<void>;
+  downloadInvoicePdf: (invoiceId: string) => void;
+  sendInvoiceByEmail: (invoiceId: string) => Promise<void>;
+}
+
 const GuestContext = createContext<GuestContextType | undefined>(undefined);
 
 export const GuestProvider = ({ children }: { children: ReactNode }) => {
@@ -103,6 +140,7 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [guestActivityReport, setGuestActivityReport] = useState<GuestActivityResponse | null>(null);
 
   const apiCall = useCallback(
     async <T,>(
@@ -135,6 +173,18 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
     },
     []
   );
+
+  const fetchGuestActivityReport = useCallback(async (date: string) => {
+    setGuestActivityReport(null); // Clear previous results before fetching
+    await apiCall(
+      // This calls your new guest activity API endpoint
+      () => apiClient.get<GuestActivityResponse>(`/api/guests/activity-by-date?date=${date}`).then(res => res.data),
+      (response) => {
+        setGuestActivityReport(response);
+      },
+      "Failed to fetch guest activity report"
+    );
+  }, [apiCall]);
 
   const fetchGuests = useCallback(async () => {
     await apiCall(
@@ -280,6 +330,9 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
       deleteGuest,
       downloadInvoicePdf,
       sendInvoiceByEmail,
+      
+      guestActivityReport,
+      fetchGuestActivityReport,
     }),
     [
       guests,
@@ -296,6 +349,9 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
       deleteGuest,
       downloadInvoicePdf,
       sendInvoiceByEmail,
+      guestActivityReport,
+
+      fetchGuestActivityReport,
     ]
   );
 
