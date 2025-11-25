@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import OptimizedImage from "@/components/OptimizedImage";
 import {
   Search,
   Clock,
@@ -56,8 +57,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Sidebar from "@/components/Sidebar";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
-
 const RoomsPage = () => {
   const availableAmenities = [
     "WiFi",
@@ -74,7 +73,6 @@ const RoomsPage = () => {
     availableRooms,
     currentRoom,
     loading,
-    error,
     createRoom,
     fetchRooms,
     fetchRoomById,
@@ -102,16 +100,6 @@ const RoomsPage = () => {
   const [deletedImages, setDeletedImages] = useState<string[]>([]);
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(true);
-
-  const roomCategories = [
-    "Standard",
-    "Deluxe",
-    "Duluxe-Plus",
-    "Executive",
-    "Presidential",
-  ];
-
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   const [formData, setFormData] = useState<Partial<Room>>({
     roomNumber: "",
@@ -164,17 +152,11 @@ const RoomsPage = () => {
 
   const handleAmenityChange = (amenity: string) => {
     setFormData((prev) => {
-      const currentAmenities = prev.amenities || [];
-      if (currentAmenities.includes(amenity)) {
-        // If it's already there, remove it
-        return {
-          ...prev,
-          amenities: currentAmenities.filter((a) => a !== amenity),
-        };
-      } else {
-        // If it's not there, add it
-        return { ...prev, amenities: [...currentAmenities, amenity] };
-      }
+      const amenities = prev.amenities || [];
+      const newAmenities = amenities.includes(amenity)
+        ? amenities.filter((a) => a !== amenity)
+        : [...amenities, amenity];
+      return { ...prev, amenities: newAmenities };
     });
   };
 
@@ -307,20 +289,16 @@ const RoomsPage = () => {
       }
     });
 
-    // --- ADD THIS BLOCK: Handle amenities array specifically ---
     if (formData.amenities && formData.amenities.length > 0) {
       formData.amenities.forEach((amenity) => {
         formDataToSend.append("amenities", amenity);
       });
     }
-    // --- END OF NEW BLOCK ---
 
-    // Add new images
     selectedImages.forEach((image) => {
       formDataToSend.append("images", image);
     });
 
-    // Add deleted images if any
     if (deletedImages.length > 0) {
       formDataToSend.append("deletedImages", JSON.stringify(deletedImages));
     }
@@ -436,7 +414,7 @@ const RoomsPage = () => {
             </div>
           </div>
         )}
-        {/* Room content - enhanced with tabs and CRUD operations */}
+
         <div className="p-6 ">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
@@ -496,7 +474,6 @@ const RoomsPage = () => {
                         </div>
                       </div>
 
-                      {/* Check-out Date */}
                       <div className="flex-1">
                         <Label
                           htmlFor="checkout"
@@ -534,7 +511,6 @@ const RoomsPage = () => {
                           />
                           <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
 
-                          {/* Date preview */}
                           {searchDates.checkout && (
                             <div className="absolute -bottom-5 left-0 text-xs font-medium">
                               {new Date(
@@ -549,7 +525,6 @@ const RoomsPage = () => {
                         </div>
                       </div>
                       <div className="flex gap-2 items-end lg:mt-6">
-                        {/* Clear Button */}
                         {(searchDates.checkin || searchDates.checkout) && (
                           <Button
                             variant="outline"
@@ -631,7 +606,6 @@ const RoomsPage = () => {
                   </div>
                   <div className="border-t border-gray-200 my-4"></div>
 
-                  {/* Room Management Section */}
                   <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between border border-red">
                     {/* Room filtering tabs */}
                     <Tabs
@@ -657,8 +631,7 @@ const RoomsPage = () => {
                         </TabsTrigger>
                       </TabsList>
                     </Tabs>
-
-                    {/* Create Room Dialog */}
+                    
                     <Dialog
                       open={isCreateDialogOpen}
                       onOpenChange={setIsCreateDialogOpen}
@@ -1001,13 +974,12 @@ const RoomsPage = () => {
                   key={room._id}
                   className="flex flex-col lg:flex-row overflow-hidden hover:shadow-lg transition-shadow duration-300 "
                 >
-                  {/* Image Section */}
-                  <div className="lg:w-1/3 flex-shrink-0">
+                  <div className="lg:w-1/3 flex-shrink-0 relative">
                     {room.images && room.images.length > 0 ? (
-                      <img
+                      <OptimizedImage
                         src={room.images[0]}
                         alt={`Room ${room.roomNumber}`}
-                        className="w-full h-48 lg:h-full object-cover"
+                        className="w-full h-48 lg:h-full"
                       />
                     ) : (
                       <div className="flex items-center justify-center w-full h-48 lg:h-full bg-slate-100">
