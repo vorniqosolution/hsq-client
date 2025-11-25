@@ -34,6 +34,7 @@ export interface Room {
   isPubliclyVisible?: boolean;
   publicDescription?: string;
   adults?: number;
+  infants?: number;
   cleaniness?: string;
 }
 
