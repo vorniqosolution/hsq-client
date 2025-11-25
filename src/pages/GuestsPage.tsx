@@ -397,8 +397,9 @@ const GuestsPage: React.FC = () => {
             {viewMode === "list" ? (
               <>
                 {/* Your original search and category selectors go here */}
-                <div className="flex items-center space-x-2 md:col-span-2">
+                <div className="flex items-center space-x-2 md:col-span-2 pt-7">
                   <div className="relative flex-grow">
+                    {/* <Label>Search Mode</Label> */}
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
                       placeholder="Search guests..."
