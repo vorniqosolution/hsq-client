@@ -933,7 +933,7 @@ const RoomsPage = () => {
                           </div>
 
                           <div className="space-y-2">
-                            <Label>Room Images (Max 6)</Label>
+                            <Label>Room Images (Max 3)</Label>
                             <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
                               <input
                                 type="file"
@@ -952,7 +952,7 @@ const RoomsPage = () => {
                                   Click to upload images
                                 </span>
                                 <span className="text-xs text-gray-500 mt-1">
-                                  JPG, PNG or GIF • Max 6 images
+                                  USE "WEBP" FORMAT ONLY • MAX 3 IMAGES
                                 </span>
                               </label>
                             </div>
@@ -1395,7 +1395,7 @@ const RoomsPage = () => {
                     </div>
 
                     <div className="col-span-2 space-y-2">
-                      <Label>Room Images (Max 3)</Label>
+                      <Label>Room Images (Max 3) </Label>
                       {existingImages && existingImages.length > 0 && (
                         <>
                           <div className="text-sm text-gray-500 mb-2">
@@ -1449,7 +1449,7 @@ const RoomsPage = () => {
                             Click to upload new images
                           </span>
                           <span className="text-xs text-gray-500 mt-1">
-                            JPG, PNG or GIF • Max 3 images total
+                            USE "WEBP" FORMAT ONLY • MAX 3 IMAGES
                           </span>
                         </label>
                       </div>
