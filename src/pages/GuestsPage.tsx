@@ -30,6 +30,7 @@ import {
   PaginationPrevious,
   PaginationLink,
   PaginationNext,
+  PaginationEllipsis,
 } from "@/components/ui/pagination";
 import {
   Dialog,
@@ -312,6 +313,29 @@ const GuestsPage: React.FC = () => {
     );
   };
 
+  const getPageNumbers = (currentPage: number, totalPages: number) => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    const pages: (number | string)[] = [1];
+
+    if (currentPage > 3) pages.push("...");
+
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+
+    if (currentPage < totalPages - 2) pages.push("...");
+
+    pages.push(totalPages);
+
+    return pages;
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex">
       <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)} />
@@ -444,7 +468,7 @@ const GuestsPage: React.FC = () => {
 
           <div className="relative min-h-[400px]">{renderContent()}</div>
 
-          {totalPages > 1 && (
+          {/* {totalPages > 1 && (
             <Card className="mt-4">
               <CardContent className="p-4 flex justify-center">
                 <Pagination>
@@ -478,6 +502,71 @@ const GuestsPage: React.FC = () => {
                         </PaginationLink>
                       </PaginationItem>
                     ))}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setCurrentPage((prev) =>
+                            Math.min(prev + 1, totalPages)
+                          );
+                        }}
+                        className={
+                          currentPage === totalPages
+                            ? "pointer-events-none opacity-50"
+                            : ""
+                        }
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </CardContent>
+            </Card>
+          )} */}
+
+          {totalPages > 1 && (
+            <Card className="mt-4">
+              <CardContent className="p-4 flex justify-center">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setCurrentPage((prev) => Math.max(prev - 1, 1));
+                        }}
+                        className={
+                          currentPage === 1
+                            ? "pointer-events-none opacity-50"
+                            : ""
+                        }
+                      />
+                    </PaginationItem>
+
+                    {/* --- CHANGED SECTION START --- */}
+                    {getPageNumbers(currentPage, totalPages).map(
+                      (page, index) => (
+                        <PaginationItem key={index}>
+                          {page === "..." ? (
+                            <PaginationEllipsis />
+                          ) : (
+                            <PaginationLink
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setCurrentPage(page as number);
+                              }}
+                              isActive={currentPage === page}
+                            >
+                              {page}
+                            </PaginationLink>
+                          )}
+                        </PaginationItem>
+                      )
+                    )}
+                    {/* --- CHANGED SECTION END --- */}
 
                     <PaginationItem>
                       <PaginationNext
