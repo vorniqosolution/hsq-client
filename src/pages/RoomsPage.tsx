@@ -18,9 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-} from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -131,6 +129,7 @@ const RoomsPage = () => {
     isPubliclyVisible: false,
     publicDescription: "",
     adults: 2,
+    infants: 0,
     cleaniness: "Redefining standard living our rooms.",
   });
 
@@ -773,8 +772,8 @@ const RoomsPage = () => {
                               </Select>
                             </div>
                           </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {/* Create Room  */}
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div>
                               <Label htmlFor="rate">Rate per Night</Label>
                               <Input
@@ -839,6 +838,22 @@ const RoomsPage = () => {
                                   })
                                 }
                                 required
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="infants">Max Infants</Label>
+                              <Input
+                                id="infants"
+                                type="number"
+                                min="0"
+                                value={formData.infants || 0}
+                                placeholder="0"
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    infants: parseInt(e.target.value, 10) || 0,
+                                  })
+                                }
                               />
                             </div>
                             <div className="flex items-center space-x-2 pt-2 col-span-2">
@@ -980,11 +995,11 @@ const RoomsPage = () => {
             </div>
 
             {/* Room Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-6 ">
               {displayedRooms.map((room) => (
                 <Card
                   key={room._id}
-                  className="flex flex-col lg:flex-row overflow-hidden hover:shadow-lg transition-shadow duration-300"
+                  className="flex flex-col lg:flex-row overflow-hidden hover:shadow-lg transition-shadow duration-300 "
                 >
                   {/* Image Section */}
                   <div className="lg:w-1/3 flex-shrink-0">
@@ -1002,7 +1017,7 @@ const RoomsPage = () => {
                   </div>
 
                   {/* Content Section */}
-                  <div className="p-4 flex flex-col flex-grow justify-between lg:w-2/3">
+                  <div className="p-4 flex flex-col flex-grow justify-between lg:w-2/3 ">
                     {/* Top part: Title, Description, and Status */}
                     <div>
                       <div className="flex items-start justify-between">
@@ -1260,6 +1275,23 @@ const RoomsPage = () => {
                           })
                         }
                         required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="edit-infants">Max Infants</Label>
+                      <Input
+                        id="edit-infants"
+                        type="number"
+                        min="0"
+                        value={formData.infants || 0}
+                        placeholder="0"
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            infants: parseInt(e.target.value, 10) || 0,
+                          })
+                        }
                       />
                     </div>
 
@@ -1547,6 +1579,12 @@ const RoomsPage = () => {
                       <div>
                         <p className="text-sm text-gray-500">Max Adults</p>
                         <p className="font-medium">{currentRoom.adults}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Max Infants</p>
+                        <p className="font-medium">
+                          {currentRoom.infants || 0}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Owner</p>
