@@ -631,7 +631,7 @@ const RoomsPage = () => {
                         </TabsTrigger>
                       </TabsList>
                     </Tabs>
-                    
+
                     <Dialog
                       open={isCreateDialogOpen}
                       onOpenChange={setIsCreateDialogOpen}
