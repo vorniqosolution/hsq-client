@@ -105,6 +105,16 @@ interface Reservation {
   startAt: string;
   endAt: string;
   status: "reserved" | "cancelled" | "checked-in" | "checked-out";
+
+  // ✅ ADD THESE NEW FIELDS:
+  adults: number;
+  infants: number;
+  expectedArrivalTime?: string;
+  specialRequest?: string;
+  paymentMethod?: "Cash" | "Card" | "Online" | "PayAtHotel";
+  promoCode?: string;
+  source?: "CRM" | "Website" | "API";
+
   createdAt: string;
   updatedAt: string;
   isPaid?: boolean;
@@ -132,6 +142,12 @@ const INITIAL_FORM_STATE: CreateReservationInput = {
   roomNumber: "",
   checkin: "",
   checkout: "",
+  adults: 1,
+  infants: 0,
+  arrivalTime: "",
+  specialRequest: "",
+  paymentMethod: undefined,
+  promoCode: "",
 };
 
 const ReservationsPage: React.FC = () => {
@@ -291,6 +307,29 @@ const ReservationsPage: React.FC = () => {
     [formData, formErrors, fetchAvailableRooms]
   );
 
+  // Add after line 344 in handleFormChange or create a new validation function
+  const validateRoomCapacity = (room: Room) => {
+    if (room.adults && formData.adults > room.adults) {
+      toast({
+        title: "Capacity Exceeded",
+        description: `This room allows maximum ${room.adults} adults.`,
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (room.infants !== undefined && formData.infants > room.infants) {
+      toast({
+        title: "Capacity Exceeded",
+        description: `This room allows maximum ${room.infants} infants.`,
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSelectChange = useCallback((name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   }, []);
@@ -307,16 +346,73 @@ const ReservationsPage: React.FC = () => {
       });
       setIsCreateDialogOpen(false);
       setFormData(INITIAL_FORM_STATE);
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to create reservation. Please try again.",
-        variant: "destructive",
-      });
+    } catch (err: any) {
+      // ✅ CHECK FOR CAPACITY ERROR SPECIFICALLY
+      const errorMessage =
+        err?.response?.data?.message || err?.message || "Unknown error";
+
+      if (errorMessage.toLowerCase().includes("capacity exceeded")) {
+        // 🔴 DEDICATED TOAST FOR CAPACITY ERRORS
+        toast({
+          title: "⚠️ Room Capacity Exceeded",
+          description: errorMessage,
+          variant: "destructive",
+          duration: 6000, // Show longer (6 seconds)
+        });
+      } else if (
+        errorMessage.toLowerCase().includes("already has a reservation")
+      ) {
+        // 🟡 DEDICATED TOAST FOR DOUBLE BOOKING
+        toast({
+          title: "🚫 Room Already Booked",
+          description: errorMessage,
+          variant: "destructive",
+          duration: 5000,
+        });
+      } else if (errorMessage.toLowerCase().includes("maintenance")) {
+        // 🟠 DEDICATED TOAST FOR MAINTENANCE
+        toast({
+          title: "🔧 Room Under Maintenance",
+          description: errorMessage,
+          variant: "destructive",
+          duration: 5000,
+        });
+      } else {
+        // ⚪ GENERIC ERROR TOAST
+        toast({
+          title: "Error",
+          description:
+            errorMessage || "Failed to create reservation. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // const handleCreateReservation = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setIsSubmitting(true);
+
+  //   try {
+  //     await createReservation(formData);
+  //     toast({
+  //       title: "Success",
+  //       description: "Reservation created successfully",
+  //     });
+  //     setIsCreateDialogOpen(false);
+  //     setFormData(INITIAL_FORM_STATE);
+  //   } catch (err) {
+  //     toast({
+  //       title: "Error",
+  //       description: "Failed to create reservation. Please try again.",
+  //       variant: "destructive",
+  //     });
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
 
   const handleDeleteReservation = async () => {
     if (!reservationToDelete) return;
@@ -939,18 +1035,6 @@ const ReservationsPage: React.FC = () => {
                       required
                     />
                   </div>
-                  {/* <div className="space-y-2">
-                    <Label htmlFor="cnic">CNIC</Label>
-                    <Input
-                      id="cnic"
-                      name="cnic"
-                      value={formData.cnic}
-                      onChange={handleFormChange}
-                      placeholder="12345-6789012-3"
-                      disabled={isSubmitting}
-                      required
-                    />
-                  </div> */}
 
                   <div className="space-y-2">
                     <Label htmlFor="cnic">CNIC</Label>
@@ -1049,19 +1133,6 @@ const ReservationsPage: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleFormChange}
-                      placeholder="+92 300 1234567"
-                      disabled={isSubmitting}
-                      required
-                    />
-                  </div> */}
-
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
                     <Input
@@ -1106,6 +1177,104 @@ const ReservationsPage: React.FC = () => {
                       disabled={isSubmitting}
                     />
                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="adults">Adults</Label>
+                    <Input
+                      id="adults"
+                      name="adults"
+                      type="number"
+                      min="1"
+                      value={formData.adults || 1}
+                      onChange={handleFormChange}
+                      disabled={isSubmitting}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="infants">Infants</Label>
+                    <Input
+                      id="infants"
+                      name="infants"
+                      type="number"
+                      min="0"
+                      value={formData.infants || 0}
+                      onChange={handleFormChange}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                </div>
+
+                {/* Row 7: Arrival Time and Payment Method */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="arrivalTime">Expected Arrival Time</Label>
+                    <Input
+                      id="arrivalTime"
+                      name="arrivalTime"
+                      type="time"
+                      value={formData.arrivalTime || ""}
+                      onChange={handleFormChange}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="paymentMethod">Payment Method</Label>
+                    <Select
+                      value={formData.paymentMethod || ""}
+                      onValueChange={(v) =>
+                        handleSelectChange("paymentMethod", v)
+                      }
+                      disabled={isSubmitting}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select payment method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Cash">Cash</SelectItem>
+                        <SelectItem value="Card">Card</SelectItem>
+                        <SelectItem value="Online">Online</SelectItem>
+                        <SelectItem value="PayAtHotel">Pay at Hotel</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Row 8: Special Request */}
+                <div className="space-y-2">
+                  <Label htmlFor="specialRequest">
+                    Special Requests (Optional)
+                  </Label>
+                  <textarea
+                    id="specialRequest"
+                    name="specialRequest"
+                    value={formData.specialRequest || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        specialRequest: e.target.value,
+                      }))
+                    }
+                    placeholder="Any special requests or notes..."
+                    disabled={isSubmitting}
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    style={{ resize: "vertical" }}
+                  />
+                </div>
+
+                {/* Row 9: Promo Code */}
+                <div className="space-y-2">
+                  <Label htmlFor="promoCode">Promo Code (Optional)</Label>
+                  <Input
+                    id="promoCode"
+                    name="promoCode"
+                    value={formData.promoCode || ""}
+                    onChange={handleFormChange}
+                    placeholder="Enter promo code"
+                    disabled={isSubmitting}
+                  />
                 </div>
 
                 <Button

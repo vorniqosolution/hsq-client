@@ -1,4 +1,3 @@
-// ReservationDetailsPage.tsx
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
@@ -59,7 +58,6 @@ interface PopulatedRoom {
   description?: string;
 }
 
-// Interface for reservation with potentially populated room
 interface Reservation {
   _id: string;
   fullName: string;
@@ -67,7 +65,7 @@ interface Reservation {
   email?: string;
   phone: string;
   cnic: string;
-  room: string | PopulatedRoom; // Can be either string ID or populated object
+  room: string | PopulatedRoom;
   roomNumber: string;
   startAt: string;
   endAt: string;
@@ -78,6 +76,14 @@ interface Reservation {
     | "confirmed"
     | "checked-in"
     | "checked-out";
+  // ✅ ADD NEW FIELDS:
+  adults: number;
+  infants: number;
+  expectedArrivalTime?: string;
+  specialRequest?: string;
+  paymentMethod?: "Cash" | "Card" | "Online" | "PayAtHotel";
+  promoCode?: string;
+  source?: "CRM" | "Website" | "API";
   createdAt: string;
   updatedAt: string;
   isPaid?: boolean;
@@ -270,9 +276,7 @@ const ReservationDetailsPage: React.FC = () => {
 
   const getRoomCategory = () => {
     if (!roomDetails) return "—";
-    return (
-      roomDetails.category || "—"
-    );
+    return roomDetails.category || "—";
   };
 
   return (
@@ -496,6 +500,67 @@ const ReservationDetailsPage: React.FC = () => {
 
                   <Separator />
 
+                  {/* ✅ NEW: Occupancy Details */}
+                  <div>
+                    <h3 className="text-lg font-medium mb-3 flex items-center">
+                      <Users className="mr-2 h-5 w-5 text-amber-500" />
+                      Occupancy Details
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Adults</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-lg">
+                            {reservation.adults || 1}
+                          </p>
+                          <Badge variant="outline" className="text-xs">
+                            {reservation.adults === 1 ? "Guest" : "Guests"}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Infants</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-lg">
+                            {reservation.infants || 0}
+                          </p>
+                          {reservation.infants > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                              {reservation.infants === 1 ? "Infant" : "Infants"}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      {reservation.expectedArrivalTime && (
+                        <div>
+                          <p className="text-sm text-gray-500">
+                            Expected Arrival Time
+                          </p>
+                          <p className="font-medium">
+                            {reservation.expectedArrivalTime}
+                          </p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm text-gray-500">Booking Source</p>
+                        <Badge
+                          variant="outline"
+                          className={`font-normal ${
+                            reservation.source === "Website"
+                              ? "bg-blue-50 text-blue-700 border-blue-200"
+                              : reservation.source === "API"
+                              ? "bg-purple-50 text-purple-700 border-purple-200"
+                              : "bg-amber-50 text-amber-700 border-amber-200"
+                          }`}
+                        >
+                          {reservation.source || "CRM"}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
                   {/* Stay Information */}
                   <div>
                     <h3 className="text-lg font-medium mb-3 flex items-center">
@@ -531,7 +596,8 @@ const ReservationDetailsPage: React.FC = () => {
                       <div>
                         <p className="text-sm text-gray-500">Duration</p>
                         <p className="font-medium">
-                          {reservationDetails?.days} nights
+                          {reservationDetails?.days}{" "}
+                          {reservationDetails?.days === 1 ? "night" : "nights"}
                         </p>
                       </div>
                       <div>
@@ -544,6 +610,74 @@ const ReservationDetailsPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* ✅ NEW: Payment & Special Requests (Conditional) */}
+                  {(reservation.paymentMethod ||
+                    reservation.promoCode ||
+                    reservation.specialRequest) && (
+                    <>
+                      <Separator />
+                      <div>
+                        <h3 className="text-lg font-medium mb-3 flex items-center">
+                          <FileText className="mr-2 h-5 w-5 text-amber-500" />
+                          Additional Information
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {reservation.paymentMethod && (
+                            <div>
+                              <p className="text-sm text-gray-500">
+                                Payment Method
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge
+                                  variant="secondary"
+                                  className={`font-medium ${
+                                    reservation.paymentMethod === "Cash"
+                                      ? "bg-green-100 text-green-800"
+                                      : reservation.paymentMethod === "Card"
+                                      ? "bg-blue-100 text-blue-800"
+                                      : reservation.paymentMethod === "Online"
+                                      ? "bg-purple-100 text-purple-800"
+                                      : "bg-gray-100 text-gray-800"
+                                  }`}
+                                >
+                                  {reservation.paymentMethod}
+                                </Badge>
+                              </div>
+                            </div>
+                          )}
+                          {reservation.promoCode && (
+                            <div>
+                              <p className="text-sm text-gray-500">
+                                Promo Code Applied
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge
+                                  variant="secondary"
+                                  className="font-mono bg-emerald-100 text-emerald-800 border-emerald-200"
+                                >
+                                  {reservation.promoCode}
+                                </Badge>
+                                <Ticket className="h-4 w-4 text-emerald-600" />
+                              </div>
+                            </div>
+                          )}
+                          {reservation.specialRequest && (
+                            <div className="md:col-span-2">
+                              <p className="text-sm text-gray-500 mb-2">
+                                Special Requests
+                              </p>
+                              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                                <p className="text-sm text-gray-700 leading-relaxed">
+                                  {reservation.specialRequest}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>

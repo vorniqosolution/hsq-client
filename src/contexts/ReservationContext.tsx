@@ -39,6 +39,8 @@ export interface Room {
   view: string;
   rate: number;
   status: "available" | "reserved" | "occupied" | "maintenance";
+  adults?: number;   // Max adults capacity
+  infants?: number;
 }
 
 export interface Reservation {
@@ -53,6 +55,17 @@ export interface Reservation {
   startAt: string;
   endAt: string;
   status: "reserved" | "cancelled" | "checked-in" | "checked-out";
+
+  // ✅ ADD THESE NEW FIELDS:
+  adults: number;
+  infants: number;
+  expectedArrivalTime?: string;
+  specialRequest?: string;
+  paymentMethod?: "Cash" | "Card" | "Online" | "PayAtHotel";
+  promoCode?: string;
+  source: "CRM" | "Website" | "API";
+
+
   createdAt: string;
   updatedAt: string;
   createdBy: string | { _id: string; name: string; email: string };
@@ -67,6 +80,14 @@ export interface CreateReservationInput {
   roomNumber: string;
   checkin: string; // "YYYY-MM-DD"
   checkout: string; // "YYYY-MM-DD"
+
+  // ✅ ADD THESE NEW FIELDS:
+  adults?: number;           // Optional, defaults to 1
+  infants?: number;          // Optional, defaults to 0
+  arrivalTime?: string;      // Maps to expectedArrivalTime
+  specialRequest?: string;   // Guest notes
+  paymentMethod?: "Cash" | "Card" | "Online" | "PayAtHotel";
+  promoCode?: string;   
 }
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
