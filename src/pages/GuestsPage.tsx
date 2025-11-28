@@ -77,6 +77,8 @@ const INITIAL_FORM_STATE: CreateGuestInput = {
   paymentMethod: "cash",
   applyDiscount: false,
   additionaldiscount: 0,
+  adults: 1,
+  infants: 0,
 };
 
 const GuestsPage: React.FC = () => {
@@ -726,6 +728,18 @@ const GuestCard: React.FC<{ guest: Guest; onDelete: () => void }> = React.memo(
                     {calculateDuration()}
                   </span>
                 </div>
+                <div className="flex flex-col">
+                  <span className="text-gray-500 text-xs uppercase tracking-wider mb-1">
+                    Occupancy
+                  </span>
+                  <span className="font-medium text-gray-900">
+                    {guest.adults || 1} Adult{guest.adults !== 1 ? "s" : ""}
+                    {guest.infants > 0 &&
+                      `, ${guest.infants} Infant${
+                        guest.infants !== 1 ? "s" : ""
+                      }`}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -865,54 +879,83 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
     }
   };
 
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.currentTarget;
-
-    // Create a copy of the current errors to modify
-    const newErrors = { ...formErrors };
-
-    // Validate CNIC field
-    if (name === "cnic") {
-      // Check if the value is not empty and doesn't match the 13-digit pattern
-      if (value && !/^\d{13}$/.test(value)) {
-        newErrors.cnic = "CNIC must be exactly 13 digits.";
-      } else {
-        newErrors.cnic = ""; // Clear the error if it's valid or empty
-      }
-    }
-
-    // Validate Phone field
-    if (name === "phone") {
-      // Check if the value is not empty and doesn't match the 11-digit pattern
-      if (value && !/^\d{11}$/.test(value)) {
-        newErrors.phone = "Phone must be exactly 11 digits.";
-      } else {
-        newErrors.phone = ""; // Clear the error if it's valid or empty
-      }
-    }
-
-    // Update the error state with any new messages
-    setFormErrors(newErrors);
-
-    // Update the form data state as before
-    const isCheckbox = e.currentTarget.type === "checkbox";
-    const checked = e.currentTarget.checked;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: isCheckbox ? checked : value,
-    }));
-  };
-
   // const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   const { name, value, type } = e.currentTarget;
-  //   const isCheckbox = type === "checkbox";
-  //   const checked = (e.currentTarget as HTMLInputElement).checked;
+  //   const { name, value } = e.currentTarget;
 
+  //   // Create a copy of the current errors to modify
+  //   const newErrors = { ...formErrors };
+
+  //   // Validate CNIC field
+  //   if (name === "cnic") {
+  //     // Check if the value is not empty and doesn't match the 13-digit pattern
+  //     if (value && !/^\d{13}$/.test(value)) {
+  //       newErrors.cnic = "CNIC must be exactly 13 digits.";
+  //     } else {
+  //       newErrors.cnic = ""; // Clear the error if it's valid or empty
+  //     }
+  //   }
+
+  //   // Validate Phone field
+  //   if (name === "phone") {
+  //     // Check if the value is not empty and doesn't match the 11-digit pattern
+  //     if (value && !/^\d{11}$/.test(value)) {
+  //       newErrors.phone = "Phone must be exactly 11 digits.";
+  //     } else {
+  //       newErrors.phone = ""; // Clear the error if it's valid or empty
+  //     }
+  //   }
+
+  //   // Update the error state with any new messages
+  //   setFormErrors(newErrors);
+
+  //   // Update the form data state as before
+  //   const isCheckbox = e.currentTarget.type === "checkbox";
+  //   const checked = e.currentTarget.checked;
   //   setFormData((prev) => ({
   //     ...prev,
   //     [name]: isCheckbox ? checked : value,
   //   }));
   // };
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type } = e.currentTarget;
+    const newErrors = { ...formErrors };
+
+    // Existing validation for CNIC and Phone...
+    if (name === "cnic") {
+      if (value && !/^\d{13}$/.test(value)) {
+        newErrors.cnic = "CNIC must be exactly 13 digits.";
+      } else {
+        newErrors.cnic = "";
+      }
+    }
+
+    if (name === "phone") {
+      if (value && !/^\d{11}$/.test(value)) {
+        newErrors.phone = "Phone must be exactly 11 digits.";
+      } else {
+        newErrors.phone = "";
+      }
+    }
+
+    setFormErrors(newErrors);
+
+    // ✅ Handle different input types
+    const isCheckbox = type === "checkbox";
+    const isNumber = type === "number";
+
+    let finalValue: any = value;
+    if (isCheckbox) {
+      finalValue = e.currentTarget.checked;
+    } else if (isNumber) {
+      finalValue = value === "" ? 0 : parseInt(value, 10);
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: finalValue,
+    }));
+  };
 
   const handleSelectChange = (
     name: "roomNumber" | "paymentMethod",
@@ -1013,6 +1056,7 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
               <p className="text-xs text-red-500 mt-1">{formErrors.cnic}</p>
             )}
           </div>
+
           <Input
             name="email"
             type="email"
@@ -1021,8 +1065,42 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
             placeholder="Email (Optional)"
             disabled={isSubmitting}
           />
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="adults" className="text-sm text-gray-600">
+                  Adults
+                </Label>
+                <Input
+                  id="adults"
+                  name="adults"
+                  type="number"
+                  min="1"
+                  value={formData.adults || 1}
+                  onChange={handleFormChange}
+                  placeholder="Number of adults"
+                  required
+                  disabled={isSubmitting}
+                />
+              </div>
+              <div>
+                <Label htmlFor="infants" className="text-sm text-gray-600">
+                  Infants
+                </Label>
+                <Input
+                  id="infants"
+                  name="infants"
+                  type="number"
+                  min="0"
+                  value={formData.infants || 0}
+                  onChange={handleFormChange}
+                  placeholder="Number of infants"
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+          </div>
 
-          {/* Booking Details with Dates - UPDATED */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="checkInDate">Check-in Date</Label>
@@ -1054,7 +1132,6 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
             </div>
           </div>
 
-          {/* Rest of the form remains the same */}
           <div>
             <Label>Available Room</Label>
             <Select
@@ -1070,19 +1147,49 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
                   }
                 />
               </SelectTrigger>
-
+              
               <SelectContent>
                 {selectableRooms.length > 0 ? (
                   selectableRooms.map((r) => {
                     const isTheReservedRoom =
                       r.roomNumber === prefill?.roomNumber;
+
+                    // ✅ Check capacity
+                    const adultsExceeded =
+                      r.adults && formData.adults > r.adults;
+                    const infantsExceeded =
+                      r.infants !== undefined && formData.infants > r.infants;
+                    const capacityIssue = adultsExceeded || infantsExceeded;
+
                     return (
-                      <SelectItem key={r._id} value={r.roomNumber}>
+                      <SelectItem
+                        key={r._id}
+                        value={r.roomNumber}
+                        disabled={capacityIssue} // ✅ Disable if capacity exceeded
+                      >
                         <span className="flex items-center gap-2">
-                          Room {r.roomNumber} — {r.bedType} — (Rs{r.rate}/night)
-                          {/* Add a visual badge to clearly mark the reserved room */}
+                          Room {r.roomNumber} — {r.bedType} — Rs{r.rate}/night
+                          {/* ✅ Show capacity info */}
+                          {r.adults && (
+                            <span
+                              className={`text-xs ${
+                                capacityIssue ? "text-red-500" : "text-gray-500"
+                              }`}
+                            >
+                              (Max: {r.adults} adults
+                              {r.infants !== undefined
+                                ? `, ${r.infants} infants`
+                                : ""}
+                              )
+                            </span>
+                          )}
                           {isTheReservedRoom && (
                             <Badge variant="secondary">Reserved</Badge>
+                          )}
+                          {capacityIssue && (
+                            <Badge variant="destructive" className="text-xs">
+                              Exceeds Capacity
+                            </Badge>
                           )}
                         </span>
                       </SelectItem>
@@ -1099,7 +1206,6 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
             </Select>
           </div>
 
-          {/* Financial Details */}
           <div className="grid grid-cols-2 gap-4">
             <Input
               name="additionaldiscount"
@@ -1125,6 +1231,7 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
               </SelectContent>
             </Select>
           </div>
+
           <div className="flex items-center space-x-2">
             <input
               type="checkbox"

@@ -39,6 +39,8 @@ export interface Room {
   view: string;
   rate: number;
   status: "available" | "reserved" | "occupied" | "maintenance";
+  adults?: number;   // Max adults capacity
+  infants?: number;  // Max infants capacity
 }
 
 export interface Guest {
@@ -48,7 +50,9 @@ export interface Guest {
   phone: string;
   email?: string;
   cnic: string;
-  room: Room | null; // Allow null explicitly
+  room: Room | null;
+  adults: number;
+  infants: number;
   checkInAt: string;
   checkOutAt: string;
   status: "checked-in" | "checked-out";
@@ -58,6 +62,7 @@ export interface Guest {
   applyDiscount: boolean;
   discountTitle?: string;
   totalRent: number;
+  gst?: number;
 }
 
 export interface Invoice {
@@ -84,8 +89,10 @@ export interface CreateGuestInput {
   cnic: string;
   email?: string;
   roomNumber: string;
-  checkInDate: string; // "YYYY-MM-DD"
-  checkOutDate: string; // "YYYY-MM-DD"
+  adults?: number;
+  infants?: number;
+  checkInDate: string;
+  checkOutDate: string;
   paymentMethod: "cash" | "card" | "online";
   applyDiscount: boolean;
   additionaldiscount: number;
@@ -140,7 +147,8 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [guestActivityReport, setGuestActivityReport] = useState<GuestActivityResponse | null>(null);
+  const [guestActivityReport, setGuestActivityReport] =
+    useState<GuestActivityResponse | null>(null);
 
   const apiCall = useCallback(
     async <T,>(
@@ -174,17 +182,25 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
     []
   );
 
-  const fetchGuestActivityReport = useCallback(async (date: string) => {
-    setGuestActivityReport(null); // Clear previous results before fetching
-    await apiCall(
-      // This calls your new guest activity API endpoint
-      () => apiClient.get<GuestActivityResponse>(`/api/guests/activity-by-date?date=${date}`).then(res => res.data),
-      (response) => {
-        setGuestActivityReport(response);
-      },
-      "Failed to fetch guest activity report"
-    );
-  }, [apiCall]);
+  const fetchGuestActivityReport = useCallback(
+    async (date: string) => {
+      setGuestActivityReport(null); // Clear previous results before fetching
+      await apiCall(
+        // This calls your new guest activity API endpoint
+        () =>
+          apiClient
+            .get<GuestActivityResponse>(
+              `/api/guests/activity-by-date?date=${date}`
+            )
+            .then((res) => res.data),
+        (response) => {
+          setGuestActivityReport(response);
+        },
+        "Failed to fetch guest activity report"
+      );
+    },
+    [apiCall]
+  );
 
   const fetchGuests = useCallback(async () => {
     await apiCall(
@@ -330,7 +346,7 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
       deleteGuest,
       downloadInvoicePdf,
       sendInvoiceByEmail,
-      
+
       guestActivityReport,
       fetchGuestActivityReport,
     }),
