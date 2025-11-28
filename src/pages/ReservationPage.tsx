@@ -347,22 +347,19 @@ const ReservationsPage: React.FC = () => {
       setIsCreateDialogOpen(false);
       setFormData(INITIAL_FORM_STATE);
     } catch (err: any) {
-      // ✅ CHECK FOR CAPACITY ERROR SPECIFICALLY
       const errorMessage =
         err?.response?.data?.message || err?.message || "Unknown error";
 
       if (errorMessage.toLowerCase().includes("capacity exceeded")) {
-        // 🔴 DEDICATED TOAST FOR CAPACITY ERRORS
         toast({
           title: "⚠️ Room Capacity Exceeded",
           description: errorMessage,
           variant: "destructive",
-          duration: 6000, // Show longer (6 seconds)
+          duration: 6000,
         });
       } else if (
         errorMessage.toLowerCase().includes("already has a reservation")
       ) {
-        // 🟡 DEDICATED TOAST FOR DOUBLE BOOKING
         toast({
           title: "🚫 Room Already Booked",
           description: errorMessage,
@@ -370,7 +367,6 @@ const ReservationsPage: React.FC = () => {
           duration: 5000,
         });
       } else if (errorMessage.toLowerCase().includes("maintenance")) {
-        // 🟠 DEDICATED TOAST FOR MAINTENANCE
         toast({
           title: "🔧 Room Under Maintenance",
           description: errorMessage,
@@ -378,7 +374,6 @@ const ReservationsPage: React.FC = () => {
           duration: 5000,
         });
       } else {
-        // ⚪ GENERIC ERROR TOAST
         toast({
           title: "Error",
           description:

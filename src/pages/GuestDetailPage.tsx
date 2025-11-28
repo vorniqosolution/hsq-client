@@ -16,15 +16,16 @@ import {
   Phone,
   FileText,
   Clock,
-  DollarSign,
   CreditCard,
   Calendar,
-  CheckCircle,
   Home,
   Mail,
   Tag,
   PieChart,
   Percent,
+  Users,
+  Banknote,
+  Receipt,
 } from "lucide-react";
 
 // UI Components
@@ -134,6 +135,8 @@ const EditGuestDialog = ({ isOpen, setIsOpen, guest, onUpdate }) => {
     paymentMethod: "cash",
     applyDiscount: false,
     additionaldiscount: 0,
+    adults: 1,
+    infants: 0,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -146,6 +149,8 @@ const EditGuestDialog = ({ isOpen, setIsOpen, guest, onUpdate }) => {
         phone: guest.phone,
         cnic: guest.cnic,
         email: guest.email || "",
+        adults: guest.adults || 1,
+        infants: guest.infants || 0,
         paymentMethod: guest.paymentMethod,
         applyDiscount: guest.applyDiscount || false,
         additionaldiscount: guest.additionaldiscount || 0,
@@ -154,8 +159,14 @@ const EditGuestDialog = ({ isOpen, setIsOpen, guest, onUpdate }) => {
   }, [guest, isOpen]);
 
   const handleInputChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+
+    let finalValue = value;
+    if (type === "number") {
+      finalValue = value === "" ? 0 : parseInt(value, 10);
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: finalValue }));
   }, []);
 
   const handleSubmit = async (e) => {
@@ -165,6 +176,16 @@ const EditGuestDialog = ({ isOpen, setIsOpen, guest, onUpdate }) => {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // ✅ Validate adults
+    if (formData.adults < 1) {
+      toast({
+        title: "Validation Error",
+        description: "At least 1 adult is required.",
         variant: "destructive",
       });
       return;
@@ -255,6 +276,46 @@ const EditGuestDialog = ({ isOpen, setIsOpen, guest, onUpdate }) => {
               onChange={handleInputChange}
               disabled={isSubmitting}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold text-slate-700">
+              Occupancy Details
+            </Label>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="adults" className="text-sm">
+                  Adults *
+                </Label>
+                <Input
+                  id="adults"
+                  name="adults"
+                  type="number"
+                  min="1"
+                  value={formData.adults}
+                  onChange={handleInputChange}
+                  disabled={isSubmitting}
+                  required
+                  className="h-9"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="infants" className="text-sm">
+                  Infants
+                </Label>
+                <Input
+                  id="infants"
+                  name="infants"
+                  type="number"
+                  min="0"
+                  value={formData.infants}
+                  onChange={handleInputChange}
+                  disabled={isSubmitting}
+                  className="h-9"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -637,8 +698,6 @@ const InvoiceCard = ({
   );
 };
 
-// === Main Component ===
-
 const GuestDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -989,110 +1048,153 @@ const GuestDetailPage = () => {
               </CardHeader>
 
               <CardContent className="grid md:grid-cols-2 gap-6 pt-6">
-                <div className="space-y-3">
-                  <div className="flex items-start">
-                    <Home className="h-4 w-4 mr-2 mt-1 text-slate-400" />
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                {/* Left Column - Room Details */}
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-3">
+                    <Home className="h-4 w-4 mt-0.5 text-slate-400" />
+                    <div className="flex-1">
+                      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
                         Room Number
                       </p>
-                      <p className="font-medium text-slate-800 dark:text-slate-200">
+                      <p className="font-semibold text-base text-slate-800 dark:text-slate-200">
                         {guest.room.roomNumber}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-start">
-                    <Tag className="h-4 w-4 mr-2 mt-1 text-slate-400" />
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                  <div className="flex items-start space-x-3">
+                    <Tag className="h-4 w-4 mt-0.5 text-slate-400" />
+                    <div className="flex-1">
+                      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
                         Room Type
                       </p>
-                      <p className="font-medium text-slate-800 dark:text-slate-200">
-                        {guest.room.category} ({guest.room.bedType})
+                      <p className="font-semibold text-base text-slate-800 dark:text-slate-200">
+                        {guest.room.category}
+                        <span className="font-normal text-slate-600 dark:text-slate-400 ml-2">
+                          • {guest.room.bedType}
+                        </span>
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-start">
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                  <div className="flex items-start space-x-3">
+                    <Users className="h-4 w-4 mt-0.5 text-slate-400" />
+                    <div className="flex-1">
+                      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">
+                        Occupancy
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge
+                          variant="outline"
+                          className="font-medium bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800 px-2.5 py-0.5"
+                        >
+                          {guest.adults || 1} Adult
+                          {(guest.adults || 1) !== 1 ? "s" : ""}
+                        </Badge>
+                        {guest.infants > 0 && (
+                          <Badge
+                            variant="outline"
+                            className="font-medium bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800 px-2.5 py-0.5"
+                          >
+                            {guest.infants} Infant
+                            {guest.infants !== 1 ? "s" : ""}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start space-x-3">
+                    <Banknote className="h-4 w-4 mt-0.5 text-slate-400" />
+                    <div className="flex-1">
+                      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
                         Room Rate
                       </p>
-                      <p className="font-medium text-slate-800 dark:text-slate-200">
-                        Rs{guest.room.rate.toLocaleString()}/night
+                      <p className="font-semibold text-base text-slate-800 dark:text-slate-200">
+                        Rs {guest.room.rate.toLocaleString()}
+                        <span className="font-normal text-sm text-slate-600 dark:text-slate-400">
+                          /night
+                        </span>
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-start">
-                    <Calendar className="h-4 w-4 mr-2 mt-1 text-slate-400" />
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                {/* Right Column - Stay Timeline & Payment */}
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-3">
+                    <Calendar className="h-4 w-4 mt-0.5 text-slate-400" />
+                    <div className="flex-1">
+                      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
                         Check-In
                       </p>
-                      <p className="font-medium text-slate-800 dark:text-slate-200">
-                        {guest.checkOutAt ? formatDate(guest.checkInAt) : "N/A"}
+                      <p className="font-semibold text-base text-slate-800 dark:text-slate-200">
+                        {guest.checkInAt ? formatDate(guest.checkInAt) : "N/A"}
                       </p>
                     </div>
                   </div>
 
-                  {/* <div className="flex items-start">
-                    <Calendar className="h-4 w-4 mr-2 mt-1 text-slate-400" />
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        Check-out
+                  <div className="flex items-start space-x-3">
+                    <Calendar className="h-4 w-4 mt-0.5 text-slate-400" />
+                    <div className="flex-1">
+                      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
+                        Check-Out
                       </p>
-                      <p className="font-medium text-slate-800 dark:text-slate-200">
-                        {guest.checkOutAt
-                          ? formatDate(guest.checkOutAt)
-                          : "N/A"}
-                      </p>
-                    </div>
-                  </div> */}
-
-                  <div className="flex items-start">
-                    <Calendar className="h-4 w-4 mr-2 mt-1 text-slate-400" />
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        Check-out
-                      </p>
-                      <p className="font-medium text-slate-800 dark:text-slate-200">
+                      <p className="font-semibold text-base text-slate-800 dark:text-slate-200">
                         {guest.checkOutAt
                           ? guest.status === "checked-in"
-                            ? formatOnlyDate(guest.checkOutAt) // <-- Fix: Date ONLY while active
-                            : formatDate(guest.checkOutAt) // <-- Show Date and Time after checkout
+                            ? formatOnlyDate(guest.checkOutAt)
+                            : formatDate(guest.checkOutAt)
                           : "N/A"}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-start">
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                  <div className="flex items-start space-x-3">
+                    <Clock className="h-4 w-4 mt-0.5 text-slate-400" />
+                    <div className="flex-1">
+                      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
+                        Duration
+                      </p>
+                      <p className="font-semibold text-base text-slate-800 dark:text-slate-200">
+                        {guest.stayDuration} Night
+                        {guest.stayDuration !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start space-x-3">
+                    <Receipt className="h-4 w-4 mt-0.5 text-slate-400" />
+                    <div className="flex-1">
+                      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">
                         Total Amount
                       </p>
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-slate-800 dark:text-slate-200">
-                          Rs{guest.totalRent.toLocaleString()}
+                      <div className="space-y-2">
+                        <p className="font-bold text-lg text-slate-800 dark:text-slate-200">
+                          Rs {guest.totalRent.toLocaleString()}
                         </p>
-                        {guest.applyDiscount && (
-                          <Badge
-                            variant="outline"
-                            className="bg-emerald-50 text-emerald-800 border-emerald-200"
-                          >
-                            Standard Discount
-                          </Badge>
-                        )}
-                        {guest.additionaldiscount > 0 && (
-                          <Badge
-                            variant="outline"
-                            className="bg-blue-50 text-blue-800 border-blue-200"
-                          >
-                            +Rs{guest.additionaldiscount} Off
-                          </Badge>
+                        {(guest.applyDiscount ||
+                          guest.additionaldiscount > 0) && (
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {guest.applyDiscount && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800 px-2 py-0.5"
+                              >
+                                <Percent className="h-3 w-3 mr-1" />
+                                Standard
+                              </Badge>
+                            )}
+                            {guest.additionaldiscount > 0 && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800 px-2 py-0.5"
+                              >
+                                <Tag className="h-3 w-3 mr-1" />
+                                Rs {guest.additionaldiscount} Off
+                              </Badge>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>

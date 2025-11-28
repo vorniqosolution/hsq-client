@@ -41,7 +41,6 @@ import { useGuestContext } from "@/contexts/GuestContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRoomContext } from "@/contexts/RoomContext";
 
-// Define PopulatedRoom interface for room data
 interface PopulatedRoom {
   _id: string;
   roomNumber: string;
