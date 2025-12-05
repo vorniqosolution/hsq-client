@@ -21,6 +21,7 @@ import {
   CalendarDays,
   Phone,
   User,
+  MessageSquare,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -1487,6 +1488,23 @@ const ReservationCard = React.memo(
                         </div>
                       </div>
                     </div>
+                    {reservation.specialRequest && (
+                      <div className="mt-4 pt-4 border-t border-gray-100">
+                        <div className="flex items-start gap-3">
+                          <div className="mt-1 p-2 bg-purple-100 rounded-full flex-shrink-0">
+                            <MessageSquare className="h-4 w-4 text-purple-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-800 mb-1">
+                              Special Request
+                            </p>
+                            <p className="text-sm text-gray-600 bg-purple-50 rounded-lg p-3 border border-purple-100">
+                              {reservation.specialRequest}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </div>
