@@ -1,4 +1,3 @@
-import vorniqologo from "../../public/vorniqologo.png";
 export default function Footer() {
   return (
     <>
@@ -9,8 +8,7 @@ export default function Footer() {
               <div className="flex flex-col items-center w-full my-20">
                 <span className="mb-8">
                   <div className="flex items-center">
-                    <img className="w-20 h-15" src={vorniqologo} alt="" />
-                    {/* <h1 className="font-bold text-sm">Vorniqo solutions</h1> */}
+                    <img className="w-20 h-15" src="/vorniqologo.png" alt="" />
                   </div>
                 </span>
                 <div className="flex flex-col items-center gap-6 mb-8">

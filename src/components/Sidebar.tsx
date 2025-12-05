@@ -15,6 +15,7 @@ import {
   FileText,
   Percent,
   Calendar1,
+  BedSingle,
 } from "lucide-react";
 interface SidebarProps {
   isOpen: boolean;
@@ -25,7 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
-  
+
   useEffect(() => {
     console.log("isAdmin", isAdmin);
   }, [isAdmin]);
@@ -53,9 +54,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       name: "Rooms",
       href: "/rooms",
       icon: Bed,
-      roles: ["admin",
+      roles: [
+        "admin",
         //  "receptionist"
-        ],
+      ],
     },
     {
       name: "Discounts",
@@ -71,6 +73,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       roles: ["admin", "accountant"],
     },
     { name: "Invoices", href: "/Invoices", icon: FileText, roles: ["admin"] },
+    { name: "Decor", href: "/decor", icon: BedSingle, roles: ["admin"] },
     {
       name: "Revenue",
       href: "/Revenue",
@@ -84,7 +87,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       roles: ["admin"],
     },
   ];
- 
+
   const filteredNavItems = mainNavItems.filter(
     (item) =>
       !item.roles ||
@@ -152,7 +155,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {/* Sidebar */}
       <div
         className={`
-        fixed inset-y-0 min-h-screen max-h-screen left-0 z-50 w-56  bottom-2 bg-gradient-to-b from-slate-900 to-slate-950
+        fixed inset-y-0  min-h-screen max-h-screen left-0 z-50 w-56  bottom-2 bg-gradient-to-b from-slate-900 to-slate-950
         shadow-2xl transform transition-transform duration-300 ease-in-out
         lg:translate-x-0 lg:static lg:inset-0
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
