@@ -55,189 +55,191 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <TransactionProvider>
-          <DecorProvider>
-            <RoomProvider>
-              <GuestProvider>
-                <InventoryProvider>
-                  <DiscountProvider>
-                    <TaxProvider>
-                      <ReservationProvider>
-                        <InventoryProvider>
-                          <DiscountProvider>
-                            <RevenueProvider>
-                              <InvoiceProvider>
-                                {/* <SettingProvider> */}
-                                <AppInitializer>
-                                  <SessionPopup />
+            <DecorProvider>
+              <RoomProvider>
+                <GuestProvider>
+                  <InventoryProvider>
+                    <DiscountProvider>
+                      <TaxProvider>
+                        <ReservationProvider>
+                          <InventoryProvider>
+                            <DiscountProvider>
+                              <RevenueProvider>
+                                <InvoiceProvider>
+                                  {/* <SettingProvider> */}
+                                  <AppInitializer>
+                                    <SessionPopup />
 
-                                  <Routes>
-                                    <Route
-                                      path="/"
-                                      element={<Navigate to="/login" replace />}
-                                    />
-                                    <Route
-                                      path="/login"
-                                      element={<LoginPage />}
-                                    />
-                                    <Route
-                                      path="/dashboard"
-                                      element={
-                                        <ProtectedRoute>
-                                          <Layout>
-                                            <DashboardPage />
-                                          </Layout>
-                                        </ProtectedRoute>
-                                      }
-                                    />
-                                    <Route
-                                      path="/rooms"
-                                      element={
-                                        <ProtectedRoute>
-                                          <Layout>
-                                            <RoomsPage />
-                                          </Layout>
-                                        </ProtectedRoute>
-                                      }
-                                    />
-                                    <Route
-                                      path="/guests"
-                                      element={
-                                        <ProtectedRoute
-                                        // roles={["admin", "receptionist"]}
-                                        >
-                                          <Layout>
-                                            <GuestsPage />
-                                          </Layout>
-                                        </ProtectedRoute>
-                                      }
-                                    />
-                                    <Route
-                                      path="/guests/:id"
-                                      element={
-                                        <ProtectedRoute
-                                        // roles={["admin", "receptionist"]}
-                                        >
-                                          <Layout>
-                                            <GuestDetailPage />
-                                          </Layout>
-                                        </ProtectedRoute>
-                                      }
-                                    />
-                                    <Route
-                                      path="/reservation"
-                                      element={
-                                        <ProtectedRoute>
-                                          <Layout>
-                                            <ReservationPage />
-                                          </Layout>
-                                        </ProtectedRoute>
-                                      }
-                                    />
-                                    <Route
-                                      path="/reservation/:id"
-                                      element={
-                                        <ProtectedRoute>
-                                          <Layout>
-                                            <ReservationDetailsPage />
-                                          </Layout>
-                                        </ProtectedRoute>
-                                      }
-                                    />
-                                    <Route
-                                      path="/Discount"
-                                      element={
-                                        <ProtectedRoute>
-                                          <Layout>
-                                            <DiscountPage />
-                                          </Layout>
-                                        </ProtectedRoute>
-                                      }
-                                    />
-                                    <Route
-                                      path="/Gst"
-                                      element={
-                                        <ProtectedRoute>
-                                          <Layout>
-                                            <GstPage />
-                                          </Layout>
-                                        </ProtectedRoute>
-                                      }
-                                    />
-                                    <Route
-                                      path="/Inventory"
-                                      element={
-                                        <ProtectedRoute>
-                                          <Layout>
-                                            <InventoryPage />
-                                          </Layout>
-                                        </ProtectedRoute>
-                                      }
-                                    />
-                                    <Route
-                                      path="/Invoices"
-                                      element={
-                                        <ProtectedRoute>
-                                          <Layout>
-                                            <InvoicesPage />
-                                          </Layout>
-                                        </ProtectedRoute>
-                                      }
-                                    />
-                                    <Route
-                                      path="/Invoices/:id"
-                                      element={
-                                        <ProtectedRoute>
-                                          <Layout>
-                                            <InvoiceDetails />
-                                          </Layout>
-                                        </ProtectedRoute>
-                                      }
-                                    />
-                                    <Route
-                                      path="/Revenue"
-                                      element={
-                                        <ProtectedRoute>
-                                          <Layout>
-                                            <RevenuePage />
-                                          </Layout>
-                                        </ProtectedRoute>
-                                      }
-                                    />
-                                    <Route
-                                      path="/decor"
-                                      element={
-                                        <ProtectedRoute>
-                                          <Layout>
-                                            <Decor />
-                                          </Layout>
-                                        </ProtectedRoute>
-                                      }
-                                    />
-                                    <Route
-                                      path="/settings"
-                                      element={
-                                        <ProtectedRoute>
-                                          <Layout>
-                                            <SettingsPage />
-                                          </Layout>
-                                        </ProtectedRoute>
-                                      }
-                                    />
-                                    <Route path="*" element={<NotFound />} />
-                                  </Routes>
-                                </AppInitializer>
-                              </InvoiceProvider>
-                            </RevenueProvider>
-                          </DiscountProvider>
-                        </InventoryProvider>
-                      </ReservationProvider>
-                    </TaxProvider>
-                  </DiscountProvider>
-                </InventoryProvider>
-              </GuestProvider>
-            </RoomProvider>
+                                    <Routes>
+                                      <Route
+                                        path="/"
+                                        element={
+                                          <Navigate to="/login" replace />
+                                        }
+                                      />
+                                      <Route
+                                        path="/login"
+                                        element={<LoginPage />}
+                                      />
+                                      <Route
+                                        path="/dashboard"
+                                        element={
+                                          <ProtectedRoute>
+                                            <Layout>
+                                              <DashboardPage />
+                                            </Layout>
+                                          </ProtectedRoute>
+                                        }
+                                      />
+                                      <Route
+                                        path="/rooms"
+                                        element={
+                                          <ProtectedRoute>
+                                            <Layout>
+                                              <RoomsPage />
+                                            </Layout>
+                                          </ProtectedRoute>
+                                        }
+                                      />
+                                      <Route
+                                        path="/guests"
+                                        element={
+                                          <ProtectedRoute
+                                          // roles={["admin", "receptionist"]}
+                                          >
+                                            <Layout>
+                                              <GuestsPage />
+                                            </Layout>
+                                          </ProtectedRoute>
+                                        }
+                                      />
+                                      <Route
+                                        path="/guests/:id"
+                                        element={
+                                          <ProtectedRoute
+                                          // roles={["admin", "receptionist"]}
+                                          >
+                                            <Layout>
+                                              <GuestDetailPage />
+                                            </Layout>
+                                          </ProtectedRoute>
+                                        }
+                                      />
+                                      <Route
+                                        path="/reservation"
+                                        element={
+                                          <ProtectedRoute>
+                                            <Layout>
+                                              <ReservationPage />
+                                            </Layout>
+                                          </ProtectedRoute>
+                                        }
+                                      />
+                                      <Route
+                                        path="/reservation/:id"
+                                        element={
+                                          <ProtectedRoute>
+                                            <Layout>
+                                              <ReservationDetailsPage />
+                                            </Layout>
+                                          </ProtectedRoute>
+                                        }
+                                      />
+                                      <Route
+                                        path="/Discount"
+                                        element={
+                                          <ProtectedRoute>
+                                            <Layout>
+                                              <DiscountPage />
+                                            </Layout>
+                                          </ProtectedRoute>
+                                        }
+                                      />
+                                      <Route
+                                        path="/Gst"
+                                        element={
+                                          <ProtectedRoute>
+                                            <Layout>
+                                              <GstPage />
+                                            </Layout>
+                                          </ProtectedRoute>
+                                        }
+                                      />
+                                      <Route
+                                        path="/Inventory"
+                                        element={
+                                          <ProtectedRoute>
+                                            <Layout>
+                                              <InventoryPage />
+                                            </Layout>
+                                          </ProtectedRoute>
+                                        }
+                                      />
+                                      <Route
+                                        path="/Invoices"
+                                        element={
+                                          <ProtectedRoute>
+                                            <Layout>
+                                              <InvoicesPage />
+                                            </Layout>
+                                          </ProtectedRoute>
+                                        }
+                                      />
+                                      <Route
+                                        path="/Invoices/:id"
+                                        element={
+                                          <ProtectedRoute>
+                                            <Layout>
+                                              <InvoiceDetails />
+                                            </Layout>
+                                          </ProtectedRoute>
+                                        }
+                                      />
+                                      <Route
+                                        path="/Revenue"
+                                        element={
+                                          <ProtectedRoute>
+                                            <Layout>
+                                              <RevenuePage />
+                                            </Layout>
+                                          </ProtectedRoute>
+                                        }
+                                      />
+                                      <Route
+                                        path="/decor"
+                                        element={
+                                          <ProtectedRoute>
+                                            <Layout>
+                                              <Decor />
+                                            </Layout>
+                                          </ProtectedRoute>
+                                        }
+                                      />
+                                      <Route
+                                        path="/settings"
+                                        element={
+                                          <ProtectedRoute>
+                                            <Layout>
+                                              <SettingsPage />
+                                            </Layout>
+                                          </ProtectedRoute>
+                                        }
+                                      />
+                                      <Route path="*" element={<NotFound />} />
+                                    </Routes>
+                                  </AppInitializer>
+                                </InvoiceProvider>
+                              </RevenueProvider>
+                            </DiscountProvider>
+                          </InventoryProvider>
+                        </ReservationProvider>
+                      </TaxProvider>
+                    </DiscountProvider>
+                  </InventoryProvider>
+                </GuestProvider>
+              </RoomProvider>
+            </DecorProvider>
           </TransactionProvider>
-          </DecorProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
