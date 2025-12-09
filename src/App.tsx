@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "sonner"; // Use 'sonner' directly for clarity
 import { useLowStockNotifier } from "./hooks/useLowStockNotifier";
 import { TooltipProvider } from "@/components/ui/tooltip";
+// import { Toaster } from "react-hot-toast";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -14,6 +15,7 @@ import { InvoiceProvider } from "./contexts/InvoiceContext";
 import { TaxProvider } from "./contexts/TaxContext";
 import { ReservationProvider } from "./contexts/ReservationContext";
 import { TransactionProvider } from "./contexts/TransactionContext";
+import { DecorProvider } from "./contexts/DecorContext";
 
 import SessionPopup from "@/components/SessionPopup";
 
@@ -35,6 +37,7 @@ import GstPage from "./pages/GstPage";
 import ReservationPage from "./pages/ReservationPage";
 import ReservationDetailsPage from "./pages/ReservationDetails";
 import SettingsPage from "./pages/SettingsPage";
+import Decor from "./pages/Decor";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +55,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <TransactionProvider>
+          <DecorProvider>
             <RoomProvider>
               <GuestProvider>
                 <InventoryProvider>
@@ -200,6 +204,16 @@ const App = () => (
                                       }
                                     />
                                     <Route
+                                      path="/decor"
+                                      element={
+                                        <ProtectedRoute>
+                                          <Layout>
+                                            <Decor />
+                                          </Layout>
+                                        </ProtectedRoute>
+                                      }
+                                    />
+                                    <Route
                                       path="/settings"
                                       element={
                                         <ProtectedRoute>
@@ -223,6 +237,7 @@ const App = () => (
               </GuestProvider>
             </RoomProvider>
           </TransactionProvider>
+          </DecorProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
