@@ -76,6 +76,16 @@ interface Reservation {
     | "checked-in"
     | "checked-out";
   // ✅ ADD NEW FIELDS:
+  // 👇 ADD THIS NEW BLOCK 👇
+  financials?: {
+    nights: number;
+    roomRate: number;
+    estimatedTotal: number;
+    totalAdvance: number;
+    estimatedBalance: number;
+  };
+  // 👆 ------------------ 👆
+
   adults: number;
   infants: number;
   expectedArrivalTime?: string;
@@ -679,6 +689,81 @@ const ReservationDetailsPage: React.FC = () => {
                   )}
                 </CardContent>
               </Card>
+              {/* === 👇 PASTE THIS FINANCIAL CARD HERE 👇 === */}
+              <div className="space-y-6">
+                {reservation.financials && (
+                  <Card className="shadow-md border-0 bg-white">
+                    <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+                      <div className="flex items-center gap-2">
+                        {/* Using 'Archive' or 'Receipt' since they are already imported */}
+                        <Archive className="h-5 w-5 text-blue-600" />
+                        <CardTitle className="text-lg text-blue-900">
+                          Financial Summary
+                        </CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-4">
+                      {/* Calculation Row */}
+                      <div className="flex justify-between text-sm text-slate-500">
+                        <span>Rate Calculation</span>
+                        <span>
+                          {reservation.financials.nights} Night
+                          {reservation.financials.nights > 1 ? "s" : ""} × Rs{" "}
+                          {reservation.financials.roomRate.toLocaleString()}
+                        </span>
+                      </div>
+
+                      {/* Total Estimated */}
+                      <div className="flex justify-between font-medium text-slate-700">
+                        <span>Estimated Total</span>
+                        <span>
+                          Rs{" "}
+                          {reservation.financials.estimatedTotal.toLocaleString()}
+                        </span>
+                      </div>
+
+                      <Separator />
+
+                      {/* Advance Payment */}
+                      <div className="bg-green-50 p-3 rounded-md flex justify-between items-center text-green-700 border border-green-100">
+                        <span className="flex items-center text-sm font-medium">
+                          <CheckCircle className="h-4 w-4 mr-1.5" />
+                          Advance Paid
+                        </span>
+                        <span className="font-bold">
+                          - Rs{" "}
+                          {reservation.financials.totalAdvance.toLocaleString()}
+                        </span>
+                      </div>
+
+                      {/* Balance Due */}
+                      <div className="pt-2">
+                        <div className="flex justify-between items-baseline">
+                          <span className="text-sm font-medium text-slate-500 uppercase tracking-wide">
+                            Payable on Arrival
+                          </span>
+                          <span
+                            className={`text-2xl font-bold ${
+                              reservation.financials.estimatedBalance > 0
+                                ? "text-slate-900"
+                                : "text-green-600"
+                            }`}
+                          >
+                            Rs{" "}
+                            {reservation.financials.estimatedBalance.toLocaleString()}
+                          </span>
+                        </div>
+                        {reservation.financials.estimatedBalance === 0 && (
+                          <p className="text-xs text-green-600 mt-1 text-right font-medium">
+                            Fully Paid via Advance ✅
+                          </p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+              {/* === 👆 END OF NEW CODE 👆 === */}
             </div>
           )}
         </div>

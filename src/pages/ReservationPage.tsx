@@ -149,6 +149,7 @@ const INITIAL_FORM_STATE: CreateReservationInput = {
   specialRequest: "",
   paymentMethod: undefined,
   promoCode: "",
+   advanceAmount: 0,
 };
 
 const ReservationsPage: React.FC = () => {
@@ -1272,6 +1273,54 @@ const ReservationsPage: React.FC = () => {
                     disabled={isSubmitting}
                   />
                 </div>
+
+                {/* 👇 NEW SECTION: ADVANCE PAYMENT 👇 */}
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mt-4 mb-4">
+                  <h3 className="font-semibold text-blue-800 mb-3 flex items-center">
+                    <Crown className="h-4 w-4 mr-2" />
+                    Advance Payment (Optional)
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="advanceAmount" className="text-blue-900">
+                           Amount (Rs)
+                        </Label>
+                        <Input
+                            id="advanceAmount"
+                            name="advanceAmount"
+                            type="number"
+                            min="0"
+                            placeholder="0"
+                            value={formData.advanceAmount || ""}
+                            onChange={handleFormChange}
+                            disabled={isSubmitting}
+                            className="bg-white"
+                        />
+                    </div>
+                    
+                    <div className="space-y-2">
+                        <Label htmlFor="advancePaymentMethod" className="text-blue-900">
+                           Method
+                        </Label>
+                        <Select
+                          value={formData.advancePaymentMethod || "Cash"}
+                          onValueChange={(v) => handleSelectChange("advancePaymentMethod", v)}
+                          disabled={isSubmitting}
+                        >
+                          <SelectTrigger className="bg-white">
+                            <SelectValue placeholder="Method" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Cash">Cash</SelectItem>
+                            <SelectItem value="Card">Card</SelectItem>
+                            <SelectItem value="Online">Online</SelectItem>
+                          </SelectContent>
+                        </Select>
+                    </div>
+                  </div>
+                </div>
+                {/* 👆 ---------------------------- 👆 */}
 
                 <Button
                   type="submit"

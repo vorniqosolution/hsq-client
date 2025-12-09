@@ -56,6 +56,14 @@ export interface Reservation {
   endAt: string;
   status: "reserved" | "cancelled" | "checked-in" | "checked-out";
 
+  financials?: {
+    nights: number;
+    roomRate: number;
+    estimatedTotal: number;
+    totalAdvance: number;
+    estimatedBalance: number;
+  };
+
   // ✅ ADD THESE NEW FIELDS:
   adults: number;
   infants: number;
@@ -80,6 +88,9 @@ export interface CreateReservationInput {
   roomNumber: string;
   checkin: string; // "YYYY-MM-DD"
   checkout: string; // "YYYY-MM-DD"
+
+  advanceAmount?: number;
+  advancePaymentMethod?: "Cash" | "Card" | "Online" | "PayAtHotel";
 
   // ✅ ADD THESE NEW FIELDS:
   adults?: number;           // Optional, defaults to 1

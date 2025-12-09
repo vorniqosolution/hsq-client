@@ -42,8 +42,11 @@ export interface Invoice {
   pdfPath?: string;
   createdBy: { _id: string; name: string };
   createdAt: string;
-  // NEW: Add the permanent snapshot data fields
   checkInAt: string;
+  // 👇 ADD THIS 👇
+  advanceAdjusted?: number;
+  balanceDue?: number;
+  // 👆 --------- 👆
   guestDetails: {
     fullName: string;
     phone: string;

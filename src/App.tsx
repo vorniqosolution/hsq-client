@@ -14,6 +14,7 @@ import { RevenueProvider } from "./contexts/revenueContext";
 import { InvoiceProvider } from "./contexts/InvoiceContext";
 import { TaxProvider } from "./contexts/TaxContext";
 import { ReservationProvider } from "./contexts/ReservationContext";
+import { TransactionProvider } from "./contexts/TransactionContext";
 import { DecorProvider } from "./contexts/DecorContext";
 
 import SessionPopup from "@/components/SessionPopup";
@@ -53,6 +54,7 @@ const App = () => (
       <Sonner richColors position="top-right" />
       <BrowserRouter>
         <AuthProvider>
+          <TransactionProvider>
           <DecorProvider>
             <RoomProvider>
               <GuestProvider>
@@ -234,6 +236,7 @@ const App = () => (
                 </InventoryProvider>
               </GuestProvider>
             </RoomProvider>
+          </TransactionProvider>
           </DecorProvider>
         </AuthProvider>
       </BrowserRouter>
