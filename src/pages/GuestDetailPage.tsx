@@ -66,6 +66,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import PaymentModal from "@/components/modals/PaymentModal";
 
 // Hooks & Contexts
 import { useToast } from "@/hooks/use-toast";
@@ -461,6 +462,7 @@ const InvoiceCard = ({
   onSendEmail,
   isSendingEmail,
   innerRef,
+  onOpenPayment
 }) => {
   // Calculate the standard discount amount (if available)
   const standardDiscountAmount = guest.applyDiscount
@@ -649,6 +651,36 @@ const InvoiceCard = ({
               </span>
             </div>
 
+             {/* 👇 NEW: SHOW ADVANCE ADJUSTED 👇 */}
+            {invoice.advanceAdjusted > 0 && (
+              <div className="flex justify-between text-green-600 dark:text-green-400 font-medium text-sm">
+                 <span>Less: Paid/Advance:</span>
+                 <span>-Rs{invoice.advanceAdjusted.toLocaleString()}</span>
+              </div>
+            )}
+            
+            <Separator className="my-1" />
+
+            {/* 👇 NEW: SHOW BALANCE DUE 👇 */}
+            <div className="flex justify-between font-bold text-xl mt-2">
+              <span>Balance Due:</span>
+              <span className={invoice.balanceDue > 0 ? "text-red-600" : "text-emerald-600"}>
+                Rs{invoice.balanceDue.toLocaleString()}
+              </span>
+            </div>
+
+            {/* 👇 NEW: SETTLE BILL BUTTON 👇 */}
+            {invoice.balanceDue > 0 && (
+                <Button 
+                    onClick={onOpenPayment}
+                    className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white invoice-print-hidden"
+                >
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Settle Bill (Rs {invoice.balanceDue.toLocaleString()})
+                </Button>
+            )}
+            {/* 👆 ----------------------- 👆 */}
+
             <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
               <span>Payment Method:</span>
               <span className="capitalize">{guest.paymentMethod}</span>
@@ -720,6 +752,7 @@ const GuestDetailPage = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+    const [isPayModalOpen, setPayModalOpen] = useState(false);
 
   // Add CSS for invoice-only printing
   useEffect(() => {
@@ -857,6 +890,11 @@ const GuestDetailPage = () => {
       minute: "2-digit",
     });
   };
+
+  const handlePaymentSuccess = useCallback(() => {
+    if (id) fetchGuestById(id);
+    toast({ title: "Payment Recorded", description: "Invoice balance updated." });
+  }, [id, fetchGuestById, toast]);
 
   return (
     <div className="container mx-auto px-4 py-6 md:px-6 max-w-7xl">
@@ -1212,6 +1250,7 @@ const GuestDetailPage = () => {
                 onSendEmail={handleSendInvoice}
                 isSendingEmail={isSendingEmail}
                 innerRef={invoiceRef}
+                onOpenPayment={() => setPayModalOpen(true)} // 👈 Pass the handler
               />
             )}
           </div>
@@ -1233,6 +1272,14 @@ const GuestDetailPage = () => {
               isOpen={isCheckoutOpen}
               setIsOpen={setIsCheckoutOpen}
               onCheckout={handleCheckout}
+            />
+            <PaymentModal
+                isOpen={isPayModalOpen}
+                onClose={() => setPayModalOpen(false)}
+                context="guest"
+                contextId={guest._id}
+                onSuccess={handlePaymentSuccess}
+                defaultAmount={invoice?.balanceDue || 0} // 👈 PASS THE BALANCE HERE
             />
           </>
         )}

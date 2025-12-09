@@ -63,6 +63,9 @@ export interface Guest {
   discountTitle?: string;
   totalRent: number;
   gst?: number;
+  // 👇 ADD THIS 👇
+  advancePayment?: number;
+  // 👆 --------- 👆
 }
 
 export interface Invoice {
@@ -80,6 +83,10 @@ export interface Invoice {
   taxAmount: number;
   grandTotal: number;
   pdfPath?: string;
+  // 👇 ADD THIS 👇
+  advanceAdjusted?: number;
+  balanceDue?: number;
+  // 👆 --------- 👆
 }
 
 export interface CreateGuestInput {

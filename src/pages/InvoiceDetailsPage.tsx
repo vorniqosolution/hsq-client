@@ -347,7 +347,7 @@ const InvoiceDetailsPage = () => {
               <CardHeader>
                 <CardTitle>Billing Details</CardTitle>
               </CardHeader>
-              <CardContent>
+                            <CardContent>
                 <div className="space-y-2">
                   <BillingRow
                     label="Subtotal"
@@ -373,13 +373,37 @@ const InvoiceDetailsPage = () => {
                     label={`Tax (${currentInvoice.taxRate}%)`}
                     value={formatCurrency(currentInvoice.taxAmount)}
                   />
+                  
+                  {/* 👇 NEW: ADVANCE ROW 👇 */}
+                  {currentInvoice.advanceAdjusted > 0 && (
+                    <div className="flex justify-between items-center py-3 text-emerald-600">
+                      <p className="font-medium">Less: Paid/Advance</p>
+                      <p className="font-semibold text-lg">
+                        - {formatCurrency(currentInvoice.advanceAdjusted)}
+                      </p>
+                    </div>
+                  )}
+                  {/* 👆 ----------------- 👆 */}
                 </div>
+                
                 <hr className="my-4" />
+                
                 <BillingRow
                   label="Grand Total"
                   value={formatCurrency(currentInvoice.grandTotal)}
                   isBold={true}
                 />
+                
+                {/* 👇 NEW: BALANCE DUE ROW 👇 */}
+                <div className="flex justify-between items-center py-3 border-t mt-2">
+                    <p className="font-bold text-lg text-slate-800">Balance Due</p>
+                    <p className={`font-bold text-xl ${
+                        currentInvoice.balanceDue > 0 ? "text-red-600" : "text-emerald-600"
+                    }`}>
+                        {formatCurrency(currentInvoice.balanceDue)}
+                    </p>
+                </div>
+                {/* 👆 --------------------- 👆 */}
               </CardContent>
             </Card>
           </div>
