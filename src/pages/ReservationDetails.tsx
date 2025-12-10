@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import PaymentModal from "@/components/modals/PaymentModal"; // Import the modal
 import {
   ArrowLeft,
   Calendar,
@@ -19,6 +20,7 @@ import {
   Percent,
   Archive,
   FileText,
+  PlusCircle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -113,15 +115,13 @@ const ReservationDetailsPage: React.FC = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
   const { getReservationById, loading, error } = useReservationContext();
-
   const { rooms: allRooms } = useRoomContext();
-
   const [reservation, setReservation] = useState<Reservation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdateStatusDialogOpen] = useState(false); // not used here, left for future
   const [newStatus] = useState<string>("");
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   // Fetch reservation data
   useEffect(() => {
@@ -286,6 +286,14 @@ const ReservationDetailsPage: React.FC = () => {
   const getRoomCategory = () => {
     if (!roomDetails) return "—";
     return roomDetails.category || "—";
+  };
+
+  const handlePaymentSuccess = () => {
+    if (id) getReservationById(id); // Re-fetch to update the numbers immediately
+    toast({
+      title: "Success",
+      description: "Transaction recorded successfully",
+    });
   };
 
   return (
@@ -700,6 +708,16 @@ const ReservationDetailsPage: React.FC = () => {
                         <CardTitle className="text-lg text-blue-900">
                           Financial Summary
                         </CardTitle>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="bg-white hover:bg-blue-100 text-blue-700 border-blue-200 h-8 text-xs"
+                          onClick={() => setIsPaymentModalOpen(true)}
+                          disabled={reservation.status === "cancelled"}
+                        >
+                          <PlusCircle className="h-3 w-3 mr-1" />
+                          Add / Refund
+                        </Button>
                       </div>
                     </CardHeader>
                     <CardContent className="p-6 space-y-4">
@@ -763,11 +781,19 @@ const ReservationDetailsPage: React.FC = () => {
                   </Card>
                 )}
               </div>
-              {/* === 👆 END OF NEW CODE 👆 === */}
             </div>
           )}
         </div>
       </div>
+       {reservation && (
+        <PaymentModal
+          isOpen={isPaymentModalOpen}
+          onClose={() => setIsPaymentModalOpen(false)}
+          context="reservation"
+          contextId={reservation._id}
+          onSuccess={handlePaymentSuccess}
+        />
+      )}
     </div>
   );
 };

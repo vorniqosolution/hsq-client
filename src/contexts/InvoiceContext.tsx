@@ -46,6 +46,7 @@ export interface Invoice {
   // 👇 ADD THIS 👇
   advanceAdjusted?: number;
   balanceDue?: number;
+  totalRefunded?: number;
   // 👆 --------- 👆
   guestDetails: {
     fullName: string;
