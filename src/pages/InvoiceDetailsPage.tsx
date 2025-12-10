@@ -228,6 +228,10 @@ const InvoiceDetailsPage = () => {
     );
   }
 
+  const netHeld = currentInvoice.advanceAdjusted || 0;
+
+  const refundDue = Math.max(0, netHeld - (currentInvoice.grandTotal || 0));
+
   return (
     <div className="bg-slate-50 min-h-screen">
       <Toaster />
@@ -392,6 +396,15 @@ const InvoiceDetailsPage = () => {
                         )}`}
                       />
                     )}
+
+                  {/* 👇 NEW: Refund Due row 👇 */}
+                  {refundDue > 0 && (
+                    <BillingRow
+                      label="Refund Due"
+                      value={formatCurrency(refundDue)}
+                    />
+                  )}
+                  {/* 👆 --------------------- 👆 */}
                 </div>
 
                 <hr className="my-4" />
