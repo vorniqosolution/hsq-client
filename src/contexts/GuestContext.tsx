@@ -39,8 +39,8 @@ export interface Room {
   view: string;
   rate: number;
   status: "available" | "reserved" | "occupied" | "maintenance";
-  adults?: number;   // Max adults capacity
-  infants?: number;  // Max infants capacity
+  adults?: number; // Max adults capacity
+  infants?: number; // Max infants capacity
 }
 
 export interface Guest {
@@ -96,6 +96,7 @@ export interface CreateGuestInput {
   cnic: string;
   email?: string;
   roomNumber: string;
+  decorPackageid?: string;
   adults?: number;
   infants?: number;
   checkInDate: string;

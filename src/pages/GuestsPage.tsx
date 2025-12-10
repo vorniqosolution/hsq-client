@@ -64,6 +64,7 @@ import {
 import { useRoomContext, Room } from "@/contexts/RoomContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useReservationContext } from "../contexts/ReservationContext";
+import { useDecor } from "@/contexts/DecorContext";
 
 const INITIAL_FORM_STATE: CreateGuestInput = {
   fullName: "",
@@ -71,6 +72,7 @@ const INITIAL_FORM_STATE: CreateGuestInput = {
   phone: "",
   cnic: "",
   email: "",
+  decorPackageid: "",
   roomNumber: "",
   checkInDate: format(new Date(), "yyyy-MM-dd"),
   checkOutDate: "",
@@ -125,6 +127,8 @@ const GuestsPage: React.FC = () => {
               phone: r.phone || "",
               cnic: r.cnic || "",
               email: r.email || "",
+              adults: r.adults || 1,
+              infants: r.infants || 0,
               roomNumber:
                 typeof r.room === "object" ? r.room.roomNumber : r.roomNumber,
               // Allow the user to set their own check-in date
@@ -815,7 +819,11 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
     fetchAvailableRooms,
     loading: roomsLoading,
   } = useRoomContext();
-
+  const { packages } = useDecor();
+  // console.log("Total Package", packages);
+  console.log("decor id", formData.decorPackageid);
+  // console.log("name", formData.fullName);
+  // console.log("Addtional discount", formData.additionaldiscount);
   useEffect(() => {
     if (isOpen) {
       const todayStr = format(new Date(), "yyyy-MM-dd");
@@ -1005,6 +1013,12 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
       setIsSubmitting(false);
     }
   };
+  const handleDecorChange = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      decorPackageid: value === "none" ? "" : value,
+    }));
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -1147,7 +1161,7 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
                   }
                 />
               </SelectTrigger>
-              
+
               <SelectContent>
                 {selectableRooms.length > 0 ? (
                   selectableRooms.map((r) => {
@@ -1200,6 +1214,69 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
                     {formData.checkOutDate
                       ? "No rooms available for these dates"
                       : "Select a check-out date to see rooms"}
+                  </div>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          {/* add new field decor get all decor */}
+          <div>
+            <Label>Decor Package(OPTIONAL)</Label>
+            <Select
+              name="decorPackage"
+              value={formData.decorPackageid || "none"}
+              onValueChange={handleDecorChange}
+              disabled={isSubmitting}
+            >
+              <SelectTrigger className="h-16">
+                <SelectValue placeholder="Select a decor package" />
+              </SelectTrigger>
+
+              <SelectContent>
+                {packages.length === 0 ? (
+                  <SelectItem value="none">
+                    <span className="flex items-center gap-2">
+                      None (No decor package)
+                    </span>
+                  </SelectItem>
+                ) : (
+                  ""
+                )}
+                {packages && packages.length > 0 ? (
+                  packages.map((decor) => {
+                    const isSelected = decor._id === formData.decorPackageid;
+
+                    return (
+                      <SelectItem
+                        key={decor._id}
+                        value={decor._id}
+                        className={`${
+                          isSelected
+                            ? "bg-primary/10 border-l-4 border-primary"
+                            : ""
+                        }`}
+                      >
+                        <span className="flex items-center gap-4 mt-2">
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {decor.title} — Rs{decor.price}
+                              {isSelected && (
+                                <Badge variant="secondary" className="ml-2">
+                                  Selected
+                                </Badge>
+                              )}
+                            </span>
+                            <span className="text-sm text-gray-600 line-clamp-1 max-w-[400px]">
+                              {decor.description}
+                            </span>
+                          </div>
+                        </span>
+                      </SelectItem>
+                    );
+                  })
+                ) : (
+                  <div className="px-2 py-4 text-center text-gray-500">
+                    {/* {decorLoading ? "Loading..." : "No decor packages available"} */}
                   </div>
                 )}
               </SelectContent>
