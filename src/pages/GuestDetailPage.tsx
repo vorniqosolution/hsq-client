@@ -59,13 +59,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
 import PaymentModal from "@/components/modals/PaymentModal";
 
 // Hooks & Contexts
@@ -480,6 +474,7 @@ const InvoiceCard = ({
       ? invoice.balanceDue
       : Math.max(0, (invoice.grandTotal || 0) - effectiveAdvance);
 
+  // If we are holding more than the bill, guest has overpaid → refundDue
   const refundDue = Math.max(0, effectiveAdvance - (invoice.grandTotal || 0));
 
   // SAFE DISCOUNT CALCS
@@ -529,6 +524,7 @@ const InvoiceCard = ({
         </CardHeader>
 
         <CardContent className="pt-6">
+          {/* Top: Billed To & Stay Details */}
           <div className="grid md:grid-cols-2 gap-6 mb-6">
             <div>
               <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
@@ -572,6 +568,7 @@ const InvoiceCard = ({
             </div>
           </div>
 
+          {/* Items table */}
           <div className="overflow-hidden rounded-md border border-slate-200 dark:border-slate-700 mb-6">
             <table className="w-full caption-bottom text-sm">
               <thead className="bg-slate-50 dark:bg-slate-800">
@@ -612,6 +609,7 @@ const InvoiceCard = ({
             </table>
           </div>
 
+          {/* Summary / Totals */}
           <div className="flex flex-col space-y-3 ml-auto w-full md:w-1/2 border rounded-md p-4 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
             <div className="flex justify-between text-slate-600 dark:text-slate-400">
               <span className="font-medium flex items-center">Room Total:</span>
@@ -687,24 +685,36 @@ const InvoiceCard = ({
             </div>
 
             {refundDue > 0 && (
-                <div className="mt-3 bg-red-50 border border-red-200 rounded-md p-3 animate-in fade-in slide-in-from-top-2">
-                    <div className="flex justify-between items-center text-red-700 font-bold">
-                        <span>Refund Due:</span>
-                        <span>Rs {formatNumber(refundDue)}</span>
-                    </div>
-                    <p className="text-xs text-red-600 mt-1">
-                        Guest overpaid (Early Checkout or Deposit).
-                    </p>
+              <div className="mt-3 bg-red-50 border border-red-200 rounded-md p-3">
+                <div className="flex justify-between items-center text-red-700 font-bold">
+                  <span>Refund Due:</span>
+                  <span>Rs {formatNumber(refundDue)}</span>
                 </div>
+                <p className="text-xs text-red-600 mt-1">
+                  Guest overpaid (Early Checkout or Deposit).
+                </p>
+              </div>
             )}
 
-            {invoice.balanceDue > 0 && (
+            {/* 1. Guest still owes us money → blue button = Receive Payment only */}
+            {effectiveBalanceDue > 0 && (
               <Button
-                onClick={onOpenPayment}
+                onClick={() => onOpenPayment("payment")}
                 className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white invoice-print-hidden"
               >
                 <CreditCard className="mr-2 h-4 w-4" />
-                Settle Bill (Rs {invoice.balanceDue.toLocaleString()})
+                Settle Bill (Rs {formatNumber(effectiveBalanceDue)})
+              </Button>
+            )}
+
+            {/* 2. Hotel owes guest money → red button = Refund only */}
+            {effectiveBalanceDue === 0 && refundDue > 0 && (
+              <Button
+                onClick={() => onOpenPayment("refund")}
+                variant="destructive"
+                className="w-full mt-4 border-red-200 text-white bg-red-600 hover:bg-red-700 invoice-print-hidden"
+              >
+                Issue Refund (Rs {formatNumber(refundDue)})
               </Button>
             )}
 
@@ -759,6 +769,323 @@ const InvoiceCard = ({
   );
 };
 
+// Invoice Card with Print Support
+// const InvoiceCard = ({
+//   invoice,
+//   guest,
+//   onPrint,
+//   onSendEmail,
+//   isSendingEmail,
+//   innerRef,
+//   onOpenPayment,
+// }) => {
+
+//   const formatNumber = (value: any): string => {
+//     const num = typeof value === "number" ? value : value ? Number(value) : 0;
+//     if (Number.isNaN(num)) return "0";
+//     return num.toLocaleString();
+//   };
+
+//   // Normalize financial fields so old invoices don't break
+//   const effectiveAdvance =
+//     typeof invoice.advanceAdjusted === "number" ? invoice.advanceAdjusted : 0;
+
+//   const effectiveBalanceDue =
+//     typeof invoice.balanceDue === "number"
+//       ? invoice.balanceDue
+//       : Math.max(0, (invoice.grandTotal || 0) - effectiveAdvance);
+
+//   const refundDue = Math.max(0, effectiveAdvance - (invoice.grandTotal || 0));
+
+//   // SAFE DISCOUNT CALCS
+//   const standardDiscountAmount = guest.applyDiscount
+//     ? invoice.discountAmount || 0
+//     : 0;
+
+//   const additionalDiscountAmount = guest.additionaldiscount || 0;
+//   const totalDiscountAmount = standardDiscountAmount + additionalDiscountAmount;
+
+//   return (
+//     <div ref={innerRef} className="invoice-print-section">
+//       {/* Print-only header for invoice */}
+//       <div className="hidden invoice-print-only text-center mb-8">
+//         <h1 className="text-3xl font-bold">HSQ TOWERS</h1>
+//         <p className="text-slate-600">HSQ Towers, Jhika Gali, Pakistan</p>
+//         <p className="text-slate-600">
+//           Tel: +92 330 0491479 | Email: hsqtower@gmail.com
+//         </p>
+//         <div className="mt-6 border-t border-b py-3">
+//           <h2 className="text-2xl font-bold">
+//             INVOICE #{invoice.invoiceNumber}
+//           </h2>
+//           <p className="text-sm text-slate-600">
+//             Generated on: {new Date().toLocaleDateString()}
+//           </p>
+//         </div>
+//       </div>
+
+//       <Card className="border-2 border-slate-200 dark:border-slate-700 shadow-md overflow-hidden">
+//         <CardHeader className="bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-900 border-b border-slate-200 dark:border-slate-700">
+//           <div className="flex justify-between items-center">
+//             <CardTitle className="flex items-center text-slate-800 dark:text-slate-200">
+//               <FileText className="mr-2 h-5 w-5 text-primary invoice-print-hidden" />
+//               <span>Invoice Number {invoice.invoiceNumber}</span>
+//             </CardTitle>
+//             <Badge
+//               variant="outline"
+//               className="bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
+//             >
+//               {invoice.status ? "PAID" : "PENDING"}
+//             </Badge>
+//           </div>
+//           <CardDescription>
+//             Generated on {new Date(invoice.createdAt).toLocaleDateString()}
+//           </CardDescription>
+//         </CardHeader>
+
+//         <CardContent className="pt-6">
+//           <div className="grid md:grid-cols-2 gap-6 mb-6">
+//             <div>
+//               <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
+//                 Billed To
+//               </h3>
+//               <p className="font-medium">{guest.fullName}</p>
+//               <p className="text-sm text-slate-600 dark:text-slate-400">
+//                 {guest.address}
+//               </p>
+//               <p className="text-sm text-slate-600 dark:text-slate-400">
+//                 {guest.phone}
+//               </p>
+//               {guest.email && (
+//                 <p className="text-sm text-slate-600 dark:text-slate-400">
+//                   {guest.email}
+//                 </p>
+//               )}
+//             </div>
+//             <div>
+//               <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
+//                 Stay Details
+//               </h3>
+//               <p className="text-sm">
+//                 <span className="font-medium">Room:</span>{" "}
+//                 {guest.room.roomNumber} ({guest.room.category})
+//               </p>
+//               <p className="text-sm">
+//                 <span className="font-medium">Check-in:</span>{" "}
+//                 {new Date(guest.checkInAt).toLocaleDateString()}
+//               </p>
+//               <p className="text-sm">
+//                 <span className="font-medium">Check-out:</span>{" "}
+//                 {guest.checkOutAt
+//                   ? new Date(guest.checkOutAt).toLocaleDateString()
+//                   : "N/A"}
+//               </p>
+//               <p className="text-sm">
+//                 <span className="font-medium">Duration:</span>{" "}
+//                 {guest.stayDuration} day(s)
+//               </p>
+//             </div>
+//           </div>
+
+//           <div className="overflow-hidden rounded-md border border-slate-200 dark:border-slate-700 mb-6">
+//             <table className="w-full caption-bottom text-sm">
+//               <thead className="bg-slate-50 dark:bg-slate-800">
+//                 <tr className="border-b border-slate-200 dark:border-slate-700">
+//                   <th className="h-10 px-4 text-left align-middle font-medium text-slate-500 dark:text-slate-400">
+//                     Description
+//                   </th>
+//                   <th className="h-10 px-4 text-right align-middle font-medium text-slate-500 dark:text-slate-400">
+//                     Qty
+//                   </th>
+//                   <th className="h-10 px-4 text-right align-middle font-medium text-slate-500 dark:text-slate-400">
+//                     Rate
+//                   </th>
+//                   <th className="h-10 px-4 text-right align-middle font-medium text-slate-500 dark:text-slate-400">
+//                     Amount
+//                   </th>
+//                 </tr>
+//               </thead>
+//               <tbody>
+//                 {invoice.items.map((item, index) => (
+//                   <tr
+//                     key={index}
+//                     className="border-b border-slate-200 dark:border-slate-700"
+//                   >
+//                     <td className="p-4 align-middle">{item.description}</td>
+//                     <td className="p-4 align-middle text-right">
+//                       {item.quantity}
+//                     </td>
+//                     <td className="p-4 align-middle text-right">
+//                       Rs{(item.total / item.quantity).toLocaleString()}
+//                     </td>
+//                     <td className="p-4 align-middle text-right font-medium">
+//                       Rs{item.total.toLocaleString()}
+//                     </td>
+//                   </tr>
+//                 ))}
+//               </tbody>
+//             </table>
+//           </div>
+
+//           <div className="flex flex-col space-y-3 ml-auto w-full md:w-1/2 border rounded-md p-4 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
+//             <div className="flex justify-between text-slate-600 dark:text-slate-400">
+//               <span className="font-medium flex items-center">Room Total:</span>
+//               <span>Rs{formatNumber(invoice.subtotal)}</span>
+//             </div>
+
+//             {/* Discounts Section */}
+//             {guest.applyDiscount && standardDiscountAmount > 0 && (
+//               <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+//                 <span className="font-medium flex items-center">
+//                   <Percent className="h-4 w-4 mr-1 opacity-70 invoice-print-hidden" />{" "}
+//                   Standard Discount:
+//                 </span>
+//                 <span>-Rs{formatNumber(standardDiscountAmount)}</span>
+//               </div>
+//             )}
+
+//             {guest.additionaldiscount > 0 && (
+//               <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+//                 <span className="font-medium flex items-center">
+//                   <Percent className="h-4 w-4 mr-1 opacity-70 invoice-print-hidden" />{" "}
+//                   Additional Discount:
+//                 </span>
+//                 <span>-Rs{formatNumber(additionalDiscountAmount)}</span>
+//               </div>
+//             )}
+
+//             {totalDiscountAmount > 0 && (
+//               <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-medium">
+//                 <span className="flex items-center">
+//                   <Percent className="h-4 w-4 mr-1 opacity-70 invoice-print-hidden" />{" "}
+//                   Total Discount:
+//                 </span>
+//                 <span>-Rs{formatNumber(totalDiscountAmount)}</span>
+//               </div>
+//             )}
+
+//             <div className="flex justify-between text-slate-600 dark:text-slate-400">
+//               <span className="font-medium flex items-center">
+//                 <PieChart className="h-4 w-4 mr-1 opacity-70 invoice-print-hidden" />{" "}
+//                 Tax ({invoice.taxRate}%):
+//               </span>
+//               <span>Rs{formatNumber(invoice.taxAmount)}</span>
+//             </div>
+
+//             <Separator className="my-1" />
+
+//             <div className="flex justify-between font-bold text-lg">
+//               <span>Grand Total:</span>
+//               <span className="text-primary">
+//                 Rs{formatNumber(invoice.grandTotal)}
+//               </span>
+//             </div>
+
+//             {effectiveAdvance > 0 && (
+//               <div className="flex justify-between text-green-600 dark:text-green-400 font-medium text-sm">
+//                 <span>Less: Paid/Advance:</span>
+//                 <span>-Rs{formatNumber(effectiveAdvance)}</span>
+//               </div>
+//             )}
+
+//             <Separator className="my-1" />
+
+//             <div className="flex justify-between font-bold text-xl mt-2">
+//               <span>Balance Due:</span>
+//               <span
+//                 className={
+//                   effectiveBalanceDue > 0 ? "text-red-600" : "text-emerald-600"
+//                 }
+//               >
+//                 Rs{formatNumber(effectiveBalanceDue)}
+//               </span>
+//             </div>
+
+//             {refundDue > 0 && (
+//               <div className="mt-3 bg-red-50 border border-red-200 rounded-md p-3 animate-in fade-in slide-in-from-top-2">
+//                 <div className="flex justify-between items-center text-red-700 font-bold">
+//                   <span>Refund Due:</span>
+//                   <span>Rs {formatNumber(refundDue)}</span>
+//                 </div>
+//                 <p className="text-xs text-red-600 mt-1">
+//                   Guest overpaid (Early Checkout or Deposit).
+//                 </p>
+//               </div>
+//             )}
+
+//             {/* 1. Guest still owes us money → blue Settle Bill */}
+//             {effectiveBalanceDue > 0 && (
+//               <Button
+//                 onClick={onOpenPayment}
+//                 className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white invoice-print-hidden"
+//               >
+//                 <CreditCard className="mr-2 h-4 w-4" />
+//                 Settle Bill (Rs {formatNumber(effectiveBalanceDue)})
+//               </Button>
+//             )}
+
+//             {/* 2. Guest does NOT owe us, but we owe guest → red Issue Refund */}
+//             {effectiveBalanceDue === 0 && refundDue > 0 && (
+//               <Button
+//                 onClick={onOpenPayment}
+//                 variant="destructive"
+//                 className="w-full mt-4 border-red-200 text-white bg-red-600 hover:bg-red-700 invoice-print-hidden"
+//               >
+//                 Issue Refund (Rs {formatNumber(refundDue)})
+//               </Button>
+//             )}
+
+//             <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
+//               <span>Payment Method:</span>
+//               <span className="capitalize">{guest.paymentMethod}</span>
+//             </div>
+//           </div>
+//         </CardContent>
+
+//         <CardFooter className="bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700 flex justify-end space-x-2 invoice-print-hidden">
+//           <Button
+//             size="sm"
+//             variant="outline"
+//             onClick={onPrint}
+//             className="hover:bg-slate-100 dark:hover:bg-slate-700"
+//           >
+//             <Printer className="mr-2 h-4 w-4" /> Print Invoice
+//           </Button>
+//           <Button
+//             size="sm"
+//             onClick={onSendEmail}
+//             disabled={isSendingEmail}
+//             className="bg-primary hover:bg-primary/90"
+//           >
+//             <Send className="mr-2 h-4 w-4" />
+//             {isSendingEmail ? "Sending..." : "Send Email"}
+//           </Button>
+//         </CardFooter>
+//       </Card>
+
+//       {/* Print-only footer */}
+//       <div className="hidden invoice-print-only mt-8 pt-6 border-t text-center text-sm text-slate-600">
+//         <p className="font-semibold mb-1">Thank you for choosing HSQ Towers!</p>
+//         <p>
+//           For any inquiries regarding this invoice, please contact our
+//           accounting department at accounts@hsqtowers.com
+//         </p>
+//         <p className="mt-6 text-lg font-bold">
+//           {guest.status === "checked-out" ? (
+//             "PAID IN FULL"
+//           ) : (
+//             <>BALANCE DUE: Rs{formatNumber(effectiveBalanceDue)}</>
+//           )}
+//         </p>
+//         <div className="mt-8 text-xs text-slate-500">
+//           <p>HSQ Towers - Your Home Away From Home</p>
+//           <p>Invoice generated by HSQ Hotel Management System</p>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
 const GuestDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -782,6 +1109,12 @@ const GuestDetailPage = () => {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [isPayModalOpen, setPayModalOpen] = useState(false);
+  const [paymentModalType, setPaymentModalType] = useState<
+    "payment" | "refund"
+  >("payment");
+  const [paymentModalMode, setPaymentModalMode] = useState<
+    "both" | "payment-only" | "refund-only"
+  >("both");
 
   // Add CSS for invoice-only printing
   useEffect(() => {
@@ -1286,7 +1619,13 @@ const GuestDetailPage = () => {
                 onSendEmail={handleSendInvoice}
                 isSendingEmail={isSendingEmail}
                 innerRef={invoiceRef}
-                onOpenPayment={() => setPayModalOpen(true)} // 👈 Pass the handler
+                onOpenPayment={(kind: "payment" | "refund") => {
+                  setPaymentModalType(kind);
+                  setPaymentModalMode(
+                    kind === "payment" ? "payment-only" : "refund-only"
+                  );
+                  setPayModalOpen(true);
+                }}
               />
             )}
           </div>
@@ -1315,7 +1654,12 @@ const GuestDetailPage = () => {
               context="guest"
               contextId={guest._id}
               onSuccess={handlePaymentSuccess}
-              defaultAmount={invoice?.balanceDue || 0} // 👈 PASS THE BALANCE HERE
+              // For payments: prefill with balance; for refunds: start at 0 (user types)
+              defaultAmount={
+                paymentModalType === "payment" ? invoice?.balanceDue || 0 : 0
+              }
+              initialType={paymentModalType}
+              mode={paymentModalMode}
             />
           </>
         )}
