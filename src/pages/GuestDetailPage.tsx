@@ -462,17 +462,32 @@ const InvoiceCard = ({
   onSendEmail,
   isSendingEmail,
   innerRef,
-  onOpenPayment
+  onOpenPayment,
 }) => {
-  // Calculate the standard discount amount (if available)
+  // Safe formatter for ALL numbers
+  const formatNumber = (value: any): string => {
+    const num = typeof value === "number" ? value : value ? Number(value) : 0;
+    if (Number.isNaN(num)) return "0";
+    return num.toLocaleString();
+  };
+
+  // Normalize financial fields so old invoices don't break
+  const effectiveAdvance =
+    typeof invoice.advanceAdjusted === "number" ? invoice.advanceAdjusted : 0;
+
+  const effectiveBalanceDue =
+    typeof invoice.balanceDue === "number"
+      ? invoice.balanceDue
+      : Math.max(0, (invoice.grandTotal || 0) - effectiveAdvance);
+
+  const refundDue = Math.max(0, effectiveAdvance - (invoice.grandTotal || 0));
+
+  // SAFE DISCOUNT CALCS
   const standardDiscountAmount = guest.applyDiscount
-    ? invoice.discountAmount // full % discount
+    ? invoice.discountAmount || 0
     : 0;
 
-  // Calculate the additional discount amount
   const additionalDiscountAmount = guest.additionaldiscount || 0;
-
-  // Total discount amount
   const totalDiscountAmount = standardDiscountAmount + additionalDiscountAmount;
 
   return (
@@ -600,7 +615,7 @@ const InvoiceCard = ({
           <div className="flex flex-col space-y-3 ml-auto w-full md:w-1/2 border rounded-md p-4 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
             <div className="flex justify-between text-slate-600 dark:text-slate-400">
               <span className="font-medium flex items-center">Room Total:</span>
-              <span>Rs{invoice.subtotal.toLocaleString()}</span>
+              <span>Rs{formatNumber(invoice.subtotal)}</span>
             </div>
 
             {/* Discounts Section */}
@@ -610,7 +625,7 @@ const InvoiceCard = ({
                   <Percent className="h-4 w-4 mr-1 opacity-70 invoice-print-hidden" />{" "}
                   Standard Discount:
                 </span>
-                <span>-Rs{standardDiscountAmount.toLocaleString()}</span>
+                <span>-Rs{formatNumber(standardDiscountAmount)}</span>
               </div>
             )}
 
@@ -620,7 +635,7 @@ const InvoiceCard = ({
                   <Percent className="h-4 w-4 mr-1 opacity-70 invoice-print-hidden" />{" "}
                   Additional Discount:
                 </span>
-                <span>-Rs{additionalDiscountAmount.toLocaleString()}</span>
+                <span>-Rs{formatNumber(additionalDiscountAmount)}</span>
               </div>
             )}
 
@@ -630,7 +645,7 @@ const InvoiceCard = ({
                   <Percent className="h-4 w-4 mr-1 opacity-70 invoice-print-hidden" />{" "}
                   Total Discount:
                 </span>
-                <span>-Rs{totalDiscountAmount.toLocaleString()}</span>
+                <span>-Rs{formatNumber(totalDiscountAmount)}</span>
               </div>
             )}
 
@@ -639,7 +654,7 @@ const InvoiceCard = ({
                 <PieChart className="h-4 w-4 mr-1 opacity-70 invoice-print-hidden" />{" "}
                 Tax ({invoice.taxRate}%):
               </span>
-              <span>Rs{invoice.taxAmount.toLocaleString()}</span>
+              <span>Rs{formatNumber(invoice.taxAmount)}</span>
             </div>
 
             <Separator className="my-1" />
@@ -647,39 +662,51 @@ const InvoiceCard = ({
             <div className="flex justify-between font-bold text-lg">
               <span>Grand Total:</span>
               <span className="text-primary">
-                Rs{invoice.grandTotal.toLocaleString()}
+                Rs{formatNumber(invoice.grandTotal)}
               </span>
             </div>
 
-             {/* 👇 NEW: SHOW ADVANCE ADJUSTED 👇 */}
-            {invoice.advanceAdjusted > 0 && (
+            {effectiveAdvance > 0 && (
               <div className="flex justify-between text-green-600 dark:text-green-400 font-medium text-sm">
-                 <span>Less: Paid/Advance:</span>
-                 <span>-Rs{invoice.advanceAdjusted.toLocaleString()}</span>
+                <span>Less: Paid/Advance:</span>
+                <span>-Rs{formatNumber(effectiveAdvance)}</span>
               </div>
             )}
-            
+
             <Separator className="my-1" />
 
-            {/* 👇 NEW: SHOW BALANCE DUE 👇 */}
             <div className="flex justify-between font-bold text-xl mt-2">
               <span>Balance Due:</span>
-              <span className={invoice.balanceDue > 0 ? "text-red-600" : "text-emerald-600"}>
-                Rs{invoice.balanceDue.toLocaleString()}
+              <span
+                className={
+                  effectiveBalanceDue > 0 ? "text-red-600" : "text-emerald-600"
+                }
+              >
+                Rs{formatNumber(effectiveBalanceDue)}
               </span>
             </div>
 
-            {/* 👇 NEW: SETTLE BILL BUTTON 👇 */}
-            {invoice.balanceDue > 0 && (
-                <Button 
-                    onClick={onOpenPayment}
-                    className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white invoice-print-hidden"
-                >
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Settle Bill (Rs {invoice.balanceDue.toLocaleString()})
-                </Button>
+            {refundDue > 0 && (
+                <div className="mt-3 bg-red-50 border border-red-200 rounded-md p-3 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex justify-between items-center text-red-700 font-bold">
+                        <span>Refund Due:</span>
+                        <span>Rs {formatNumber(refundDue)}</span>
+                    </div>
+                    <p className="text-xs text-red-600 mt-1">
+                        Guest overpaid (Early Checkout or Deposit).
+                    </p>
+                </div>
             )}
-            {/* 👆 ----------------------- 👆 */}
+
+            {invoice.balanceDue > 0 && (
+              <Button
+                onClick={onOpenPayment}
+                className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white invoice-print-hidden"
+              >
+                <CreditCard className="mr-2 h-4 w-4" />
+                Settle Bill (Rs {invoice.balanceDue.toLocaleString()})
+              </Button>
+            )}
 
             <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
               <span>Payment Method:</span>
@@ -717,9 +744,11 @@ const InvoiceCard = ({
           accounting department at accounts@hsqtowers.com
         </p>
         <p className="mt-6 text-lg font-bold">
-          {guest.status === "checked-out"
-            ? "PAID IN FULL"
-            : `BALANCE DUE: Rs${invoice.grandTotal.toLocaleString()}`}
+          {guest.status === "checked-out" ? (
+            "PAID IN FULL"
+          ) : (
+            <>BALANCE DUE: Rs{formatNumber(effectiveBalanceDue)}</>
+          )}
         </p>
         <div className="mt-8 text-xs text-slate-500">
           <p>HSQ Towers - Your Home Away From Home</p>
@@ -752,7 +781,7 @@ const GuestDetailPage = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
-    const [isPayModalOpen, setPayModalOpen] = useState(false);
+  const [isPayModalOpen, setPayModalOpen] = useState(false);
 
   // Add CSS for invoice-only printing
   useEffect(() => {
@@ -893,8 +922,15 @@ const GuestDetailPage = () => {
 
   const handlePaymentSuccess = useCallback(() => {
     if (id) fetchGuestById(id);
-    toast({ title: "Payment Recorded", description: "Invoice balance updated." });
+    toast({
+      title: "Payment Recorded",
+      description: "Invoice balance updated.",
+    });
   }, [id, fetchGuestById, toast]);
+
+  const safeFormat = (value) => {
+    return (value || 0).toLocaleString();
+  };
 
   return (
     <div className="container mx-auto px-4 py-6 md:px-6 max-w-7xl">
@@ -1274,12 +1310,12 @@ const GuestDetailPage = () => {
               onCheckout={handleCheckout}
             />
             <PaymentModal
-                isOpen={isPayModalOpen}
-                onClose={() => setPayModalOpen(false)}
-                context="guest"
-                contextId={guest._id}
-                onSuccess={handlePaymentSuccess}
-                defaultAmount={invoice?.balanceDue || 0} // 👈 PASS THE BALANCE HERE
+              isOpen={isPayModalOpen}
+              onClose={() => setPayModalOpen(false)}
+              context="guest"
+              contextId={guest._id}
+              onSuccess={handlePaymentSuccess}
+              defaultAmount={invoice?.balanceDue || 0} // 👈 PASS THE BALANCE HERE
             />
           </>
         )}
