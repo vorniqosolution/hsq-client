@@ -1,76 +1,126 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useCallback,
+} from "react";
 import axios from "axios";
 
-// Data shape for sending money
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const apiClient = axios.create({
+  baseURL: API_BASE,
+  withCredentials: true,
+});
+
+export type TransactionType =
+  | "advance"
+  | "payment"
+  | "refund"
+  | "security_deposit";
+
+export interface Transaction {
+  _id: string;
+  reservation?: any | null; // can refine later
+  guest?: any | null;
+  amount: number;
+  type: TransactionType;
+  paymentMethod: "Cash" | "Card" | "Online" | "PayAtHotel";
+  description?: string;
+  recordedBy?: { _id: string; name: string } | string;
+  createdAt: string;
+}
+
 interface TransactionPayload {
   reservationId?: string;
   guestId?: string;
   amount: number;
-  type: "advance" | "payment" | "refund";
+  type: TransactionType | "advance" | "payment" | "refund";
   paymentMethod: string;
   description?: string;
 }
 
-// Data shape for receiving history (Optional, for Ledger view)
-interface TransactionRecord {
-  _id: string;
-  amount: number;
-  type: string;
-  paymentMethod: string;
-  createdAt: string;
-  // ... other fields
-}
-
 interface TransactionContextType {
-  addTransaction: (data: TransactionPayload) => Promise<void>;
-  getTransactions: (sourceId: string, source: "reservation" | "guest") => Promise<TransactionRecord[]>;
   loading: boolean;
+  transactions: Transaction[];
+  addTransaction: (data: TransactionPayload) => Promise<void>;
+  fetchTransactions: () => Promise<void>;
+  getTransactionsBySource: (
+    sourceId: string,
+    source: "reservation" | "guest"
+  ) => Promise<Transaction[]>;
 }
 
-const TransactionContext = createContext<TransactionContextType | undefined>(undefined);
-
-export const useTransaction = () => {
-  const context = useContext(TransactionContext);
-  if (!context) throw new Error("useTransaction must be used within TransactionProvider");
-  return context;
-};
+const TransactionContext = createContext<TransactionContextType | undefined>(
+  undefined
+);
 
 export const TransactionProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(false);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
 
-  // 1. Add Money (Advance or Settlement)
-  const addTransaction = async (data: TransactionPayload) => {
+  const addTransaction = useCallback(async (data: TransactionPayload) => {
     setLoading(true);
     try {
-      // We don't need headers; cookies are sent automatically via withCredentials=true
-      await axios.post("/api/transactions/add", data);
-    } catch (error: any) {
-      console.error("Transaction failed", error);
-      const msg = error.response?.data?.message || "Payment failed";
-      throw new Error(msg);
+      await apiClient.post("/api/transactions/add", data);
+      // Optional: refresh list after add
+      // await fetchTransactions();
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // 2. Get History (for Ledger Tables)
-  const getTransactions = async (sourceId: string, source: "reservation" | "guest") => {
+  const fetchTransactions = useCallback(async () => {
     setLoading(true);
     try {
-      const query = source === "reservation" ? `reservationId=${sourceId}` : `guestId=${sourceId}`;
-      const { data } = await axios.get(`/api/transactions?${query}`);
-      return data.data; // Assuming backend returns { success: true, data: [...] }
-    } catch (error: any) {
-      console.error("Fetch history failed", error);
-      return [];
+      const res = await apiClient.get<{
+        success: boolean;
+        data: Transaction[];
+      }>("/api/transactions/get-transactions");
+      setTransactions(res.data.data || []);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const getTransactionsBySource = useCallback(
+    async (sourceId: string, source: "reservation" | "guest") => {
+      setLoading(true);
+      try {
+        const query =
+          source === "reservation"
+            ? `reservationId=${sourceId}`
+            : `guestId=${sourceId}`;
+        const res = await apiClient.get<{
+          success: boolean;
+          data: Transaction[];
+        }>(`/api/transactions?${query}`);
+        return res.data.data || [];
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   return (
-    <TransactionContext.Provider value={{ addTransaction, getTransactions, loading }}>
+    <TransactionContext.Provider
+      value={{
+        loading,
+        transactions,
+        addTransaction,
+        fetchTransactions,
+        getTransactionsBySource,
+      }}
+    >
       {children}
     </TransactionContext.Provider>
   );
+};
+
+export const useTransaction = () => {
+  const ctx = useContext(TransactionContext);
+  if (!ctx)
+    throw new Error("useTransaction must be used within TransactionProvider");
+  return ctx;
 };

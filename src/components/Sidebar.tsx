@@ -16,6 +16,7 @@ import {
   Percent,
   Calendar1,
   BedSingle,
+  ArrowLeftRight,
 } from "lucide-react";
 interface SidebarProps {
   isOpen: boolean;
@@ -56,7 +57,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       icon: Bed,
       roles: [
         "admin",
-        //  "receptionist"
+        // "receptionist"
       ],
     },
     {
@@ -73,6 +74,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       roles: ["admin", "accountant"],
     },
     { name: "Invoices", href: "/Invoices", icon: FileText, roles: ["admin"] },
+
+    // 👇 NEW: TRANSACTIONS ITEM 👇
+    {
+      name: "Transactions",
+      href: "/transactions",
+      icon: ArrowLeftRight,
+      roles: ["admin", "accountant"], // who can see it
+    },
+    // 👆 ------------------------ 👆
+
     { name: "Decor", href: "/decor", icon: BedSingle, roles: ["admin"] },
     {
       name: "Revenue",
