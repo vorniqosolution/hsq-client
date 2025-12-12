@@ -16,6 +16,7 @@ import { TaxProvider } from "./contexts/TaxContext";
 import { ReservationProvider } from "./contexts/ReservationContext";
 import { TransactionProvider } from "./contexts/TransactionContext";
 import { DecorProvider } from "./contexts/DecorContext";
+import SettingProvider from "./contexts/SettingContext";
 
 import SessionPopup from "@/components/SessionPopup";
 
@@ -38,6 +39,7 @@ import ReservationPage from "./pages/ReservationPage";
 import ReservationDetailsPage from "./pages/ReservationDetails";
 import SettingsPage from "./pages/SettingsPage";
 import Decor from "./pages/Decor";
+import TransactionsPage from "./pages/TransactionsPage";
 
 const queryClient = new QueryClient();
 
@@ -224,6 +226,10 @@ const App = () => (
                                             </Layout>
                                           </ProtectedRoute>
                                         }
+                                      />
+                                      <Route
+                                        path="/transactions"
+                                        element={<TransactionsPage />}
                                       />
                                       <Route path="*" element={<NotFound />} />
                                     </Routes>
