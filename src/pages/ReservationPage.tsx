@@ -66,6 +66,7 @@ import {
   isBefore,
   parseISO,
 } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRoomContext, Room } from "@/contexts/RoomContext";
@@ -149,7 +150,7 @@ const INITIAL_FORM_STATE: CreateReservationInput = {
   specialRequest: "",
   paymentMethod: undefined,
   promoCode: "",
-   advanceAmount: 0,
+  advanceAmount: 0,
 };
 
 const ReservationsPage: React.FC = () => {
@@ -1280,43 +1281,48 @@ const ReservationsPage: React.FC = () => {
                     <Crown className="h-4 w-4 mr-2" />
                     Advance Payment (Optional)
                   </h3>
-                  
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <Label htmlFor="advanceAmount" className="text-blue-900">
-                           Amount (Rs)
-                        </Label>
-                        <Input
-                            id="advanceAmount"
-                            name="advanceAmount"
-                            type="number"
-                            min="0"
-                            placeholder="0"
-                            value={formData.advanceAmount || ""}
-                            onChange={handleFormChange}
-                            disabled={isSubmitting}
-                            className="bg-white"
-                        />
+                      <Label htmlFor="advanceAmount" className="text-blue-900">
+                        Amount (Rs)
+                      </Label>
+                      <Input
+                        id="advanceAmount"
+                        name="advanceAmount"
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={formData.advanceAmount || ""}
+                        onChange={handleFormChange}
+                        disabled={isSubmitting}
+                        className="bg-white"
+                      />
                     </div>
-                    
+
                     <div className="space-y-2">
-                        <Label htmlFor="advancePaymentMethod" className="text-blue-900">
-                           Method
-                        </Label>
-                        <Select
-                          value={formData.advancePaymentMethod || "Cash"}
-                          onValueChange={(v) => handleSelectChange("advancePaymentMethod", v)}
-                          disabled={isSubmitting}
-                        >
-                          <SelectTrigger className="bg-white">
-                            <SelectValue placeholder="Method" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Cash">Cash</SelectItem>
-                            <SelectItem value="Card">Card</SelectItem>
-                            <SelectItem value="Online">Online</SelectItem>
-                          </SelectContent>
-                        </Select>
+                      <Label
+                        htmlFor="advancePaymentMethod"
+                        className="text-blue-900"
+                      >
+                        Method
+                      </Label>
+                      <Select
+                        value={formData.advancePaymentMethod || "Cash"}
+                        onValueChange={(v) =>
+                          handleSelectChange("advancePaymentMethod", v)
+                        }
+                        disabled={isSubmitting}
+                      >
+                        <SelectTrigger className="bg-white">
+                          <SelectValue placeholder="Method" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Cash">Cash</SelectItem>
+                          <SelectItem value="Card">Card</SelectItem>
+                          <SelectItem value="Online">Online</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>
@@ -1447,7 +1453,7 @@ const ReservationCard = React.memo(
       <Card className="hover:shadow-lg transition-all duration-300 border-gray-100">
         <CardContent className="p-0">
           <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
-            <div className="flex flex-col md:flex-row">
+            <div className="flex fl {/* {reservation.createdAt} */}ex-col md:flex-row">
               {/* Main Content Section (Guest & Booking Details) */}
               <div className="flex-1">
                 {/* Card Header with Guest Info */}
@@ -1460,6 +1466,14 @@ const ReservationCard = React.memo(
                       <CardDescription className="flex items-center gap-2 pt-1">
                         <Phone className="h-3.5 w-3.5" />
                         {reservation.phone}
+                      </CardDescription>
+                      {/* new line  */}
+                      <CardDescription className="flex items-center gap-2 pt-1">
+                        Reservation created on{" "}
+                        {format(
+                          toZonedTime(reservation.createdAt, "Asia/Karachi"),
+                          "dd MMM yyyy, hh:mm a"
+                        )}
                       </CardDescription>
                     </div>
                     <div className="flex-shrink-0">
