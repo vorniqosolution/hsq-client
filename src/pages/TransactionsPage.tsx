@@ -64,10 +64,14 @@ const TransactionsPage: React.FC = () => {
       if (!term) return true;
 
       const guestName =
-        (typeof tx.guest === "object" && tx.guest?.fullName) || "";
+        (typeof tx.guest === "object" && tx.guest?.fullName) ||
+        (typeof tx.reservation === "object" && tx.reservation?.fullName) ||
+        "";
+
       const roomNumber =
         (typeof tx.guest === "object" && tx.guest?.room?.roomNumber) ||
-        (typeof tx.reservation === "object" && tx.reservation?.roomNumber) ||
+        (typeof tx.reservation === "object" &&
+          tx.reservation?.room?.roomNumber) ||
         "";
 
       return (
@@ -282,16 +286,21 @@ const TransactionsPage: React.FC = () => {
                 <tbody>
                   {filtered.map((tx) => {
                     const guestName =
-                      typeof tx.guest === "object" && tx.guest
-                        ? tx.guest.fullName
-                        : "";
+                      (typeof tx.guest === "object" &&
+                        tx.guest &&
+                        tx.guest.fullName) ||
+                      (typeof tx.reservation === "object" &&
+                        tx.reservation &&
+                        tx.reservation.fullName) ||
+                      "";
+
                     const roomNumber =
-                      typeof tx.guest === "object" && tx.guest?.room
-                        ? tx.guest.room.roomNumber
-                        : typeof tx.reservation === "object" &&
-                          tx.reservation?.roomNumber
-                        ? tx.reservation.roomNumber
-                        : "";
+                      (typeof tx.guest === "object" &&
+                        tx.guest?.room?.roomNumber) ||
+                      (typeof tx.reservation === "object" &&
+                        tx.reservation?.room?.roomNumber) ||
+                      "";
+
                     const recordedByName =
                       typeof tx.recordedBy === "object" && tx.recordedBy
                         ? tx.recordedBy.name
