@@ -372,40 +372,6 @@ const GuestsPage: React.FC = () => {
             </Button>
           </div>
 
-          {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
-            <div className="flex items-center space-x-2 md:col-span-2">
-              <div className="relative flex-grow">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search guests..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full"
-                />
-              </div>
-              <Select
-                value={searchCategory}
-                onValueChange={(value) => setSearchCategory(value)}
-              >
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Search by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="name">Name</SelectItem>
-                  <SelectItem value="phone">Phone</SelectItem>
-                  <SelectItem value="roomNumber">Room</SelectItem>
-                  <SelectItem value="status">Status</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center justify-end">
-              <Button variant="secondary" onClick={handleClearFilters}>
-                <X className="mr-2 h-4 w-4" /> Clear
-              </Button>
-            </div>
-          </div> */}
-
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
             {/* Column 1: View Mode Selector */}
             <div className="md:col-span-1 space-y-1.5">
@@ -473,64 +439,6 @@ const GuestsPage: React.FC = () => {
           </div>
 
           <div className="relative min-h-[400px]">{renderContent()}</div>
-
-          {/* {totalPages > 1 && (
-            <Card className="mt-4">
-              <CardContent className="p-4 flex justify-center">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setCurrentPage((prev) => Math.max(prev - 1, 1));
-                        }}
-                        className={
-                          currentPage === 1
-                            ? "pointer-events-none opacity-50"
-                            : ""
-                        }
-                      />
-                    </PaginationItem>
-
-                    {[...Array(totalPages).keys()].map((num) => (
-                      <PaginationItem key={num}>
-                        <PaginationLink
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setCurrentPage(num + 1);
-                          }}
-                          isActive={currentPage === num + 1}
-                        >
-                          {num + 1}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
-
-                    <PaginationItem>
-                      <PaginationNext
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setCurrentPage((prev) =>
-                            Math.min(prev + 1, totalPages)
-                          );
-                        }}
-                        className={
-                          currentPage === totalPages
-                            ? "pointer-events-none opacity-50"
-                            : ""
-                        }
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </CardContent>
-            </Card>
-          )} */}
-
           {totalPages > 1 && (
             <Card className="mt-4">
               <CardContent className="p-4 flex justify-center">
@@ -1116,7 +1024,7 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            {/* <div>
               <Label htmlFor="checkInDate">Check-in Date</Label>
               <Input
                 id="checkInDate"
@@ -1125,6 +1033,20 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
                 value={formData.checkInDate}
                 onChange={handleCheckInDateChange}
                 min={format(new Date(), "yyyy-MM-dd")} // Prevent past dates
+                className="mt-1"
+                required
+                disabled={isSubmitting}
+              />
+            </div> */}
+            <div>
+              <Label htmlFor="checkInDate">Check-in Date</Label>
+              <Input
+                id="checkInDate"
+                name="checkInDate"
+                type="date"
+                value={formData.checkInDate}
+                onChange={handleCheckInDateChange}
+                // min={format(new Date(), "yyyy-MM-dd")}  <-- REMOVED THIS LINE
                 className="mt-1"
                 required
                 disabled={isSubmitting}
