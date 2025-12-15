@@ -68,7 +68,6 @@ const App = () => (
                             <DiscountProvider>
                               <RevenueProvider>
                                 <InvoiceProvider>
-                                  {/* <SettingProvider> */}
                                   <AppInitializer>
                                     <SessionPopup />
 
@@ -107,7 +106,6 @@ const App = () => (
                                         path="/guests"
                                         element={
                                           <ProtectedRoute
-                                          // roles={["admin", "receptionist"]}
                                           >
                                             <Layout>
                                               <GuestsPage />
@@ -119,7 +117,6 @@ const App = () => (
                                         path="/guests/:id"
                                         element={
                                           <ProtectedRoute
-                                          // roles={["admin", "receptionist"]}
                                           >
                                             <Layout>
                                               <GuestDetailPage />
