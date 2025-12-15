@@ -73,18 +73,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       icon: Archive,
       roles: ["admin", "accountant"],
     },
-    { name: "Invoices", href: "/Invoices", icon: FileText, roles: ["admin"] },
+    { name: "Invoices", href: "/Invoices", icon: FileText, roles: ["admin", "accountant"] },
 
-    // 👇 NEW: TRANSACTIONS ITEM 👇
     {
       name: "Transactions",
       href: "/transactions",
       icon: ArrowLeftRight,
-      roles: ["admin", "accountant"], // who can see it
+      roles: ["admin", "accountant", "receptionist" ], // who can see it
     },
-    // 👆 ------------------------ 👆
 
-    { name: "Decor", href: "/decor", icon: BedSingle, roles: ["admin"] },
+    {
+      name: "Decor",
+      href: "/decor",
+      icon: BedSingle,
+      roles: ["admin", "receptionist"],
+    },
     {
       name: "Revenue",
       href: "/Revenue",
