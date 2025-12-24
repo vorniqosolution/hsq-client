@@ -3,6 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -18,6 +27,7 @@ import {
   Eye,
   EyeOff,
   LockKeyhole,
+  AlertTriangle,
 } from "lucide-react";
 import {
   Dialog,
@@ -26,6 +36,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { useSetting, SystemAlert } from "@/contexts/SettingContext";
 import { toast } from "@/components/ui/use-toast";
 import axios from "axios";
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -47,6 +58,86 @@ function getPasswordStrength(password: string) {
   }
   return "Weak";
 }
+const SystemAlertSettings = () => {
+  const { settings, updateSettings, loading } = useSetting();
+  const [formData, setFormData] = useState<SystemAlert>({
+    message: "",
+    isActive: false,
+    type: "info",
+  });
+  const [isChanged, setIsChanged] = useState(false);
+
+  useEffect(() => {
+    if (settings?.systemAlert) {
+      setFormData(settings.systemAlert);
+    }
+  }, [settings]);
+
+  const handleChange = (key: keyof SystemAlert, value: any) => {
+    setFormData((prev) => {
+      const updated = { ...prev, [key]: value };
+      setIsChanged(true);
+      return updated;
+    });
+  };
+
+  const handleSave = async () => {
+    await updateSettings({ systemAlert: formData });
+    setIsChanged(false);
+  };
+
+  if (loading) return <div>Loading settings...</div>;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <Label htmlFor="alert-active" className="font-semibold">
+          Enable Alert
+        </Label>
+        <Switch
+          id="alert-active"
+          checked={formData.isActive}
+          onCheckedChange={(checked) => handleChange("isActive", checked)}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label className="font-semibold">Alert Type</Label>
+        <Select
+          value={formData.type}
+          onValueChange={(val) => handleChange("type", val)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="info">Info (Blue)</SelectItem>
+            <SelectItem value="warning">Warning (Orange)</SelectItem>
+            <SelectItem value="error">Error (Red)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="alert-message" className="font-semibold">
+          Message
+        </Label>
+        <Textarea
+          id="alert-message"
+          placeholder="e.g. System maintenance from 2 AM to 4 AM"
+          value={formData.message}
+          onChange={(e) => handleChange("message", e.target.value)}
+          className="min-h-[100px]"
+        />
+      </div>
+
+      <Button onClick={handleSave} disabled={!isChanged}>
+        Save Alert Settings
+      </Button>
+    </div>
+  );
+};
+
 export default function SettingsPage() {
   // Admin password
   const [adminPassword, setAdminPassword] = useState("");
@@ -178,7 +269,7 @@ export default function SettingsPage() {
       {/* Responsive 2-column layout */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Left Sidebar: Admin Settings */}
-        <div className="md:col-span-1">
+        <div className="md:col-span-1 space-y-8">
           <Card className="shadow-lg border border-gray-200 bg-gradient-to-br from-white to-gray-50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -291,6 +382,19 @@ export default function SettingsPage() {
                   )}
                 </Button>
               </form>
+            </CardContent>
+          </Card>
+
+           {/* System Alert Settings */}
+           <Card className="shadow-lg border border-gray-200 bg-white">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-orange-500" />
+                System Maintenance Alert
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SystemAlertSettings />
             </CardContent>
           </Card>
         </div>
