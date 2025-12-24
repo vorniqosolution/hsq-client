@@ -28,7 +28,19 @@ import {
   Clock,
   ExternalLink,
   Hash,
+  Trash2,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Card,
   CardContent,
@@ -41,7 +53,7 @@ import { Button } from "@/components/ui/button";
 import { Room, useRoomContext } from "@/contexts/RoomContext";
 import { useGuestContext } from "@/contexts/GuestContext";
 import { useReservationContext } from "@/contexts/ReservationContext";
-import { isToday, isFuture, parseISO, addDays, format } from "date-fns";
+import { isToday, isFuture, parseISO, addDays, format, differenceInDays } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -170,7 +182,44 @@ const DashboardPage = () => {
     reservations,
     loading: reservationsLoading,
     fetchReservations,
+    deleteReservation,
   } = useReservationContext();
+  const { toast } = useToast();
+  const [reservationToDelete, setReservationToDelete] = useState<any>(null);
+
+  const handleDeleteReservation = async () => {
+    if (!reservationToDelete) return;
+
+    try {
+      await deleteReservation(reservationToDelete._id);
+      toast({
+        title: "Success",
+        description: `Reservation for ${reservationToDelete.fullName} has been deleted.`,
+      });
+      
+      // Update the selected room details to reflect the removal if it was in the list
+      if (selectedRoomDetails && selectedRoomDetails.details && selectedRoomDetails.details.futureBookings) {
+         const updatedBookings = selectedRoomDetails.details.futureBookings.filter(
+             (r: any) => r._id !== reservationToDelete._id
+         );
+         setSelectedRoomDetails(prev => ({
+             ...prev,
+             details: {
+                 ...prev.details,
+                 futureBookings: updatedBookings
+             }
+         }));
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to delete the reservation. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setReservationToDelete(null);
+    }
+  };
 
   useEffect(() => {
     fetchRooms();
@@ -556,107 +605,180 @@ const DashboardPage = () => {
                             </span>
                           </div>
 
-                          {/* Reservations list */}
+                          {/* Reservations & Free Slots list */}
                           <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                            {details.futureBookings.map((res, index) => {
-                              const startDate = parseISO(res.startAt);
-                              const endDate = parseISO(res.endAt);
-                              const nights = Math.ceil(
-                                (endDate.getTime() - startDate.getTime()) /
-                                  (1000 * 60 * 60 * 24)
-                              );
-                              const daysUntilArrival = Math.ceil(
-                                (startDate.getTime() - new Date().getTime()) /
-                                  (1000 * 60 * 60 * 24)
+                            {(() => {
+                              // 1. Calculate Timeline
+                              const bookings = details.futureBookings;
+                              const timeline: any[] = [];
+                              // Sort bookings by start time
+                              const sorted = [...bookings].sort(
+                                (a, b) =>
+                                  parseISO(a.startAt).getTime() -
+                                  parseISO(b.startAt).getTime()
                               );
 
-                              return (
-                                <div
-                                  key={res._id}
-                                  className="group relative bg-white rounded-lg border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all duration-200 overflow-hidden"
-                                >
-                                  {/* Timeline indicator */}
-                                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 to-emerald-500" />
+                              let lastEnd = new Date(); // Start from "Now"
 
-                                  <div className="p-4 pl-5">
-                                    <div className="flex items-start justify-between gap-4">
-                                      {/* Guest info */}
-                                      <div className="flex items-start gap-3 flex-1">
-                                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-100 to-green-100 flex items-center justify-center flex-shrink-0">
-                                          <span className="text-sm font-semibold text-emerald-700">
-                                            {res.fullName
-                                              .split(" ")
-                                              .map((n) => n[0])
-                                              .join("")
-                                              .toUpperCase()
-                                              .slice(0, 2)}
-                                          </span>
+                              sorted.forEach((res) => {
+                                const start = parseISO(res.startAt);
+                                // Check if the gap is significant (>= 1 day)
+                                const gap = differenceInDays(start, lastEnd);
+
+                                // Only show 'Free' if the gap is at least 1 day
+                                // and the start date is strictly after lastEnd
+                                if (gap > 0 && start > lastEnd) {
+                                  timeline.push({
+                                    type: "free",
+                                    start: lastEnd,
+                                    end: start,
+                                    days: gap,
+                                  });
+                                }
+
+                                timeline.push({ type: "booking", data: res });
+                                // Update lastEnd to be the end of this booking
+                                const resEnd = parseISO(res.endAt);
+                                if (resEnd > lastEnd) {
+                                  lastEnd = resEnd;
+                                }
+                              });
+
+                              // 2. Render Timeline
+                              return timeline.map((item, index) => {
+                                if (item.type === "free") {
+                                  return (
+                                    <div
+                                      key={`free-${index}`}
+                                      className="flex items-center justify-between p-3 rounded-lg border-2 border-dashed border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 transition-colors"
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                                          <CheckCircle className="h-4 w-4 text-emerald-600" />
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                          <p className="font-medium text-slate-900 truncate">
-                                            {res.fullName}
+                                        <div>
+                                          <p className="text-sm font-semibold text-emerald-800">
+                                            Available
                                           </p>
-                                          <div className="flex items-center gap-2 mt-1">
-                                            <Clock className="h-3 w-3 text-slate-400" />
-                                            <p className="text-xs text-slate-500">
-                                              {daysUntilArrival > 0
-                                                ? `Arrives in ${daysUntilArrival} ${
-                                                    daysUntilArrival === 1
-                                                      ? "day"
-                                                      : "days"
-                                                  }`
-                                                : daysUntilArrival === 0
-                                                ? "Arriving today"
-                                                : "In progress"}
+                                          <p className="text-xs text-emerald-600 font-medium">
+                                            {format(item.start, "MMM d")} -{" "}
+                                            {format(item.end, "MMM d")}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <div className="text-right">
+                                        <span className="text-xs font-bold text-emerald-700 block">
+                                          {item.days} {item.days === 1 ? "Night" : "Nights"}
+                                        </span>
+                                        <span className="text-[10px] text-emerald-600 uppercase tracking-wider">
+                                          Free
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+
+                                // Render Booking Card (Original Logic)
+                                const res = item.data;
+                                const startDate = parseISO(res.startAt);
+                                const endDate = parseISO(res.endAt);
+                                const nights = Math.ceil(
+                                  (endDate.getTime() - startDate.getTime()) /
+                                    (1000 * 60 * 60 * 24)
+                                );
+                                const daysUntilArrival = Math.ceil(
+                                  (startDate.getTime() - new Date().getTime()) /
+                                    (1000 * 60 * 60 * 24)
+                                );
+
+                                return (
+                                  <div
+                                    key={res._id}
+                                    className="group relative bg-white rounded-lg border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all duration-200 overflow-hidden"
+                                  >
+                                    {/* Timeline indicator */}
+                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-400 to-blue-500" />
+
+                                    <div className="p-4 pl-5">
+                                      <div className="flex items-start justify-between gap-4">
+                                        {/* Guest info */}
+                                        <div className="flex items-start gap-3 flex-1">
+                                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center flex-shrink-0">
+                                            <span className="text-sm font-semibold text-blue-700">
+                                              {res.fullName
+                                                .split(" ")
+                                                .map((n: string) => n[0])
+                                                .join("")
+                                                .toUpperCase()
+                                                .slice(0, 2)}
+                                            </span>
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-slate-900 truncate">
+                                              {res.fullName}
                                             </p>
+                                            <div className="flex items-center gap-2 mt-1">
+                                              <Clock className="h-3 w-3 text-slate-400" />
+                                              <p className="text-xs text-slate-500">
+                                                {daysUntilArrival > 0
+                                                  ? `Arrives in ${daysUntilArrival} ${
+                                                      daysUntilArrival === 1
+                                                        ? "day"
+                                                        : "days"
+                                                    }`
+                                                  : daysUntilArrival === 0
+                                                  ? "Arriving today"
+                                                  : "In progress"}
+                                              </p>
+                                            </div>
                                           </div>
+                                        </div>
+
+                                        {/* Stay duration badge */}
+                                        <div className="flex flex-col items-end gap-1">
+                                          <span className="text-xs px-2 py-1 bg-slate-100 text-slate-700 rounded-md font-medium">
+                                            {nights}{" "}
+                                            {nights === 1 ? "night" : "nights"}
+                                          </span>
+                                           <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-6 w-6 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                              onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setReservationToDelete(res);
+                                              }}
+                                              title="Cancel Reservation"
+                                            >
+                                              <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
                                         </div>
                                       </div>
 
-                                      {/* Stay duration badge */}
-                                      <div className="flex flex-col items-end gap-1">
-                                        <span className="text-xs px-2 py-1 bg-emerald-50 text-emerald-700 rounded-md font-medium">
-                                          {nights}{" "}
-                                          {nights === 1 ? "night" : "nights"}
-                                        </span>
-                                      </div>
-                                    </div>
-
-                                    {/* Date range */}
-                                    <div className="mt-3 pt-3 border-t border-slate-100">
-                                      <div className="flex items-center justify-between text-xs">
-                                        <div className="flex items-center gap-4">
-                                          <div className="flex items-center gap-1.5">
-                                            <ArrowRightCircle className="h-3.5 w-3.5 text-emerald-500" />
-                                            <span className="text-slate-600 font-medium">
-                                              {format(startDate, "MMM d, yyyy")}
-                                            </span>
-                                          </div>
-                                          <div className="flex items-center gap-1.5">
-                                            <ArrowLeftCircle className="h-3.5 w-3.5 text-slate-400" />
-                                            <span className="text-slate-600 font-medium">
-                                              {format(endDate, "MMM d, yyyy")}
-                                            </span>
+                                      {/* Date range */}
+                                      <div className="mt-3 pt-3 border-t border-slate-100">
+                                        <div className="flex items-center justify-between text-xs">
+                                          <div className="flex items-center gap-4">
+                                            <div className="flex items-center gap-1.5">
+                                              <ArrowRightCircle className="h-3.5 w-3.5 text-blue-500" />
+                                              <span className="text-slate-600 font-medium">
+                                                {format(startDate, "MMM d")}
+                                              </span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                              <ArrowLeftCircle className="h-3.5 w-3.5 text-slate-400" />
+                                              <span className="text-slate-600 font-medium">
+                                                {format(endDate, "MMM d")}
+                                              </span>
+                                            </div>
                                           </div>
                                         </div>
                                       </div>
                                     </div>
-
-                                    {/* Optional: Booking reference */}
-                                    {res.bookingRef && (
-                                      <div className="mt-2 flex items-center gap-1">
-                                        <Hash className="h-3 w-3 text-slate-400" />
-                                        <span className="text-xs text-slate-500">
-                                          Ref: {res.bookingRef}
-                                        </span>
-                                      </div>
-                                    )}
                                   </div>
-
-                                  {/* Hover action (optional) */}
-                                </div>
-                              );
-                            })}
+                                );
+                              });
+                            })()}
                           </div>
 
                           {/* Show more indicator if many bookings */}
@@ -711,6 +833,27 @@ const DashboardPage = () => {
             })()}
         </DialogContent>
       </Dialog>
+      
+      <AlertDialog open={!!reservationToDelete} onOpenChange={(open) => !open && setReservationToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will delete the reservation for{" "}
+              <span className="font-semibold">{reservationToDelete?.fullName}</span>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteReservation}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
