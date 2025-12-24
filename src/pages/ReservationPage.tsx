@@ -22,6 +22,7 @@ import {
   Phone,
   User,
   MessageSquare,
+  CheckCircle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -107,6 +108,14 @@ interface Reservation {
   startAt: string;
   endAt: string;
   status: "reserved" | "cancelled" | "checked-in" | "checked-out";
+
+  financials?: {
+    nights: number;
+    roomRate: number;
+    estimatedTotal: number;
+    totalAdvance: number;
+    estimatedBalance: number;
+  };
 
   // ✅ ADD THESE NEW FIELDS:
   adults: number;
@@ -200,7 +209,7 @@ const ReservationsPage: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       const formatDateToYYYYMMDD = (date: Date) =>
-        date.toISOString().split("T")[0];
+        format(date, "yyyy-MM-dd");
 
       setIsInitialLoad(true);
       if (viewMode === "report") {
@@ -1453,7 +1462,7 @@ const ReservationCard = React.memo(
       <Card className="hover:shadow-lg transition-all duration-300 border-gray-100">
         <CardContent className="p-0">
           <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
-            <div className="flex fl {/* {reservation.createdAt} */}ex-col md:flex-row">
+            <div className="flex flex-col md:flex-row">
               {/* Main Content Section (Guest & Booking Details) */}
               <div className="flex-1">
                 {/* Card Header with Guest Info */}
@@ -1476,8 +1485,14 @@ const ReservationCard = React.memo(
                         )}
                       </CardDescription>
                     </div>
-                    <div className="flex-shrink-0">
+                    <div className="flex-shrink-0 flex flex-col items-end gap-2">
                       {getStatusBadge(status)}
+                      {reservation.financials && reservation.financials.totalAdvance > 0 && (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 gap-1">
+                              <CheckCircle className="h-3 w-3" />
+                              Adv: Rs {reservation.financials.totalAdvance.toLocaleString()}
+                          </Badge>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
@@ -1637,14 +1652,6 @@ const ReservationCard = React.memo(
           </Card>
         </CardContent>
       </Card>
-    );
-  },
-
-  (prevProps, nextProps) => {
-    return (
-      prevProps.reservation._id === nextProps.reservation._id &&
-      prevProps.getStatus(prevProps.reservation) ===
-        nextProps.getStatus(nextProps.reservation)
     );
   }
 );

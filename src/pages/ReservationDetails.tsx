@@ -1,23 +1,15 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import PaymentModal from "@/components/modals/PaymentModal"; // Import the modal
+import PaymentModal from "@/components/modals/PaymentModal";
+import Sidebar from "@/components/Sidebar"; // Added Sidebar import
 import {
   ArrowLeft,
   Calendar,
   User,
-  Bed,
-  CheckCircle,
   Menu,
-  X,
-  Crown,
-  Sparkles,
-  Star,
-  Settings,
-  LogOut,
-  Home,
+  CheckCircle,
   Users,
   Ticket,
-  Percent,
   Archive,
   FileText,
   PlusCircle,
@@ -119,8 +111,6 @@ const ReservationDetailsPage: React.FC = () => {
   const { rooms: allRooms } = useRoomContext();
   const [reservation, setReservation] = useState<Reservation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUpdateStatusDialogOpen] = useState(false); // not used here, left for future
-  const [newStatus] = useState<string>("");
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   // Fetch reservation data
@@ -230,59 +220,6 @@ const ReservationDetailsPage: React.FC = () => {
     }
   };
 
-  // Navigation items
-  const mainNavItems = [
-    { name: "Dashboard", href: "/dashboard", icon: Home },
-    { name: "Guests", href: "/guests", icon: Users },
-    { name: "Reservation", href: "/reservation", icon: Calendar },
-    { name: "Rooms", href: "/rooms", icon: Bed },
-    { name: "Discounts", href: "/Discount", icon: Ticket },
-    { name: "GST & Tax", href: "/Gst", icon: Percent },
-    { name: "Inventory", href: "/Inventory", icon: Archive },
-    { name: "Invoices", href: "/Invoices", icon: FileText },
-    { name: "Revenue", href: "/Revenue", icon: FileText },
-  ];
-
-  const systemNavItems = [
-    { name: "Settings", href: "/settings", icon: Settings },
-  ];
-
-  const isActive = (href: string) => {
-    if (href === "/dashboard") return location.pathname === href;
-    return location.pathname.startsWith(href);
-  };
-
-  const renderNavLinks = (items: typeof mainNavItems) =>
-    items.map((item) => {
-      const Icon = item.icon;
-      const active = isActive(item.href);
-      return (
-        <Link
-          key={item.name}
-          to={item.href}
-          onClick={() => setSidebarOpen(false)}
-          className={`group flex items-center px-4 py-3 text-sm rounded-lg transition-all duration-200 relative overflow-hidden ${
-            active
-              ? "bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-400 shadow-lg shadow-amber-500/10"
-              : "text-slate-300 hover:text-white hover:bg-slate-800/50"
-          }`}
-        >
-          {active && (
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-amber-600" />
-          )}
-          <Icon
-            className={`mr-3 h-5 w-5 ${
-              active
-                ? "text-amber-400"
-                : "text-slate-400 group-hover:text-slate-300"
-            }`}
-          />
-          <span className="font-light tracking-wide">{item.name}</span>
-          {active && <Star className="ml-auto h-3 w-3 text-amber-400/60" />}
-        </Link>
-      );
-    });
-
   const getRoomCategory = () => {
     if (!roomDetails) return "—";
     return roomDetails.category || "—";
@@ -298,77 +235,8 @@ const ReservationDetailsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex overflow-hidden">
-      {/* Sidebar */}
-      {isAdmin && (
-        <>
-          {sidebarOpen && (
-            <div
-              className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-40 lg:hidden"
-              onClick={() => setSidebarOpen(false)}
-            />
-          )}
-          <aside
-            className={`fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-slate-900 to-slate-950 shadow-2xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
-              sidebarOpen ? "translate-x-0" : "-translate-x-full"
-            }`}
-          >
-            <div className="h-20 px-6 flex items-center border-b border-slate-800/50">
-              <div className="flex items-center space-x-3">
-                <div className="relative">
-                  <Crown className="h-9 w-9 text-amber-400" />
-                  <Sparkles className="h-4 w-4 text-amber-300 absolute -top-1 -right-1" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-light tracking-wider text-white">
-                    HSQ ADMIN
-                  </h1>
-                  <p className="text-xs text-amber-400/80 tracking-widest uppercase">
-                    Management Panel
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="lg:hidden ml-auto p-1.5 rounded-lg hover:bg-slate-800/50 transition-colors"
-              >
-                <X className="h-5 w-5 text-slate-400" />
-              </button>
-            </div>
-            <nav className="mt-8 px-4 flex flex-col h-[calc(100%-80px)]">
-              <div className="flex-grow">
-                <div className="space-y-1">{renderNavLinks(mainNavItems)}</div>
-              </div>
-              <div className="flex-shrink-0">
-                <div className="my-4 px-4">
-                  <div className="h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
-                </div>
-                <div className="space-y-1">
-                  {renderNavLinks(systemNavItems)}
-                  <button className="group flex items-center px-4 py-3 text-sm text-slate-300 rounded-lg hover:text-white hover:bg-slate-800/50 w-full transition-all duration-200">
-                    <LogOut className="mr-3 h-5 w-5 text-slate-400 group-hover:text-slate-300" />
-                    <span className="font-light tracking-wide">Sign Out</span>
-                  </button>
-                </div>
-              </div>
-            </nav>
-            <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-slate-800/50 bg-slate-950">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-lg">
-                  <span className="text-sm font-medium text-slate-900">AM</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-light text-white truncate">
-                    Admin Manager
-                  </p>
-                  <p className="text-xs text-slate-400 truncate">
-                    {user?.email || "admin@hsqtowers.com"}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </aside>
-        </>
-      )}
+      {/* Sidebar - Replaced inline code with Component */}
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main content */}
       <div className="flex-1 w-full h-screen overflow-y-auto flex flex-col">
@@ -378,12 +246,12 @@ const ReservationDetailsPage: React.FC = () => {
               <button
                 onClick={() => setSidebarOpen(true)}
                 className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                aria-label="Toggle Menu"
               >
                 <Menu className="h-5 w-5 text-slate-700" />
               </button>
               <div className="flex items-center space-x-2">
-                <Crown className="h-6 w-6 text-amber-500" />
-                <span className="font-light tracking-wider text-slate-900">
+                 <span className="font-light tracking-wider text-slate-900">
                   HSQ ADMIN
                 </span>
               </div>
