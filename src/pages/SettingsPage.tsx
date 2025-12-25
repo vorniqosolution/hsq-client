@@ -28,6 +28,7 @@ import {
   EyeOff,
   LockKeyhole,
   AlertTriangle,
+  Banknote,
 } from "lucide-react";
 import {
   Dialog,
@@ -135,6 +136,60 @@ const SystemAlertSettings = () => {
         Save Alert Settings
       </Button>
     </div>
+  );
+};
+
+const MattressRateSettings = () => {
+  const { settings, updateSettings, loading } = useSetting();
+  const [rate, setRate] = useState<number>(1500);
+  const [isChanged, setIsChanged] = useState(false);
+
+  useEffect(() => {
+    if (settings?.mattressRate !== undefined) {
+      setRate(settings.mattressRate);
+    }
+  }, [settings]);
+
+  const handleSave = async () => {
+    await updateSettings({ mattressRate: rate });
+    setIsChanged(false);
+  };
+
+  if (loading) return <div>Loading...</div>;
+
+  return (
+    <Card className="shadow-lg border border-gray-200 bg-white">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Banknote className="w-5 h-5 text-green-600" />
+          Extra Mattress Charges
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="mattress-rate" className="font-semibold">
+            Rate per Extra Mattress (Rs)
+          </Label>
+          <Input
+            id="mattress-rate"
+            type="number"
+            min="0"
+            value={rate}
+            onChange={(e) => {
+              setRate(Number(e.target.value) || 0);
+              setIsChanged(true);
+            }}
+            placeholder="1500"
+          />
+          <p className="text-sm text-muted-foreground">
+            Charge applied for each extra mattress beyond the complimentary limit.
+          </p>
+        </div>
+        <Button onClick={handleSave} disabled={!isChanged}>
+          Save Mattress Rate
+        </Button>
+      </CardContent>
+    </Card>
   );
 };
 
@@ -341,13 +396,12 @@ export default function SettingsPage() {
                 {adminPassword && (
                   <div className="text-xs mt-1">
                     <span
-                      className={`font-medium ${
-                        getPasswordStrength(adminPassword) === "Strong"
-                          ? "text-green-600"
-                          : getPasswordStrength(adminPassword) === "Medium"
+                      className={`font-medium ${getPasswordStrength(adminPassword) === "Strong"
+                        ? "text-green-600"
+                        : getPasswordStrength(adminPassword) === "Medium"
                           ? "text-yellow-600"
                           : "text-red-600"
-                      }`}
+                        }`}
                     >
                       {getPasswordStrength(adminPassword)} password
                     </span>
@@ -385,8 +439,8 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-           {/* System Alert Settings */}
-           <Card className="shadow-lg border border-gray-200 bg-white">
+          {/* System Alert Settings */}
+          <Card className="shadow-lg border border-gray-200 bg-white">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-orange-500" />
@@ -397,6 +451,9 @@ export default function SettingsPage() {
               <SystemAlertSettings />
             </CardContent>
           </Card>
+
+          {/* Mattress Rate Settings */}
+          <MattressRateSettings />
         </div>
         {/* Main Content: Receptionists Table */}
         <div className="md:col-span-2">

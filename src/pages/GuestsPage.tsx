@@ -81,6 +81,7 @@ const INITIAL_FORM_STATE: CreateGuestInput = {
   additionaldiscount: 0,
   adults: 1,
   infants: 0,
+  extraMattresses: 0,
 };
 
 const GuestsPage: React.FC = () => {
@@ -647,8 +648,7 @@ const GuestCard: React.FC<{ guest: Guest; onDelete: () => void }> = React.memo(
                   <span className="font-medium text-gray-900">
                     {guest.adults || 1} Adult{guest.adults !== 1 ? "s" : ""}
                     {guest.infants > 0 &&
-                      `, ${guest.infants} Infant${
-                        guest.infants !== 1 ? "s" : ""
+                      `, ${guest.infants} Infant${guest.infants !== 1 ? "s" : ""
                       }`}
                   </span>
                 </div>
@@ -1020,6 +1020,38 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
                   disabled={isSubmitting}
                 />
               </div>
+              <div>
+                <Label htmlFor="extraMattresses" className="text-sm text-gray-600">
+                  Extra Mattresses
+                </Label>
+                <Input
+                  id="extraMattresses"
+                  name="extraMattresses"
+                  type="number"
+                  min="0"
+                  max="4"
+                  value={formData.extraMattresses || 0}
+                  onChange={handleFormChange}
+                  placeholder="0-4"
+                  disabled={isSubmitting}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {(() => {
+                    const selectedRoom = selectableRooms.find(r => r.roomNumber === formData.roomNumber);
+                    if (!selectedRoom) return "Select a room to see free mattresses";
+                    const isTwoBed = selectedRoom.bedType === "Two Bed";
+                    let free = 0;
+                    switch (selectedRoom.category) {
+                      case "Presidential": free = isTwoBed ? 2 : 1; break;
+                      case "Duluxe-Plus": free = isTwoBed ? 2 : 1; break;
+                      case "Deluxe":
+                      case "Executive": free = 1; break;
+                      default: free = 0;
+                    }
+                    return `${free} free for ${selectedRoom.category}. Extra: Rs 1,500 each`;
+                  })()}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -1046,7 +1078,7 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
                 type="date"
                 value={formData.checkInDate}
                 onChange={handleCheckInDateChange}
-                // min={format(new Date(), "yyyy-MM-dd")}  <-- REMOVED THIS LINE
+                max={format(new Date(), "yyyy-MM-dd")} // Prevent future dates (use Reservations for future bookings)
                 className="mt-1"
                 required
                 disabled={isSubmitting}
@@ -1108,9 +1140,8 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
                           {/* ✅ Show capacity info */}
                           {r.adults && (
                             <span
-                              className={`text-xs ${
-                                capacityIssue ? "text-red-500" : "text-gray-500"
-                              }`}
+                              className={`text-xs ${capacityIssue ? "text-red-500" : "text-gray-500"
+                                }`}
                             >
                               (Max: {r.adults} adults
                               {r.infants !== undefined
@@ -1172,11 +1203,10 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
                       <SelectItem
                         key={decor._id}
                         value={decor._id}
-                        className={`${
-                          isSelected
-                            ? "bg-primary/10 border-l-4 border-primary"
-                            : ""
-                        }`}
+                        className={`${isSelected
+                          ? "bg-primary/10 border-l-4 border-primary"
+                          : ""
+                          }`}
                       >
                         <span className="flex items-center gap-4 mt-2">
                           <div className="flex flex-col">

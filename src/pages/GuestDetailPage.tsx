@@ -128,10 +128,9 @@ const EditGuestDialog = ({ isOpen, setIsOpen, guest, onUpdate }) => {
     cnic: "",
     email: "",
     paymentMethod: "cash",
-    applyDiscount: false,
-    additionaldiscount: 0,
     adults: 1,
     infants: 0,
+    extraMattresses: 0,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -146,9 +145,8 @@ const EditGuestDialog = ({ isOpen, setIsOpen, guest, onUpdate }) => {
         email: guest.email || "",
         adults: guest.adults || 1,
         infants: guest.infants || 0,
+        extraMattresses: guest.extraMattresses || 0,
         paymentMethod: guest.paymentMethod,
-        applyDiscount: guest.applyDiscount || false,
-        additionaldiscount: guest.additionaldiscount || 0,
       });
     }
   }, [guest, isOpen]);
@@ -277,7 +275,7 @@ const EditGuestDialog = ({ isOpen, setIsOpen, guest, onUpdate }) => {
             <Label className="text-sm font-semibold text-slate-700">
               Occupancy Details
             </Label>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1">
                 <Label htmlFor="adults" className="text-sm">
                   Adults *
@@ -310,6 +308,23 @@ const EditGuestDialog = ({ isOpen, setIsOpen, guest, onUpdate }) => {
                   className="h-9"
                 />
               </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="extraMattresses" className="text-sm">
+                  Mattresses
+                </Label>
+                <Input
+                  id="extraMattresses"
+                  name="extraMattresses"
+                  type="number"
+                  min="0"
+                  max="4"
+                  value={formData.extraMattresses}
+                  onChange={handleInputChange}
+                  disabled={isSubmitting}
+                  className="h-9"
+                />
+              </div>
             </div>
           </div>
 
@@ -334,43 +349,6 @@ const EditGuestDialog = ({ isOpen, setIsOpen, guest, onUpdate }) => {
                 <SelectItem value="online">Online</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between mb-2">
-              <Label htmlFor="applyDiscount" className="font-medium">
-                Apply Standard Discount
-              </Label>
-              <Switch
-                id="applyDiscount"
-                checked={formData.applyDiscount}
-                onCheckedChange={(checked) =>
-                  setFormData((prev) => ({ ...prev, applyDiscount: checked }))
-                }
-                disabled={isSubmitting}
-              />
-            </div>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Standard discount is applied to the room rate as per hotel policy
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="additionaldiscount">Additional Discount (Rs)</Label>
-            <Input
-              id="additionaldiscount"
-              name="additionaldiscount"
-              type="number"
-              min={0}
-              step="0.01"
-              value={formData.additionaldiscount || 0}
-              onChange={handleInputChange}
-              disabled={isSubmitting}
-              placeholder="0.00"
-            />
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Custom discount amount in Rupees
-            </p>
           </div>
 
           <DialogFooter>
@@ -1582,27 +1560,27 @@ const GuestDetailPage = () => {
                         </p>
                         {(guest.applyDiscount ||
                           guest.additionaldiscount > 0) && (
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            {guest.applyDiscount && (
-                              <Badge
-                                variant="outline"
-                                className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800 px-2 py-0.5"
-                              >
-                                <Percent className="h-3 w-3 mr-1" />
-                                Standard
-                              </Badge>
-                            )}
-                            {guest.additionaldiscount > 0 && (
-                              <Badge
-                                variant="outline"
-                                className="text-xs bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800 px-2 py-0.5"
-                              >
-                                <Tag className="h-3 w-3 mr-1" />
-                                Rs {guest.additionaldiscount} Off
-                              </Badge>
-                            )}
-                          </div>
-                        )}
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {guest.applyDiscount && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800 px-2 py-0.5"
+                                >
+                                  <Percent className="h-3 w-3 mr-1" />
+                                  Standard
+                                </Badge>
+                              )}
+                              {guest.additionaldiscount > 0 && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800 px-2 py-0.5"
+                                >
+                                  <Tag className="h-3 w-3 mr-1" />
+                                  Rs {guest.additionaldiscount} Off
+                                </Badge>
+                              )}
+                            </div>
+                          )}
                       </div>
                     </div>
                   </div>

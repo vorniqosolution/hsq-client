@@ -83,29 +83,30 @@ const getRoomState = (room: Room, guests: any[], reservations: any[]) => {
       isToday(parseISO(r.startAt))
     );
   });
-  
+
   const futureReservations = reservations
-  .filter((r) => {
-    if (!r.room) return false;
-    const roomId = typeof r.room === "object" ? r.room._id : r.room;
-  
-    return (
-      roomId === room._id &&
-      r.status !== "cancelled" &&
-      r.status !== "checked-out" &&
-      isFuture(parseISO(r.startAt))
+    .filter((r) => {
+      if (!r.room) return false;
+      const roomId = typeof r.room === "object" ? r.room._id : r.room;
+
+      return (
+        roomId === room._id &&
+        r.status !== "cancelled" &&
+        r.status !== "checked-out" &&
+        isFuture(parseISO(r.startAt))
+      );
+    })
+    .sort(
+      (a: { startAt: string }, b: { startAt: string }) =>
+        parseISO(a.startAt).getTime() - parseISO(b.startAt).getTime()
     );
-  })
-  .sort(
-    (a: { startAt: string }, b: { startAt: string }) =>
-      parseISO(a.startAt).getTime() - parseISO(b.startAt).getTime()
-  );
 
   if (guestCheckedInNow) {
     return {
       state: "Occupied",
       details: {
         currentActivity: `Guest: ${guestCheckedInNow.fullName}`,
+        currentGuestCheckout: guestCheckedInNow.checkOutAt,
         futureBookings: futureReservations,
       },
     };
@@ -196,19 +197,19 @@ const DashboardPage = () => {
         title: "Success",
         description: `Reservation for ${reservationToDelete.fullName} has been deleted.`,
       });
-      
+
       // Update the selected room details to reflect the removal if it was in the list
       if (selectedRoomDetails && selectedRoomDetails.details && selectedRoomDetails.details.futureBookings) {
-         const updatedBookings = selectedRoomDetails.details.futureBookings.filter(
-             (r: any) => r._id !== reservationToDelete._id
-         );
-         setSelectedRoomDetails(prev => ({
-             ...prev,
-             details: {
-                 ...prev.details,
-                 futureBookings: updatedBookings
-             }
-         }));
+        const updatedBookings = selectedRoomDetails.details.futureBookings.filter(
+          (r: any) => r._id !== reservationToDelete._id
+        );
+        setSelectedRoomDetails(prev => ({
+          ...prev,
+          details: {
+            ...prev.details,
+            futureBookings: updatedBookings
+          }
+        }));
       }
     } catch (err) {
       toast({
@@ -618,7 +619,9 @@ const DashboardPage = () => {
                                   parseISO(b.startAt).getTime()
                               );
 
-                              let lastEnd = new Date(); // Start from "Now"
+                              let lastEnd = details.currentGuestCheckout
+                                ? parseISO(details.currentGuestCheckout)
+                                : new Date(); // Start from guest checkout or "Now"
 
                               sorted.forEach((res) => {
                                 const start = parseISO(res.startAt);
@@ -684,11 +687,11 @@ const DashboardPage = () => {
                                 const endDate = parseISO(res.endAt);
                                 const nights = Math.ceil(
                                   (endDate.getTime() - startDate.getTime()) /
-                                    (1000 * 60 * 60 * 24)
+                                  (1000 * 60 * 60 * 24)
                                 );
                                 const daysUntilArrival = Math.ceil(
                                   (startDate.getTime() - new Date().getTime()) /
-                                    (1000 * 60 * 60 * 24)
+                                  (1000 * 60 * 60 * 24)
                                 );
 
                                 return (
@@ -721,14 +724,13 @@ const DashboardPage = () => {
                                               <Clock className="h-3 w-3 text-slate-400" />
                                               <p className="text-xs text-slate-500">
                                                 {daysUntilArrival > 0
-                                                  ? `Arrives in ${daysUntilArrival} ${
-                                                      daysUntilArrival === 1
-                                                        ? "day"
-                                                        : "days"
-                                                    }`
+                                                  ? `Arrives in ${daysUntilArrival} ${daysUntilArrival === 1
+                                                    ? "day"
+                                                    : "days"
+                                                  }`
                                                   : daysUntilArrival === 0
-                                                  ? "Arriving today"
-                                                  : "In progress"}
+                                                    ? "Arriving today"
+                                                    : "In progress"}
                                               </p>
                                             </div>
                                           </div>
@@ -740,18 +742,18 @@ const DashboardPage = () => {
                                             {nights}{" "}
                                             {nights === 1 ? "night" : "nights"}
                                           </span>
-                                           <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              className="h-6 w-6 text-slate-400 hover:text-red-600 hover:bg-red-50"
-                                              onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  setReservationToDelete(res);
-                                              }}
-                                              title="Cancel Reservation"
-                                            >
-                                              <Trash2 className="h-3.5 w-3.5" />
-                                            </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setReservationToDelete(res);
+                                            }}
+                                            title="Cancel Reservation"
+                                          >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                          </Button>
                                         </div>
                                       </div>
 
@@ -833,7 +835,7 @@ const DashboardPage = () => {
             })()}
         </DialogContent>
       </Dialog>
-      
+
       <AlertDialog open={!!reservationToDelete} onOpenChange={(open) => !open && setReservationToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
