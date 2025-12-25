@@ -53,6 +53,7 @@ export interface Guest {
   room: Room | null;
   adults: number;
   infants: number;
+  extraMattresses?: number;
   checkInAt: string;
   checkOutAt: string;
   status: "checked-in" | "checked-out";
@@ -99,6 +100,7 @@ export interface CreateGuestInput {
   decorPackageid?: string;
   adults?: number;
   infants?: number;
+  extraMattresses?: number;
   checkInDate: string;
   checkOutDate: string;
   paymentMethod: "cash" | "card" | "online";

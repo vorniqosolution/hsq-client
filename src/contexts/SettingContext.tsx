@@ -15,6 +15,7 @@ export interface Settings {
   taxRate: number;
   currencySymbol: string;
   hotelName: string;
+  mattressRate?: number;
   systemAlert?: SystemAlert;
 }
 
