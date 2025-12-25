@@ -1268,33 +1268,37 @@ const GuestDetailPage = () => {
   return (
     <div className="container mx-auto px-4 py-6 md:px-6 max-w-7xl">
       {/* Header with navigation and actions - hide during print */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-        <div className="flex items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-3 sm:gap-4">
+        <div className="flex items-center flex-wrap gap-2 sm:gap-0">
           <Link to="/guests">
             <Button
               variant="outline"
+              size="sm"
               className="border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back to Guests
+              <ArrowLeft className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Back to Guests</span>
             </Button>
           </Link>
 
           {guest && (
-            <h1 className="ml-4 text-2xl font-bold text-slate-900 dark:text-white">
+            <h1 className="ml-2 sm:ml-4 text-xl sm:text-2xl font-bold text-slate-900 dark:text-white truncate max-w-[200px] sm:max-w-none">
               {guest.fullName}
             </h1>
           )}
         </div>
 
         {guest && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             <Button
               size="sm"
               variant="outline"
               onClick={() => setIsEditOpen(true)}
-              className="border-slate-200 dark:border-slate-700"
+              className="border-slate-200 dark:border-slate-700 flex-1 sm:flex-none"
             >
-              <Edit className="mr-2 h-4 w-4" /> Edit Details
+              <Edit className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Edit Details</span>
+              <span className="sm:hidden">Edit</span>
             </Button>
 
             {guest.status === "checked-in" && (
@@ -1302,9 +1306,11 @@ const GuestDetailPage = () => {
                 size="sm"
                 variant="destructive"
                 onClick={() => setIsCheckoutOpen(true)}
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-red-600 hover:bg-red-700 flex-1 sm:flex-none"
               >
-                <LogOut className="mr-2 h-4 w-4" /> Check Out
+                <LogOut className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Check Out</span>
+                <span className="sm:hidden">Out</span>
               </Button>
             )}
 
@@ -1315,18 +1321,21 @@ const GuestDetailPage = () => {
                   size="sm"
                   variant="outline"
                   onClick={handlePrintInvoice}
-                  className="border-slate-200 dark:border-slate-700"
+                  className="border-slate-200 dark:border-slate-700 flex-1 sm:flex-none"
                 >
-                  <Printer className="mr-2 h-4 w-4" /> Print Invoice
+                  <Printer className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Print Invoice</span>
+                  <span className="sm:hidden">Print</span>
                 </Button>
                 <Button
                   size="sm"
                   onClick={handleSendInvoice}
                   disabled={isSendingEmail}
-                  className="bg-primary hover:bg-primary/90"
+                  className="bg-primary hover:bg-primary/90 flex-1 sm:flex-none"
                 >
-                  <Send className="mr-2 h-4 w-4" />
-                  {isSendingEmail ? "Sending..." : "Email Invoice"}
+                  <Send className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{isSendingEmail ? "Sending..." : "Email Invoice"}</span>
+                  <span className="sm:hidden">{isSendingEmail ? "..." : "Email"}</span>
                 </Button>
               </>
             )}
@@ -1582,27 +1591,27 @@ const GuestDetailPage = () => {
                         </p>
                         {(guest.applyDiscount ||
                           guest.additionaldiscount > 0) && (
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            {guest.applyDiscount && (
-                              <Badge
-                                variant="outline"
-                                className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800 px-2 py-0.5"
-                              >
-                                <Percent className="h-3 w-3 mr-1" />
-                                Standard
-                              </Badge>
-                            )}
-                            {guest.additionaldiscount > 0 && (
-                              <Badge
-                                variant="outline"
-                                className="text-xs bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800 px-2 py-0.5"
-                              >
-                                <Tag className="h-3 w-3 mr-1" />
-                                Rs {guest.additionaldiscount} Off
-                              </Badge>
-                            )}
-                          </div>
-                        )}
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {guest.applyDiscount && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800 px-2 py-0.5"
+                                >
+                                  <Percent className="h-3 w-3 mr-1" />
+                                  Standard
+                                </Badge>
+                              )}
+                              {guest.additionaldiscount > 0 && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800 px-2 py-0.5"
+                                >
+                                  <Tag className="h-3 w-3 mr-1" />
+                                  Rs {guest.additionaldiscount} Off
+                                </Badge>
+                              )}
+                            </div>
+                          )}
                       </div>
                     </div>
                   </div>

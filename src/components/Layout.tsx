@@ -70,9 +70,9 @@ const Layout = ({ children }: LayoutProps) => {
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               {user && (
-                <div className="flex items-center gap-2 text-sm text-gray-600 print:hidden">
+                <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600 print:hidden">
                   <UserIcon className="w-4 h-4" />
                   <span>{user.email}</span>
                 </div>
@@ -83,8 +83,8 @@ const Layout = ({ children }: LayoutProps) => {
                 className="text-gray-600 hover:text-gray-900 print:hidden"
                 onClick={handleLogout}
               >
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
+                <LogOut className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Logout</span>
               </Button>
             </div>
           </div>

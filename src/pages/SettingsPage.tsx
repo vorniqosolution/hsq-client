@@ -66,10 +66,14 @@ const SystemAlertSettings = () => {
     type: "info",
   });
   const [isChanged, setIsChanged] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const hasInitialized = React.useRef(false);
 
+  // Only sync from server on initial load, not during/after saves
   useEffect(() => {
-    if (settings?.systemAlert) {
+    if (settings?.systemAlert && !hasInitialized.current) {
       setFormData(settings.systemAlert);
+      hasInitialized.current = true;
     }
   }, [settings]);
 
@@ -82,11 +86,16 @@ const SystemAlertSettings = () => {
   };
 
   const handleSave = async () => {
-    await updateSettings({ systemAlert: formData });
-    setIsChanged(false);
+    setIsSaving(true);
+    try {
+      await updateSettings({ systemAlert: formData });
+      setIsChanged(false);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  if (loading) return <div>Loading settings...</div>;
+  if (loading && !hasInitialized.current) return <div>Loading settings...</div>;
 
   return (
     <div className="flex flex-col gap-4">
@@ -341,13 +350,12 @@ export default function SettingsPage() {
                 {adminPassword && (
                   <div className="text-xs mt-1">
                     <span
-                      className={`font-medium ${
-                        getPasswordStrength(adminPassword) === "Strong"
+                      className={`font-medium ${getPasswordStrength(adminPassword) === "Strong"
                           ? "text-green-600"
                           : getPasswordStrength(adminPassword) === "Medium"
-                          ? "text-yellow-600"
-                          : "text-red-600"
-                      }`}
+                            ? "text-yellow-600"
+                            : "text-red-600"
+                        }`}
                     >
                       {getPasswordStrength(adminPassword)} password
                     </span>
@@ -385,8 +393,8 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-           {/* System Alert Settings */}
-           <Card className="shadow-lg border border-gray-200 bg-white">
+          {/* System Alert Settings */}
+          <Card className="shadow-lg border border-gray-200 bg-white">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-orange-500" />
