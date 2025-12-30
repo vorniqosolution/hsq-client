@@ -1,0 +1,408 @@
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import axios from "axios";
+import Sidebar from "../components/Sidebar";
+import {
+    CheckCircle,
+    Key,
+    Sun,
+    Calendar,
+    Wrench,
+    ArrowRight,
+    RefreshCcw,
+    Clock,
+    ArrowRightCircle,
+    ArrowLeftCircle,
+    Users,
+    Bed,
+    Hotel,
+    Mountain,
+    LayoutDashboard
+} from "lucide-react";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@/components/ui/dialog";
+import { format, parseISO } from "date-fns";
+
+// --- API Configuration ---
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const apiClient = axios.create({
+    baseURL: API_BASE,
+    withCredentials: true,
+});
+
+interface DashboardStats {
+    totalRooms: number;
+    available: number;
+    occupied: number;
+    arrival: number;
+    maintenance: number;
+    reserved: number;
+}
+
+interface Arrival {
+    _id: string;
+    fullName: string;
+    startAt: string;
+    endAt: string;
+    room: {
+        roomNumber: string;
+        category: string;
+    };
+}
+
+interface RoomStatus {
+    _id: string;
+    roomNumber: string;
+    category: string;
+    bedType: string;
+    status: "Available" | "Occupied" | "Reserved" | "Maintenance" | "Arrival";
+    styling: string;
+    icon: string;
+    details: any;
+}
+
+interface TimelineEvent {
+    type: string; // 'Guest (Checked-in)' | 'Reservation'
+    name: string;
+    startDate: string;
+    endDate: string;
+    status: string;
+}
+
+const DashboardPage = () => {
+    const [isOpen, setIsOpen] = useState(true);
+    const [stats, setStats] = useState<DashboardStats | null>(null);
+    const [arrivals, setArrivals] = useState<Arrival[]>([]);
+    const [roomStatuses, setRoomStatuses] = useState<RoomStatus[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Dialog State
+    const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+    const [roomTimeline, setRoomTimeline] = useState<TimelineEvent[]>([]);
+    const [timelineLoading, setTimelineLoading] = useState(false);
+
+    const fetchData = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const [statsRes, arrivalsRes, statusesRes] = await Promise.all([
+                apiClient.get("/api/dashboard/stats"),
+                apiClient.get("/api/dashboard/arrivals"),
+                apiClient.get("/api/dashboard/room-statuses"),
+            ]);
+
+            setStats(statsRes.data.data);
+            setArrivals(arrivalsRes.data.data);
+            setRoomStatuses(statusesRes.data.data);
+        } catch (err) {
+            console.error("Dashboard fetch error:", err);
+            setError("Failed to load dashboard data. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchTimeline = async (roomId: string) => {
+        try {
+            setTimelineLoading(true);
+            const res = await apiClient.get<{ timeline: TimelineEvent[] }>(`/api/rooms/${roomId}/timeline`);
+            setRoomTimeline(res.data.timeline);
+        } catch (err) {
+            console.error("Timeline fetch error", err);
+        } finally {
+            setTimelineLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    useEffect(() => {
+        if (selectedRoomId) {
+            fetchTimeline(selectedRoomId);
+        } else {
+            setRoomTimeline([]);
+        }
+    }, [selectedRoomId]);
+
+    const StatCard = ({
+        label,
+        count,
+        icon: Icon,
+        colorClass,
+        bgClass,
+    }: {
+        label: string;
+        count: number;
+        icon: any;
+        colorClass: string;
+        bgClass: string;
+    }) => (
+        <div className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-200 hover:shadow-md ${bgClass}`}>
+            <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-full bg-white shadow-sm ring-1 ring-inset ${colorClass.replace('text-', 'ring-').replace('600', '100')}`}>
+                    <Icon className={`w-6 h-6 ${colorClass}`} />
+                </div>
+                <div>
+                    <p className="text-sm font-medium text-slate-600 uppercase tracking-wider">{label}</p>
+                    <p className="text-2xl font-bold text-slate-900 mt-0.5">{loading ? <Skeleton className="h-8 w-16" /> : count}</p>
+                </div>
+            </div>
+        </div>
+    );
+
+    const getIcon = (iconName: string) => {
+        switch (iconName) {
+            case 'CheckCircle': return CheckCircle;
+            case 'Key': return Key;
+            case 'Sun': return Sun;
+            case 'Calendar': return Calendar;
+            case 'Wrench': return Wrench;
+            default: return CheckCircle;
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-slate-50 flex overflow-hidden">
+            <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)} />
+            <div className="flex-1 lg:ml-0 overflow-hidden flex flex-col h-screen">
+
+                {/* Header */}
+                <header className="bg-white border-b px-8 py-5 flex items-center justify-between shadow-sm z-10">
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                            <LayoutDashboard className="h-6 w-6 text-amber-500" />
+                            Executive Dashboard
+                        </h1>
+                        <p className="text-sm text-slate-500 mt-1">
+                            Overview for {format(new Date(), "PPP")}
+                        </p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={fetchData} disabled={loading} className="gap-2">
+                        <RefreshCcw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                        Refresh Data
+                    </Button>
+                </header>
+
+                {/* Scrollable Content */}
+                <main className="flex-1 overflow-y-auto p-8">
+                    <div className="max-w-7xl mx-auto space-y-8">
+
+                        {/* Stats Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+                            <StatCard label="Available" count={stats?.available || 0} icon={CheckCircle} colorClass="text-emerald-600" bgClass="bg-emerald-50/50 border-emerald-100" />
+                            <StatCard label="Occupied" count={stats?.occupied || 0} icon={Key} colorClass="text-amber-600" bgClass="bg-amber-50/50 border-amber-100" />
+                            <StatCard label="Arrivals" count={stats?.arrival || 0} icon={Sun} colorClass="text-purple-600" bgClass="bg-purple-50/50 border-purple-100" />
+                            <StatCard label="Reserved" count={stats?.reserved || 0} icon={Calendar} colorClass="text-sky-600" bgClass="bg-sky-50/50 border-sky-100" />
+                            <StatCard label="Maintenance" count={stats?.maintenance || 0} icon={Wrench} colorClass="text-red-600" bgClass="bg-red-50/50 border-red-100" />
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                            {/* Room Quick View (Takes up 2 columns) */}
+                            <Card className="lg:col-span-2 border-0 shadow-lg bg-white h-fit">
+                                <CardHeader className="border-b px-6 py-4">
+                                    <CardTitle className="text-lg font-light flex items-center gap-2">
+                                        <Bed className="h-5 w-5 text-slate-500" /> Room Quick View
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-6">
+                                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-3 max-h-[400px] overflow-y-auto pr-2">
+                                        {loading ? (
+                                            Array.from({ length: 16 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-lg" />)
+                                        ) : (
+                                            roomStatuses.map((room) => {
+                                                const Icon = getIcon(room.icon);
+                                                return (
+                                                    <div
+                                                        key={room._id}
+                                                        onClick={() => setSelectedRoomId(room._id)}
+                                                        className={`relative p-2 rounded-lg border cursor-pointer hover:scale-105 hover:shadow-md transition-all duration-200 text-center flex flex-col items-center justify-center h-20 group ${room.styling}`}
+                                                    >
+                                                        <span className="font-bold text-sm">{room.roomNumber}</span>
+                                                        <Icon className="h-4 w-4 mt-1 opacity-70 group-hover:opacity-100" />
+                                                    </div>
+                                                );
+                                            })
+                                        )}
+                                    </div>
+                                    <div className="mt-4 flex justify-end">
+                                        <Link to="/rooms">
+                                            <Button variant="outline" size="sm">Manage All Rooms <ArrowRight className="ml-2 h-3 w-3" /></Button>
+                                        </Link>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Today's Arrivals (Takes up 1 column on right) */}
+                            <Card className="border-0 shadow-lg bg-white h-fit">
+                                <CardHeader className="border-b bg-slate-50/50 px-6 py-4">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <CardTitle className="text-base font-semibold text-slate-800">Today's Arrivals</CardTitle>
+                                        </div>
+                                        <span className="bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1 rounded-full">
+                                            {arrivals.length}
+                                        </span>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-0">
+                                    {loading ? (
+                                        <div className="p-6 space-y-4">
+                                            {[1, 2].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+                                        </div>
+                                    ) : arrivals.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center py-10 text-center px-4">
+                                            <Sun className="h-8 w-8 text-slate-300 mb-2" />
+                                            <p className="text-sm text-slate-500">No arrivals today</p>
+                                        </div>
+                                    ) : (
+                                        <div className="divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
+                                            {arrivals.map((guest) => (
+                                                <div key={guest._id} className="p-4 hover:bg-slate-50 transition-colors flex items-start gap-3 group">
+                                                    <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-xs">
+                                                        {guest.fullName.substring(0, 2).toUpperCase()}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h4 className="text-sm font-semibold text-slate-900 truncate">
+                                                            {guest.fullName}
+                                                        </h4>
+                                                        <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
+                                                            <span>Room {guest.room?.roomNumber}</span>
+                                                            <span>•</span>
+                                                            <span>{format(parseISO(guest.startAt), "h:mm a")}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Quick Links Footer */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <Link to="/guests/check-in" className="flex items-center gap-3 p-4 bg-white rounded-lg border shadow-sm hover:shadow-md transition-all text-slate-700 hover:text-emerald-600 group">
+                                <div className="p-2 bg-emerald-50 rounded-full group-hover:bg-emerald-100"><Key className="h-5 w-5 text-emerald-600" /></div>
+                                <span className="font-semibold text-sm">New Check-in</span>
+                            </Link>
+                            <Link to="/reservations" className="flex items-center gap-3 p-4 bg-white rounded-lg border shadow-sm hover:shadow-md transition-all text-slate-700 hover:text-blue-600 group">
+                                <div className="p-2 bg-blue-50 rounded-full group-hover:bg-blue-100"><Calendar className="h-5 w-5 text-blue-600" /></div>
+                                <span className="font-semibold text-sm">Reservations</span>
+                            </Link>
+                            <Link to="/rooms" className="flex items-center gap-3 p-4 bg-white rounded-lg border shadow-sm hover:shadow-md transition-all text-slate-700 hover:text-amber-600 group">
+                                <div className="p-2 bg-amber-50 rounded-full group-hover:bg-amber-100"><Bed className="h-5 w-5 text-amber-600" /></div>
+                                <span className="font-semibold text-sm">Room List</span>
+                            </Link>
+                            <Link to="/settings" className="flex items-center gap-3 p-4 bg-white rounded-lg border shadow-sm hover:shadow-md transition-all text-slate-700 hover:text-slate-900 group">
+                                <div className="p-2 bg-slate-50 rounded-full group-hover:bg-slate-100"><Wrench className="h-5 w-5 text-slate-600" /></div>
+                                <span className="font-semibold text-sm">Settings</span>
+                            </Link>
+                        </div>
+
+                    </div>
+                </main>
+            </div>
+
+            {/* Room Timeline Dialog */}
+            <Dialog open={!!selectedRoomId} onOpenChange={(open) => !open && setSelectedRoomId(null)}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Room Timeline</DialogTitle>
+                        <DialogDescription>
+                            Upcoming schedule for this room.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="mt-4">
+                        {timelineLoading ? (
+                            <div className="space-y-3">
+                                <Skeleton className="h-10 w-full" />
+                                <Skeleton className="h-10 w-full" />
+                                <Skeleton className="h-10 w-full" />
+                            </div>
+                        ) : roomTimeline.length === 0 ? (
+                            <div className="text-center py-8 text-slate-500">
+                                <p>No upcoming bookings or active guests for this room.</p>
+                                <p className="text-emerald-600 font-medium mt-2">Currently Available</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                                {roomTimeline.map((event, idx) => {
+                                    const isAvailable = event.type === 'Available';
+                                    return (
+                                        <div key={idx} className="flex gap-4 items-start relative pb-6 last:pb-0">
+                                            {/* Connecting Line (except last) */}
+                                            {idx !== roomTimeline.length - 1 && (
+                                                <div className={`absolute left-[19px] top-8 bottom-0 w-0.5 ${isAvailable ? "border-l-2 border-dashed border-emerald-200 bg-transparent" : "bg-slate-200"}`}></div>
+                                            )}
+
+                                            {/* Icon Bubble */}
+                                            <div className={`z-10 flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center shadow-sm ${isAvailable
+                                                    ? 'bg-emerald-100 text-emerald-600 ring-4 ring-white'
+                                                    : event.type.includes('Guest') ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'
+                                                }`}>
+                                                {isAvailable ? <CheckCircle className="h-5 w-5" /> : (event.type.includes('Guest') ? <Key className="h-5 w-5" /> : <Calendar className="h-5 w-5" />)}
+                                            </div>
+
+                                            {/* Content */}
+                                            <div className={`flex-1 p-3 rounded-lg border shadow-sm ${isAvailable ? "bg-emerald-50 border-emerald-100 border-dashed" : "bg-white"}`}>
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <p className={`font-semibold text-sm ${isAvailable ? "text-emerald-800" : "text-slate-900"}`}>{event.name}</p>
+                                                        {!isAvailable && <p className="text-xs text-slate-500">{event.type}</p>}
+                                                    </div>
+                                                    <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${isAvailable
+                                                            ? 'bg-emerald-200 text-emerald-800'
+                                                            : event.status === 'checked-in' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                                                        }`}>
+                                                        {event.status}
+                                                    </span>
+                                                </div>
+                                                <div className="mt-2 flex items-center gap-4 text-xs text-slate-600">
+                                                    <div className="flex items-center gap-1">
+                                                        <ArrowRightCircle className={`h-3 w-3 ${isAvailable ? "text-emerald-600" : "text-emerald-500"}`} />
+                                                        {format(parseISO(event.startDate), "MMM d, h:mm a")}
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <ArrowLeftCircle className={`h-3 w-3 ${isAvailable ? "text-emerald-600" : "text-red-400"}`} />
+                                                        {format(parseISO(event.endDate), "MMM d, h:mm a")}
+                                                    </div>
+                                                </div>
+                                                {isAvailable && (
+                                                    <div className="mt-2 text-xs text-emerald-600 font-medium flex items-center gap-1">
+                                                        <Clock className="h-3 w-3" />
+                                                        Available for booking
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+        </div>
+    );
+};
+
+export default DashboardPage;
