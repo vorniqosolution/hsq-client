@@ -55,16 +55,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       name: "Rooms",
       href: "/rooms",
       icon: Bed,
-      roles: [
-        "admin",
-        // "receptionist"
-      ],
+      roles: ["admin", "receptionist"],
     },
     {
       name: "Discounts",
       href: "/Discount",
       icon: Ticket,
-      roles: ["admin"],
+      roles: ["admin", "receptionist"],
     },
     { name: "GST & Tax", href: "/Gst", icon: Percent, roles: ["admin"] },
     {
@@ -79,7 +76,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       name: "Transactions",
       href: "/transactions",
       icon: ArrowLeftRight,
-      roles: ["admin", "accountant", "receptionist" ], // who can see it
+      roles: ["admin", "accountant", "receptionist"], // who can see it
     },
 
     {
@@ -129,11 +126,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           className={`
               group flex items-center px-4 py-3 text-sm rounded-lg
               transition-all duration-200 relative overflow-hidden
-              ${
-                active
-                  ? "bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-400 shadow-lg shadow-amber-500/10"
-                  : "text-slate-300 hover:text-white hover:bg-slate-800/50"
-              }
+              ${active
+              ? "bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-400 shadow-lg shadow-amber-500/10"
+              : "text-slate-300 hover:text-white hover:bg-slate-800/50"
+            }
             `}
         >
           {active && (
@@ -142,10 +138,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           <Icon
             className={`
               mr-3 h-5 w-5 transition-all duration-200
-              ${
-                active
-                  ? "text-amber-400"
-                  : "text-slate-400 group-hover:text-slate-300"
+              ${active
+                ? "text-amber-400"
+                : "text-slate-400 group-hover:text-slate-300"
               }
             `}
           />

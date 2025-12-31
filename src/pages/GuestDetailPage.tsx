@@ -5,6 +5,7 @@ import React, {
   useMemo,
   useRef,
 } from "react";
+import { jsPDF } from "jspdf";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -465,24 +466,31 @@ const InvoiceCard = ({
 
   return (
     <div ref={innerRef} className="invoice-print-section">
-      {/* Print-only header for invoice */}
-      <div className="hidden invoice-print-only text-center mb-8">
-        <h1 className="text-3xl font-bold">HSQ TOWERS</h1>
-        <p className="text-slate-600">HSQ Towers, Jhika Gali, Pakistan</p>
-        <p className="text-slate-600">
-          Tel: +92 330 0491479 | Email: hsqtower@gmail.com
+      {/* Print-only receipt header */}
+      <div className="hidden invoice-print-only text-center" style={{ marginBottom: '4px' }}>
+        <h1 style={{ fontSize: '14px', fontWeight: 'bold', margin: '0' }}>HSQ TOWERS</h1>
+        <p style={{ fontSize: '8px', margin: '1px 0' }}>Jhika Gali, Pakistan | +92 330 0491479</p>
+        <div className="receipt-divider" style={{ borderTop: '1px dashed #000', margin: '4px 0' }}></div>
+        <h2 style={{ fontSize: '11px', fontWeight: 'bold', margin: '2px 0' }}>
+          INVOICE #{invoice.invoiceNumber}
+        </h2>
+        <p style={{ fontSize: '8px', margin: '1px 0' }}>
+          {new Date().toLocaleDateString()} {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </p>
-        <div className="mt-6 border-t border-b py-3">
-          <h2 className="text-2xl font-bold">
-            INVOICE #{invoice.invoiceNumber}
-          </h2>
-          <p className="text-sm text-slate-600">
-            Generated on: {new Date().toLocaleDateString()}
-          </p>
+        <div className="receipt-divider" style={{ borderTop: '1px dashed #000', margin: '4px 0' }}></div>
+
+        {/* Guest & Stay Info - Compact */}
+        <div style={{ textAlign: 'left', fontSize: '9px', padding: '2px 0' }}>
+          <p style={{ margin: '1px 0' }}><strong>Guest:</strong> {guest.fullName}</p>
+          <p style={{ margin: '1px 0' }}><strong>Room:</strong> {guest.room?.roomNumber} ({guest.room?.category})</p>
+          <p style={{ margin: '1px 0' }}><strong>Check-in:</strong> {new Date(guest.checkInAt).toLocaleDateString()}</p>
+          <p style={{ margin: '1px 0' }}><strong>Check-out:</strong> {guest.checkOutAt ? new Date(guest.checkOutAt).toLocaleDateString() : 'N/A'}</p>
+          <p style={{ margin: '1px 0' }}><strong>Duration:</strong> {guest.stayDuration} night(s)</p>
         </div>
+        <div className="receipt-divider" style={{ borderTop: '1px dashed #000', margin: '4px 0' }}></div>
       </div>
 
-      <Card className="border-2 border-slate-200 dark:border-slate-700 shadow-md overflow-hidden">
+      <Card className="border-2 border-slate-200 dark:border-slate-700 shadow-md overflow-hidden screen-invoice-card">
         <CardHeader className="bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-900 border-b border-slate-200 dark:border-slate-700">
           <div className="flex justify-between items-center">
             <CardTitle className="flex items-center text-slate-800 dark:text-slate-200">
@@ -724,23 +732,72 @@ const InvoiceCard = ({
         </CardFooter>
       </Card>
 
-      {/* Print-only footer */}
-      <div className="hidden invoice-print-only mt-8 pt-6 border-t text-center text-sm text-slate-600">
-        <p className="font-semibold mb-1">Thank you for choosing HSQ Towers!</p>
-        <p>
-          For any inquiries regarding this invoice, please contact our
-          accounting department at accounts@hsqtowers.com
-        </p>
-        <p className="mt-6 text-lg font-bold">
-          {guest.status === "checked-out" ? (
-            "PAID IN FULL"
-          ) : (
-            <>BALANCE DUE: Rs{formatNumber(effectiveBalanceDue)}</>
+      {/* Print-only receipt items and totals */}
+      <div className="hidden invoice-print-only" style={{ fontSize: '9px' }}>
+        {/* Items */}
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid #000' }}>
+              <th style={{ textAlign: 'left', padding: '2px 0', fontSize: '8px' }}>Item</th>
+              <th style={{ textAlign: 'right', padding: '2px 0', fontSize: '8px' }}>Qty</th>
+              <th style={{ textAlign: 'right', padding: '2px 0', fontSize: '8px' }}>Amt</th>
+            </tr>
+          </thead>
+          <tbody>
+            {invoice.items.map((item, index) => (
+              <tr key={index} style={{ borderBottom: '1px dotted #ccc' }}>
+                <td style={{ padding: '2px 0', fontSize: '8px' }}>{item.description}</td>
+                <td style={{ textAlign: 'right', padding: '2px 0', fontSize: '8px' }}>{item.quantity}</td>
+                <td style={{ textAlign: 'right', padding: '2px 0', fontSize: '8px' }}>Rs{item.total.toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div className="receipt-divider" style={{ borderTop: '1px dashed #000', margin: '4px 0' }}></div>
+
+        {/* Totals */}
+        <div style={{ fontSize: '9px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1px 0' }}>
+            <span>Subtotal:</span>
+            <span>Rs{formatNumber(invoice.subtotal)}</span>
+          </div>
+          {totalDiscountAmount > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1px 0' }}>
+              <span>Discount:</span>
+              <span>-Rs{formatNumber(totalDiscountAmount)}</span>
+            </div>
           )}
-        </p>
-        <div className="mt-8 text-xs text-slate-500">
-          <p>HSQ Towers - Your Home Away From Home</p>
-          <p>Invoice generated by HSQ Hotel Management System</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1px 0' }}>
+            <span>Tax ({invoice.taxRate}%):</span>
+            <span>Rs{formatNumber(invoice.taxAmount)}</span>
+          </div>
+          <div className="receipt-double-divider" style={{ borderTop: '2px solid #000', margin: '3px 0' }}></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', fontWeight: 'bold', fontSize: '11px' }}>
+            <span>TOTAL:</span>
+            <span>Rs{formatNumber(invoice.grandTotal)}</span>
+          </div>
+          {effectiveAdvance > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1px 0', fontSize: '9px' }}>
+              <span>Paid/Advance:</span>
+              <span>-Rs{formatNumber(effectiveAdvance)}</span>
+            </div>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', fontWeight: 'bold', fontSize: '10px' }}>
+            <span>BALANCE DUE:</span>
+            <span>Rs{formatNumber(effectiveBalanceDue)}</span>
+          </div>
+        </div>
+
+        <div className="receipt-divider" style={{ borderTop: '1px dashed #000', margin: '4px 0' }}></div>
+
+        {/* Footer */}
+        <div style={{ textAlign: 'center', fontSize: '8px', padding: '2px 0' }}>
+          <p style={{ margin: '1px 0', fontWeight: 'bold' }}>
+            {guest.status === 'checked-out' ? '*** PAID ***' : 'Payment Method: ' + guest.paymentMethod}
+          </p>
+          <p style={{ margin: '2px 0' }}>Thank you for staying with us!</p>
+          <p style={{ margin: '1px 0' }}>HSQ Towers - Jhika Gali</p>
         </div>
       </div>
     </div>
@@ -1094,12 +1151,16 @@ const GuestDetailPage = () => {
     "both" | "payment-only" | "refund-only"
   >("both");
 
-  // Add CSS for invoice-only printing
+  // Add CSS for invoice-only printing - Receipt/Token Format (80mm width)
   useEffect(() => {
     // Create a style element
     const style = document.createElement("style");
     style.innerHTML = `
       @media print {
+        @page {
+          size: 80mm auto;
+          margin: 3mm;
+        }
         body * {
           visibility: hidden;
         }
@@ -1114,10 +1175,47 @@ const GuestDetailPage = () => {
           position: absolute;
           left: 0;
           top: 0;
-          width: 100%;
+          width: 76mm !important;
+          max-width: 76mm !important;
+          font-size: 10px !important;
+          line-height: 1.2 !important;
+          padding: 2mm !important;
         }
         .invoice-print-only {
           display: block !important;
+        }
+        /* Hide the screen card, show receipt format */
+        .invoice-print-section .screen-invoice-card {
+          display: none !important;
+        }
+        /* Compact receipt table styling */
+        .invoice-print-section table {
+          font-size: 9px !important;
+          width: 100% !important;
+        }
+        .invoice-print-section table th,
+        .invoice-print-section table td {
+          padding: 1px 2px !important;
+        }
+        .invoice-print-section h1 {
+          font-size: 14px !important;
+          margin: 0 !important;
+        }
+        .invoice-print-section h2 {
+          font-size: 12px !important;
+          margin: 0 !important;
+        }
+        .invoice-print-section p {
+          margin: 1px 0 !important;
+          font-size: 9px !important;
+        }
+        .receipt-divider {
+          border-top: 1px dashed #000 !important;
+          margin: 4px 0 !important;
+        }
+        .receipt-double-divider {
+          border-top: 2px solid #000 !important;
+          margin: 4px 0 !important;
         }
       }
     `;
@@ -1156,25 +1254,213 @@ const GuestDetailPage = () => {
     if (id) fetchGuestById(id);
   }, [id, fetchGuestById]);
 
-  // Print Invoice function - modified to only print the invoice
+  // Print Invoice function - uses jsPDF to generate a proper receipt-sized PDF
   const handlePrintInvoice = useCallback(() => {
     if (!invoice || !guest) return;
 
-    // Set a more descriptive page title for the print
-    const originalTitle = document.title;
-    document.title = `Invoice #${invoice.invoiceNumber} - ${guest.fullName}`;
+    // Format number helper
+    const formatNum = (value: any): string => {
+      const num = typeof value === "number" ? value : value ? Number(value) : 0;
+      if (Number.isNaN(num)) return "0";
+      return num.toLocaleString();
+    };
 
-    // Call the browser print function
-    window.print();
+    // Calculate totals
+    const standardDiscountAmount = guest.applyDiscount ? (invoice.discountAmount || 0) : 0;
+    const additionalDiscountAmount = guest.additionaldiscount || 0;
+    const totalDiscountAmount = standardDiscountAmount + additionalDiscountAmount;
+    const effectiveAdvance = typeof invoice.advanceAdjusted === "number" ? invoice.advanceAdjusted : 0;
+    const effectiveBalanceDue = typeof invoice.balanceDue === "number"
+      ? invoice.balanceDue
+      : Math.max(0, (invoice.grandTotal || 0) - effectiveAdvance);
 
-    // Clean up after printing dialog closes
-    setTimeout(() => {
-      document.title = originalTitle;
-    }, 500);
+    // Create PDF with 80mm width (convert to points: 80mm = 226.77 points)
+    // Using custom page size for receipt
+    const receiptWidth = 80; // mm
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: [receiptWidth, 200] // width x height (height will grow)
+    });
+
+    const margin = 3;
+    const pageWidth = receiptWidth - (margin * 2);
+    let yPos = margin + 2;
+    const lineHeight = 4;
+    const smallLineHeight = 3;
+
+    // Helper functions
+    const drawDashedLine = (y: number) => {
+      doc.setLineDashPattern([1, 1], 0);
+      doc.setLineWidth(0.1);
+      doc.line(margin, y, receiptWidth - margin, y);
+      doc.setLineDashPattern([], 0);
+    };
+
+    const drawSolidLine = (y: number) => {
+      doc.setLineWidth(0.3);
+      doc.line(margin, y, receiptWidth - margin, y);
+    };
+
+    const centerText = (text: string, y: number, fontSize: number = 8) => {
+      doc.setFontSize(fontSize);
+      const textWidth = doc.getTextWidth(text);
+      doc.text(text, (receiptWidth - textWidth) / 2, y);
+    };
+
+    const leftRightText = (left: string, right: string, y: number, fontSize: number = 8) => {
+      doc.setFontSize(fontSize);
+      doc.text(left, margin, y);
+      const rightWidth = doc.getTextWidth(right);
+      doc.text(right, receiptWidth - margin - rightWidth, y);
+    };
+
+    // === HEADER ===
+    doc.setFont("helvetica", "bold");
+    centerText("HSQ TOWERS", yPos, 14);
+    yPos += 5;
+
+    doc.setFont("helvetica", "normal");
+    centerText("Jhika Gali, Pakistan", yPos, 7);
+    yPos += 3;
+    centerText("+92 330 0491479", yPos, 7);
+    yPos += 4;
+
+    drawDashedLine(yPos);
+    yPos += 3;
+
+    // === INVOICE INFO ===
+    doc.setFont("helvetica", "bold");
+    centerText(`INVOICE #${invoice.invoiceNumber}`, yPos, 10);
+    yPos += 4;
+
+    doc.setFont("helvetica", "normal");
+    const dateStr = new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    centerText(dateStr, yPos, 7);
+    yPos += 4;
+
+    drawDashedLine(yPos);
+    yPos += 4;
+
+    // === GUEST INFO ===
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text("Guest:", margin, yPos);
+    doc.setFont("helvetica", "normal");
+    doc.text(guest.fullName, margin + 12, yPos);
+    yPos += smallLineHeight;
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Room:", margin, yPos);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${guest.room?.roomNumber || 'N/A'} (${guest.room?.category || 'N/A'})`, margin + 12, yPos);
+    yPos += smallLineHeight;
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Check-in:", margin, yPos);
+    doc.setFont("helvetica", "normal");
+    doc.text(new Date(guest.checkInAt).toLocaleDateString(), margin + 16, yPos);
+    yPos += smallLineHeight;
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Check-out:", margin, yPos);
+    doc.setFont("helvetica", "normal");
+    doc.text(guest.checkOutAt ? new Date(guest.checkOutAt).toLocaleDateString() : 'N/A', margin + 18, yPos);
+    yPos += smallLineHeight;
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Duration:", margin, yPos);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${guest.stayDuration} night(s)`, margin + 16, yPos);
+    yPos += 4;
+
+    drawDashedLine(yPos);
+    yPos += 3;
+
+    // === ITEMS TABLE HEADER ===
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "bold");
+    doc.text("Item", margin, yPos);
+    doc.text("Qty", margin + 45, yPos);
+    doc.text("Amt", receiptWidth - margin - doc.getTextWidth("Amt"), yPos);
+    yPos += 2;
+    drawSolidLine(yPos);
+    yPos += 3;
+
+    // === ITEMS ===
+    doc.setFont("helvetica", "normal");
+    invoice.items.forEach((item: any) => {
+      const desc = item.description.length > 25 ? item.description.substring(0, 22) + "..." : item.description;
+      doc.text(desc, margin, yPos);
+      doc.text(String(item.quantity), margin + 47, yPos);
+      const amtText = `Rs${item.total.toLocaleString()}`;
+      doc.text(amtText, receiptWidth - margin - doc.getTextWidth(amtText), yPos);
+      yPos += smallLineHeight;
+    });
+    yPos += 1;
+
+    drawDashedLine(yPos);
+    yPos += 3;
+
+    // === TOTALS ===
+    doc.setFontSize(8);
+    leftRightText("Subtotal:", `Rs${formatNum(invoice.subtotal)}`, yPos);
+    yPos += smallLineHeight;
+
+    if (totalDiscountAmount > 0) {
+      leftRightText("Discount:", `-Rs${formatNum(totalDiscountAmount)}`, yPos);
+      yPos += smallLineHeight;
+    }
+
+    leftRightText(`Tax (${invoice.taxRate}%):`, `Rs${formatNum(invoice.taxAmount)}`, yPos);
+    yPos += 3;
+
+    drawSolidLine(yPos);
+    yPos += 4;
+
+    // === GRAND TOTAL ===
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    leftRightText("TOTAL:", `Rs${formatNum(invoice.grandTotal)}`, yPos, 10);
+    yPos += 4;
+
+    if (effectiveAdvance > 0) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      leftRightText("Paid/Advance:", `-Rs${formatNum(effectiveAdvance)}`, yPos);
+      yPos += smallLineHeight;
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    leftRightText("BALANCE DUE:", `Rs${formatNum(effectiveBalanceDue)}`, yPos, 9);
+    yPos += 4;
+
+    drawDashedLine(yPos);
+    yPos += 4;
+
+    // === FOOTER ===
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    const paymentStatus = guest.status === 'checked-out' ? '*** PAID ***' : `Payment: ${guest.paymentMethod}`;
+    centerText(paymentStatus, yPos);
+    yPos += 4;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    centerText("Thank you for staying with us!", yPos);
+    yPos += 3;
+    centerText("HSQ Towers - Your Home Away From Home", yPos);
+    yPos += 5;
+
+    // Open PDF in new tab for printing
+    const pdfBlob = doc.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    window.open(pdfUrl, '_blank');
 
     toast({
-      title: "Print dialog opened",
-      description: "The invoice is ready to print",
+      title: "Receipt generated",
+      description: "The receipt PDF has been opened. Use Ctrl+P to print.",
     });
   }, [invoice, guest, toast]);
 

@@ -34,11 +34,13 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
   if (user.role === "receptionist") {
     const allowedPaths = [
-        "/guests", 
-        "/reservation", 
-        "/dashboard", 
-        "/decor",        // <--- ADDED THIS
-        "/transactions"  // <--- Added this too (Sidebar has it)
+      "/guests",
+      "/reservation",
+      "/dashboard",
+      "/decor",        // <--- ADDED THIS
+      "/transactions",  // <--- Added this too (Sidebar has it)
+      "/rooms",         // <--- ADDED: Allow receptionist to access rooms
+      "/Discount"       // <--- ADDED: Allow receptionist to access discounts
     ];
     const isAllowed =
       allowedPaths.includes(location.pathname) ||
