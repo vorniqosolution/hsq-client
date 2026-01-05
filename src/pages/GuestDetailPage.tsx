@@ -6,7 +6,7 @@ import React, {
   useRef,
 } from "react";
 import { jsPDF } from "jspdf";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   Edit,
@@ -62,10 +62,16 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import PaymentModal from "@/components/modals/PaymentModal";
+import { format } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 
 // Hooks & Contexts
 import { useToast } from "@/hooks/use-toast";
 import { useGuestContext, Guest, Invoice } from "@/contexts/GuestContext";
+
+const formatInTimeZone = (date: string | Date, fmt: string, tz: string = "Asia/Karachi") => {
+  return format(toZonedTime(date, tz), fmt);
+};
 
 // Skeleton loader for guest information
 const GuestDetailSkeleton = () => (
@@ -545,7 +551,7 @@ const ExtendStayDialog = ({ isOpen, setIsOpen, guest, onSuccess, invoice }) => {
 
       toast({
         title: "Stay Extended Successfully",
-        description: `Added ${preview.additionalNights} night(s). New checkout: ${new Date(newCheckoutDate).toLocaleDateString()}`,
+        description: `Added ${preview.additionalNights} night(s). New checkout: ${formatInTimeZone(newCheckoutDate, "MMM d, yyyy")}`,
       });
 
       setIsOpen(false);
@@ -591,7 +597,7 @@ const ExtendStayDialog = ({ isOpen, setIsOpen, guest, onSuccess, invoice }) => {
           {/* Current Checkout Info */}
           <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
             <p className="text-sm text-slate-600 dark:text-slate-400">Current Checkout</p>
-            <p className="font-semibold">{guest?.checkOutAt ? new Date(guest.checkOutAt).toLocaleDateString() : 'N/A'}</p>
+            <p className="font-semibold">{guest?.checkOutAt ? formatInTimeZone(guest.checkOutAt, "MMM d, yyyy") : 'N/A'}</p>
           </div>
 
           {/* New Date Picker */}
@@ -755,7 +761,7 @@ const InvoiceCard = ({
           INVOICE #{invoice.invoiceNumber}
         </h2>
         <p style={{ fontSize: '8px', margin: '1px 0' }}>
-          {new Date().toLocaleDateString()} {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {formatInTimeZone(new Date(), "PPP p")}
         </p>
         <div className="receipt-divider" style={{ borderTop: '1px dashed #000', margin: '4px 0' }}></div>
 
@@ -763,8 +769,8 @@ const InvoiceCard = ({
         <div style={{ textAlign: 'left', fontSize: '9px', padding: '2px 0' }}>
           <p style={{ margin: '1px 0' }}><strong>Guest:</strong> {guest.fullName}</p>
           <p style={{ margin: '1px 0' }}><strong>Room:</strong> {guest.room?.roomNumber} ({guest.room?.category})</p>
-          <p style={{ margin: '1px 0' }}><strong>Check-in:</strong> {new Date(guest.checkInAt).toLocaleDateString()}</p>
-          <p style={{ margin: '1px 0' }}><strong>Check-out:</strong> {guest.checkOutAt ? new Date(guest.checkOutAt).toLocaleDateString() : 'N/A'}</p>
+          <p style={{ margin: '1px 0' }}><strong>Check-in:</strong> {formatInTimeZone(guest.checkInAt, "MMM d, yyyy")}</p>
+          <p style={{ margin: '1px 0' }}><strong>Check-out:</strong> {guest.checkOutAt ? formatInTimeZone(guest.checkOutAt, "MMM d, yyyy") : 'N/A'}</p>
           <p style={{ margin: '1px 0' }}><strong>Duration:</strong> {guest.stayDuration} night(s)</p>
         </div>
         <div className="receipt-divider" style={{ borderTop: '1px dashed #000', margin: '4px 0' }}></div>
@@ -785,7 +791,7 @@ const InvoiceCard = ({
             </Badge>
           </div>
           <CardDescription>
-            Generated on {new Date(invoice.createdAt).toLocaleDateString()}
+            Generated on {formatInTimeZone(invoice.createdAt, "PPP")}
           </CardDescription>
         </CardHeader>
 
@@ -819,12 +825,12 @@ const InvoiceCard = ({
               </p>
               <p className="text-sm">
                 <span className="font-medium">Check-in:</span>{" "}
-                {new Date(guest.checkInAt).toLocaleDateString()}
+                {formatInTimeZone(guest.checkInAt, "MMM d, yyyy")}
               </p>
               <p className="text-sm">
                 <span className="font-medium">Check-out:</span>{" "}
                 {guest.checkOutAt
-                  ? new Date(guest.checkOutAt).toLocaleDateString()
+                  ? formatInTimeZone(guest.checkOutAt, "MMM d, yyyy")
                   : "N/A"}
               </p>
               <p className="text-sm">
@@ -1616,7 +1622,7 @@ const GuestDetailPage = () => {
     yPos += 4;
 
     doc.setFont("helvetica", "normal");
-    const dateStr = new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const dateStr = formatInTimeZone(new Date(), "PPP p");
     centerText(dateStr, yPos, 7);
     yPos += 4;
 
@@ -1640,13 +1646,13 @@ const GuestDetailPage = () => {
     doc.setFont("helvetica", "bold");
     doc.text("Check-in:", margin, yPos);
     doc.setFont("helvetica", "normal");
-    doc.text(new Date(guest.checkInAt).toLocaleDateString(), margin + 16, yPos);
+    doc.text(formatInTimeZone(guest.checkInAt, "MMM d, yyyy"), margin + 16, yPos);
     yPos += smallLineHeight;
 
     doc.setFont("helvetica", "bold");
     doc.text("Check-out:", margin, yPos);
     doc.setFont("helvetica", "normal");
-    doc.text(guest.checkOutAt ? new Date(guest.checkOutAt).toLocaleDateString() : 'N/A', margin + 18, yPos);
+    doc.text(guest.checkOutAt ? formatInTimeZone(guest.checkOutAt, "MMM d, yyyy") : 'N/A', margin + 18, yPos);
     yPos += smallLineHeight;
 
     doc.setFont("helvetica", "bold");
@@ -1779,23 +1785,13 @@ const GuestDetailPage = () => {
   // NEW: Format date for display (DATE ONLY)
   const formatOnlyDate = (dateString) => {
     if (!dateString) return "N/A";
-    // Use the planned date (which is checkOutAt) and format it without time options.
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    return formatInTimeZone(dateString, "MMM d, yyyy");
   };
 
   // Format date for display
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    if (!dateString) return "N/A";
+    return formatInTimeZone(dateString, "PPP p");
   };
 
   const handlePaymentSuccess = useCallback(() => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import PaymentModal from "@/components/modals/PaymentModal";
 import Sidebar from "@/components/Sidebar"; // Added Sidebar import
 import {
@@ -13,6 +13,7 @@ import {
   Archive,
   FileText,
   PlusCircle,
+  RefreshCcw,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -27,8 +28,25 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 import { format, parseISO, differenceInCalendarDays } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 import { useToast } from "@/hooks/use-toast";
 import { useReservationContext } from "@/contexts/ReservationContext";
 import { useGuestContext } from "@/contexts/GuestContext";
@@ -63,12 +81,12 @@ interface Reservation {
   startAt: string;
   endAt: string;
   status:
-    | "pending"
-    | "reserved"
-    | "cancelled"
-    | "confirmed"
-    | "checked-in"
-    | "checked-out";
+  | "pending"
+  | "reserved"
+  | "cancelled"
+  | "confirmed"
+  | "checked-in"
+  | "checked-out";
   // ✅ ADD NEW FIELDS:
   // 👇 ADD THIS NEW BLOCK 👇
   financials?: {
@@ -100,8 +118,13 @@ const isPopulatedRoom = (room: any): room is PopulatedRoom => {
   );
 };
 
+const formatInTimeZone = (date: string | Date, fmt: string, tz: string = "Asia/Karachi") => {
+  return format(toZonedTime(date, tz), fmt);
+};
+
 const ReservationDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -112,6 +135,17 @@ const ReservationDetailsPage: React.FC = () => {
   const [reservation, setReservation] = useState<Reservation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isChangeRoomOpen, setIsChangeRoomOpen] = useState(false);
+  const [selectedNewRoomId, setSelectedNewRoomId] = useState<string>("");
+  const [isChangingRoom, setIsChangingRoom] = useState(false);
+
+  // Auto-open Change Room dialog if action=changeRoom in URL
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'changeRoom' && !isLoading && reservation) {
+      setIsChangeRoomOpen(true);
+    }
+  }, [searchParams, isLoading, reservation]);
 
   // Fetch reservation data
   useEffect(() => {
@@ -173,8 +207,8 @@ const ReservationDetailsPage: React.FC = () => {
       days,
       roomRate,
       totalPrice,
-      formattedStartDate: format(startDate, "PPP"),
-      formattedEndDate: format(endDate, "PPP"),
+      formattedStartDate: formatInTimeZone(reservation.startAt, "PPP"),
+      formattedEndDate: formatInTimeZone(reservation.endAt, "PPP"),
     };
   }, [reservation, roomDetails]);
 
@@ -233,6 +267,63 @@ const ReservationDetailsPage: React.FC = () => {
     });
   };
 
+  // Available rooms for change (same dates, different room)
+  const availableRoomsForChange = useMemo(() => {
+    if (!reservation || !allRooms) return [];
+    const currentRoomId = isPopulatedRoom(reservation.room)
+      ? reservation.room._id
+      : reservation.room;
+    return allRooms.filter(room =>
+      room._id !== currentRoomId &&
+      room.status !== 'maintenance'
+    );
+  }, [reservation, allRooms]);
+
+  const handleChangeRoom = async () => {
+    if (!selectedNewRoomId || !reservation) return;
+
+    setIsChangingRoom(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/reservation/${reservation._id}/change-room`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ newRoomId: selectedNewRoomId })
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to change room');
+      }
+
+      toast({
+        title: "Room Changed",
+        description: data.message || `Successfully moved to new room`,
+      });
+
+      // Refresh reservation data
+      if (id) {
+        const updated = await getReservationById(id);
+        setReservation(updated);
+      }
+
+      setIsChangeRoomOpen(false);
+      setSelectedNewRoomId("");
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to change room",
+        variant: "destructive",
+      });
+    } finally {
+      setIsChangingRoom(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex overflow-hidden">
       {/* Sidebar - Replaced inline code with Component */}
@@ -251,7 +342,7 @@ const ReservationDetailsPage: React.FC = () => {
                 <Menu className="h-5 w-5 text-slate-700" />
               </button>
               <div className="flex items-center space-x-2">
-                 <span className="font-light tracking-wider text-slate-900">
+                <span className="font-light tracking-wider text-slate-900">
                   HSQ ADMIN
                 </span>
               </div>
@@ -302,7 +393,7 @@ const ReservationDetailsPage: React.FC = () => {
                       </CardTitle>
                       <CardDescription>
                         Created on{" "}
-                        {format(new Date(reservation.createdAt), "PPP")}
+                        {formatInTimeZone(reservation.createdAt, "PPP p")}
                       </CardDescription>
                     </div>
                     <div className="ml-auto">
@@ -317,9 +408,9 @@ const ReservationDetailsPage: React.FC = () => {
                             : reservation.roomNumber;
 
                         // Correctly format the dates for the guest check-in form
-                        const checkInDate = format(new Date(), "yyyy-MM-dd"); // Check-in is always today
-                        const checkOutDate = format(
-                          parseISO(reservation.endAt),
+                        const checkInDate = formatInTimeZone(new Date(), "yyyy-MM-dd"); // Today in Hotel Time
+                        const checkOutDate = formatInTimeZone(
+                          reservation.endAt,
                           "yyyy-MM-dd"
                         );
 
@@ -346,6 +437,19 @@ const ReservationDetailsPage: React.FC = () => {
                     >
                       <CheckCircle className="mr-2 h-4 w-4" />
                       Check In Guest
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="border-amber-500 text-amber-600 hover:bg-amber-50"
+                      onClick={() => setIsChangeRoomOpen(true)}
+                      disabled={
+                        reservation.status === "checked-in" ||
+                        reservation.status === "checked-out" ||
+                        reservation.status === "cancelled"
+                      }
+                    >
+                      <RefreshCcw className="mr-2 h-4 w-4" />
+                      Change Room
                     </Button>
                   </div>
                 </CardHeader>
@@ -430,13 +534,12 @@ const ReservationDetailsPage: React.FC = () => {
                         <p className="text-sm text-gray-500">Booking Source</p>
                         <Badge
                           variant="outline"
-                          className={`font-normal ${
-                            reservation.source === "Website"
-                              ? "bg-blue-50 text-blue-700 border-blue-200"
-                              : reservation.source === "API"
+                          className={`font-normal ${reservation.source === "Website"
+                            ? "bg-blue-50 text-blue-700 border-blue-200"
+                            : reservation.source === "API"
                               ? "bg-purple-50 text-purple-700 border-purple-200"
                               : "bg-amber-50 text-amber-700 border-amber-200"
-                          }`}
+                            }`}
                         >
                           {reservation.source || "CRM"}
                         </Badge>
@@ -500,69 +603,68 @@ const ReservationDetailsPage: React.FC = () => {
                   {(reservation.paymentMethod ||
                     reservation.promoCode ||
                     reservation.specialRequest) && (
-                    <>
-                      <Separator />
-                      <div>
-                        <h3 className="text-lg font-medium mb-3 flex items-center">
-                          <FileText className="mr-2 h-5 w-5 text-amber-500" />
-                          Additional Information
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {reservation.paymentMethod && (
-                            <div>
-                              <p className="text-sm text-gray-500">
-                                Payment Method
-                              </p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Badge
-                                  variant="secondary"
-                                  className={`font-medium ${
-                                    reservation.paymentMethod === "Cash"
+                      <>
+                        <Separator />
+                        <div>
+                          <h3 className="text-lg font-medium mb-3 flex items-center">
+                            <FileText className="mr-2 h-5 w-5 text-amber-500" />
+                            Additional Information
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {reservation.paymentMethod && (
+                              <div>
+                                <p className="text-sm text-gray-500">
+                                  Payment Method
+                                </p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Badge
+                                    variant="secondary"
+                                    className={`font-medium ${reservation.paymentMethod === "Cash"
                                       ? "bg-green-100 text-green-800"
                                       : reservation.paymentMethod === "Card"
-                                      ? "bg-blue-100 text-blue-800"
-                                      : reservation.paymentMethod === "Online"
-                                      ? "bg-purple-100 text-purple-800"
-                                      : "bg-gray-100 text-gray-800"
-                                  }`}
-                                >
-                                  {reservation.paymentMethod}
-                                </Badge>
+                                        ? "bg-blue-100 text-blue-800"
+                                        : reservation.paymentMethod === "Online"
+                                          ? "bg-purple-100 text-purple-800"
+                                          : "bg-gray-100 text-gray-800"
+                                      }`}
+                                  >
+                                    {reservation.paymentMethod}
+                                  </Badge>
+                                </div>
                               </div>
-                            </div>
-                          )}
-                          {reservation.promoCode && (
-                            <div>
-                              <p className="text-sm text-gray-500">
-                                Promo Code Applied
-                              </p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Badge
-                                  variant="secondary"
-                                  className="font-mono bg-emerald-100 text-emerald-800 border-emerald-200"
-                                >
-                                  {reservation.promoCode}
-                                </Badge>
-                                <Ticket className="h-4 w-4 text-emerald-600" />
-                              </div>
-                            </div>
-                          )}
-                          {reservation.specialRequest && (
-                            <div className="md:col-span-2">
-                              <p className="text-sm text-gray-500 mb-2">
-                                Special Requests
-                              </p>
-                              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                                <p className="text-sm text-gray-700 leading-relaxed">
-                                  {reservation.specialRequest}
+                            )}
+                            {reservation.promoCode && (
+                              <div>
+                                <p className="text-sm text-gray-500">
+                                  Promo Code Applied
                                 </p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Badge
+                                    variant="secondary"
+                                    className="font-mono bg-emerald-100 text-emerald-800 border-emerald-200"
+                                  >
+                                    {reservation.promoCode}
+                                  </Badge>
+                                  <Ticket className="h-4 w-4 text-emerald-600" />
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
+                            {reservation.specialRequest && (
+                              <div className="md:col-span-2">
+                                <p className="text-sm text-gray-500 mb-2">
+                                  Special Requests
+                                </p>
+                                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                                  <p className="text-sm text-gray-700 leading-relaxed">
+                                    {reservation.specialRequest}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </>
-                  )}
+                      </>
+                    )}
                 </CardContent>
               </Card>
               {/* === 👇 PASTE THIS FINANCIAL CARD HERE 👇 === */}
@@ -629,11 +731,10 @@ const ReservationDetailsPage: React.FC = () => {
                             Payable on Arrival
                           </span>
                           <span
-                            className={`text-2xl font-bold ${
-                              reservation.financials.estimatedBalance > 0
-                                ? "text-slate-900"
-                                : "text-green-600"
-                            }`}
+                            className={`text-2xl font-bold ${reservation.financials.estimatedBalance > 0
+                              ? "text-slate-900"
+                              : "text-green-600"
+                              }`}
                           >
                             Rs{" "}
                             {reservation.financials.estimatedBalance.toLocaleString()}
@@ -653,7 +754,7 @@ const ReservationDetailsPage: React.FC = () => {
           )}
         </div>
       </div>
-       {reservation && (
+      {reservation && (
         <PaymentModal
           isOpen={isPaymentModalOpen}
           onClose={() => setIsPaymentModalOpen(false)}
@@ -662,6 +763,75 @@ const ReservationDetailsPage: React.FC = () => {
           onSuccess={handlePaymentSuccess}
         />
       )}
+
+      {/* Change Room Dialog */}
+      <Dialog open={isChangeRoomOpen} onOpenChange={setIsChangeRoomOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Room</DialogTitle>
+            <DialogDescription>
+              Move this reservation to a different room. The new room will be checked for availability.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Current Room</Label>
+              <div className="p-3 bg-slate-100 rounded-md text-sm">
+                <span className="font-medium">
+                  Room {isPopulatedRoom(reservation?.room)
+                    ? reservation?.room.roomNumber
+                    : reservation?.roomNumber}
+                </span>
+                {roomDetails && (
+                  <span className="text-slate-500 ml-2">
+                    ({roomDetails.category} - Rs {roomDetails.rate?.toLocaleString()}/night)
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="newRoom">Select New Room</Label>
+              <Select
+                value={selectedNewRoomId}
+                onValueChange={setSelectedNewRoomId}
+              >
+                <SelectTrigger id="newRoom">
+                  <SelectValue placeholder="Choose a room..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableRoomsForChange.map((room) => (
+                    <SelectItem key={room._id} value={room._id}>
+                      Room {room.roomNumber} - {room.category} (Rs {room.rate?.toLocaleString()})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsChangeRoomOpen(false);
+                setSelectedNewRoomId("");
+              }}
+              disabled={isChangingRoom}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleChangeRoom}
+              disabled={!selectedNewRoomId || isChangingRoom}
+              className="bg-amber-500 hover:bg-amber-600 text-white"
+            >
+              {isChangingRoom ? "Changing..." : "Change Room"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
