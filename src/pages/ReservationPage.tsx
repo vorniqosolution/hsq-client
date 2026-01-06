@@ -23,6 +23,7 @@ import {
   User,
   MessageSquare,
   CheckCircle,
+  RefreshCcw,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -130,12 +131,12 @@ interface Reservation {
   updatedAt: string;
   isPaid?: boolean;
   createdBy:
-    | string
-    | {
-        _id: string;
-        name: string;
-        email: string;
-      };
+  | string
+  | {
+    _id: string;
+    name: string;
+    email: string;
+  };
 }
 
 const isPopulatedRoom = (room: any): room is PopulatedRoom => {
@@ -1115,8 +1116,8 @@ const ReservationsPage: React.FC = () => {
                           loading
                             ? "Fetching rooms..."
                             : !formData.checkout
-                            ? "Select dates to see rooms"
-                            : "Select an available room"
+                              ? "Select dates to see rooms"
+                              : "Select an available room"
                         }
                       />
                     </SelectTrigger>
@@ -1488,10 +1489,10 @@ const ReservationCard = React.memo(
                     <div className="flex-shrink-0 flex flex-col items-end gap-2">
                       {getStatusBadge(status)}
                       {reservation.financials && reservation.financials.totalAdvance > 0 && (
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 gap-1">
-                              <CheckCircle className="h-3 w-3" />
-                              Adv: Rs {reservation.financials.totalAdvance.toLocaleString()}
-                          </Badge>
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 gap-1">
+                          <CheckCircle className="h-3 w-3" />
+                          Adv: Rs {reservation.financials.totalAdvance.toLocaleString()}
+                        </Badge>
                       )}
                     </div>
                   </div>
@@ -1543,7 +1544,7 @@ const ReservationCard = React.memo(
                             <div>
                               <span className="font-medium text-gray-700 block">
                                 {format(
-                                  new Date(reservation.startAt),
+                                  toZonedTime(reservation.startAt, "Asia/Karachi"),
                                   "MMM d, yyyy"
                                 )}
                               </span>
@@ -1554,7 +1555,7 @@ const ReservationCard = React.memo(
                             <div>
                               <span className="font-medium text-gray-700 block">
                                 {format(
-                                  new Date(reservation.endAt),
+                                  toZonedTime(reservation.endAt, "Asia/Karachi"),
                                   "MMM d, yyyy"
                                 )}
                               </span>
@@ -1622,6 +1623,19 @@ const ReservationCard = React.memo(
                     <Eye className="mr-2 h-4 w-4" />
                     View
                   </Button>
+
+                  {/* CHANGE ROOM BUTTON - for reserved/upcoming */}
+                  {isCheckInEnabled && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.location.href = `/reservation/${reservation._id}?action=changeRoom`}
+                      className="w-full border-amber-500 text-amber-600 hover:bg-amber-50"
+                    >
+                      <RefreshCcw className="mr-2 h-4 w-4" />
+                      Change Room
+                    </Button>
+                  )}
                   {(status === "reserved" || status === "upcoming") && (
                     <Button
                       variant="ghost"

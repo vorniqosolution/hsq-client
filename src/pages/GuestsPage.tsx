@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 import DatePicker from "react-datepicker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Sidebar from "@/components/Sidebar";
@@ -16,6 +17,7 @@ import {
   LogOut,
   CalendarDays,
   User,
+  CalendarPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -559,7 +561,7 @@ const GuestCard: React.FC<{ guest: Guest; onDelete: () => void }> = React.memo(
       try {
         const date = new Date(dateValue);
         if (isNaN(date.getTime())) return fallback; // Check if date is invalid
-        return format(date, "MMM dd, yyyy");
+        return format(toZonedTime(date, "Asia/Karachi"), "MMM dd, yyyy");
       } catch {
         return fallback;
       }
@@ -674,6 +676,18 @@ const GuestCard: React.FC<{ guest: Guest; onDelete: () => void }> = React.memo(
                   View Details
                 </Button>
               </Link>
+              {guest.status === "checked-in" && (
+                <Link to={`/guests/${guest._id}?action=extend`}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-emerald-500 text-emerald-600 hover:bg-emerald-50"
+                  >
+                    <CalendarPlus className="mr-2 h-4 w-4" />
+                    Extend Stay
+                  </Button>
+                </Link>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
