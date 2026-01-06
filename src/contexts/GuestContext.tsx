@@ -109,26 +109,12 @@ export interface CreateGuestInput {
   reservationId?: string;
 }
 
-interface GuestContextType {
-  guests: Guest[];
-  guest: Guest | null;
-  invoice: Invoice | null;
-  loading: boolean;
-  error: string | null;
-  fetchGuests: () => Promise<void>;
-  fetchGuestsByCategory: (category: string) => Promise<void>;
-  fetchGuestById: (id: string) => Promise<void>;
-  createGuest: (data: CreateGuestInput) => Promise<void>;
-  updateGuest: (id: string, data: Partial<Guest>) => Promise<void>;
-  checkoutGuest: (id: string) => Promise<void>;
-  deleteGuest: (id: string) => Promise<void>;
-  downloadInvoicePdf: (invoiceId: string) => void;
-  sendInvoiceByEmail: (invoiceId: string) => Promise<void>;
-}
+
 
 interface GuestContextType {
   guests: Guest[];
   guest: Guest | null;
+  reservation: any | null; // Adding reservation to context
   invoice: Invoice | null;
   loading: boolean;
   error: string | null;
@@ -142,7 +128,7 @@ interface GuestContextType {
   fetchGuestById: (id: string) => Promise<void>;
   createGuest: (data: CreateGuestInput) => Promise<void>;
   updateGuest: (id: string, data: Partial<Guest>) => Promise<void>;
-  checkoutGuest: (id: string) => Promise<void>;
+  checkoutGuest: (id: string) => Promise<any>;
   deleteGuest: (id: string) => Promise<void>;
   downloadInvoicePdf: (invoiceId: string) => void;
   sendInvoiceByEmail: (invoiceId: string) => Promise<void>;
@@ -154,6 +140,7 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [guests, setGuests] = useState<Guest[]>([]);
   const [guest, setGuest] = useState<Guest | null>(null);
+  const [reservation, setReservation] = useState<any | null>(null);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -252,7 +239,7 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
       await apiCall(
         () =>
           apiClient
-            .get<{ data: { guest: Guest; invoice: Invoice | null } }>(
+            .get<{ data: { guest: Guest; invoice: Invoice | null; reservation: any | null } }>(
               `/api/guests/get-Guest-By-Id/${id}`
             )
             .then((res) => ({
@@ -265,6 +252,7 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
         (data) => {
           setGuest(data.guest);
           setInvoice(data.invoice);
+          setReservation(data.reservation);
         },
         `Failed to fetch guest with ID: ${id}`
       );
@@ -296,8 +284,8 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
 
   const checkoutGuest = useCallback(
     async (id: string) => {
-      await apiCall(
-        () => apiClient.patch(`/api/guests/check-out-Guest/${id}/checkout`, {}),
+      return await apiCall(
+        () => apiClient.patch(`/api/guests/check-out-Guest/${id}/checkout`, {}).then(res => res.data),
         () => Promise.all([fetchGuests(), fetchGuestById(id)]),
         "Failed to check out guest"
       );
@@ -344,6 +332,7 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
     () => ({
       guests,
       guest,
+      reservation,
       invoice,
       loading,
       error,
@@ -363,6 +352,7 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
     [
       guests,
       guest,
+      reservation,
       invoice,
       loading,
       error,

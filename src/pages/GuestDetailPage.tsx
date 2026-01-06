@@ -386,8 +386,7 @@ const CheckoutDialog = ({ isOpen, setIsOpen, onCheckout }) => {
     setIsProcessing(true);
     try {
       await onCheckout();
-      toast({ title: "Guest successfully checked out" });
-      setIsOpen(false);
+      // Parent handles toast and closing
     } catch (err) {
       toast({
         title: "Checkout failed",
@@ -717,6 +716,7 @@ const ExtendStayDialog = ({ isOpen, setIsOpen, guest, onSuccess, invoice }) => {
 const InvoiceCard = ({
   invoice,
   guest,
+  reservation,
   onPrint,
   onSendEmail,
   isSendingEmail,
@@ -827,6 +827,12 @@ const InvoiceCard = ({
                 <span className="font-medium">Check-in:</span>{" "}
                 {formatInTimeZone(guest.checkInAt, "MMM d, yyyy")}
               </p>
+              {reservation && (
+                <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                  <span className="font-medium">Original Booking:</span>{" "}
+                  {formatInTimeZone(reservation.startAt, "MMM d, yyyy")}
+                </p>
+              )}
               <p className="text-sm">
                 <span className="font-medium">Check-out:</span>{" "}
                 {guest.checkOutAt
@@ -980,7 +986,7 @@ const InvoiceCard = ({
             )}
 
             {/* 2. Hotel owes guest money → red button = Refund only */}
-            {effectiveBalanceDue === 0 && refundDue > 0 && (
+            {refundDue > 0 && (
               <Button
                 onClick={() => onOpenPayment("refund")}
                 variant="destructive"
@@ -1417,6 +1423,7 @@ const GuestDetailPage = () => {
   const {
     guest,
     invoice,
+    reservation,
     loading,
     error,
     fetchGuestById,
@@ -1533,8 +1540,27 @@ const GuestDetailPage = () => {
   // Handle guest checkout
   const handleCheckout = useCallback(async () => {
     if (!id) return;
-    await checkoutGuest(id);
-  }, [id, checkoutGuest]);
+    try {
+      // @ts-ignore
+      const res = await checkoutGuest(id);
+
+      // Check for refund
+      if (res && res.data && res.data.refundDue > 0) {
+        toast({
+          title: "Guest Checked Out",
+          description: `REFUND DUE: Rs ${res.data.refundDue.toLocaleString()}`,
+          duration: 10000,
+          style: { border: '2px solid red', backgroundColor: '#FEF2F2', color: '#B91C1C' }
+        });
+      } else {
+        toast({ title: "Guest successfully checked out" });
+      }
+      setIsCheckoutOpen(false);
+    } catch (err) {
+      // Error handled by context
+      setIsCheckoutOpen(false);
+    }
+  }, [id, checkoutGuest, toast]);
 
   // Handle retry on error
   const handleRetry = useCallback(() => {
@@ -2177,6 +2203,7 @@ const GuestDetailPage = () => {
               <InvoiceCard
                 invoice={invoice}
                 guest={guest}
+                reservation={reservation}
                 onPrint={handlePrintInvoice}
                 onSendEmail={handleSendInvoice}
                 isSendingEmail={isSendingEmail}
