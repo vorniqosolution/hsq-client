@@ -35,6 +35,7 @@ export interface Invoice {
   taxRate: number;
   taxAmount: number;
   additionaldiscount: number;
+  promoDiscount?: number;
   grandTotal: number;
   status: "pending" | "paid" | "cancelled";
   issueDate: string;

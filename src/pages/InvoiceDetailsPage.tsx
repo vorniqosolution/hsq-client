@@ -373,6 +373,14 @@ const InvoiceDetailsPage = () => {
                       )}`}
                     />
                   )}
+                  {currentInvoice.promoDiscount && currentInvoice.promoDiscount > 0 && (
+                    <BillingRow
+                      label="Promo Discount"
+                      value={`- ${formatCurrency(
+                        currentInvoice.promoDiscount
+                      )}`}
+                    />
+                  )}
                   <BillingRow
                     label={`Tax (${currentInvoice.taxRate}%)`}
                     value={formatCurrency(currentInvoice.taxAmount)}
@@ -418,11 +426,10 @@ const InvoiceDetailsPage = () => {
                     Balance Due
                   </p>
                   <p
-                    className={`font-bold text-xl ${
-                      currentInvoice.balanceDue > 0
+                    className={`font-bold text-xl ${currentInvoice.balanceDue > 0
                         ? "text-red-600"
                         : "text-emerald-600"
-                    }`}
+                      }`}
                   >
                     {formatCurrency(currentInvoice.balanceDue)}
                   </p>

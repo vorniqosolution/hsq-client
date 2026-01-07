@@ -76,6 +76,7 @@ import {
   useReservationContext,
   CreateReservationInput,
 } from "@/contexts/ReservationContext";
+import { usePromoCodeContext } from "@/contexts/PromoCodeContext";
 import Sidebar from "@/components/Sidebar";
 import {
   Pagination,
@@ -182,6 +183,9 @@ const ReservationsPage: React.FC = () => {
     availableRooms,
     fetchAvailableRooms,
   } = useRoomContext();
+
+  const { validatePromoCode } = usePromoCodeContext();
+  const [promoMessage, setPromoMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   const { toast } = useToast();
   const { user } = useAuth();
@@ -319,6 +323,24 @@ const ReservationsPage: React.FC = () => {
     },
     [formData, formErrors, fetchAvailableRooms]
   );
+
+  const handlePromoBlur = async () => {
+    if (!formData.promoCode) {
+      setPromoMessage(null);
+      return;
+    }
+
+    try {
+      const res = await validatePromoCode(formData.promoCode);
+      if (res.isValid) {
+        setPromoMessage({ type: 'success', text: `Promo Applied: ${res.percentage}% Off` });
+      } else {
+        setPromoMessage({ type: 'error', text: res.message || "Invalid Promo Code" });
+      }
+    } catch (err: any) {
+      setPromoMessage({ type: 'error', text: err.message || "Error validating promo" });
+    }
+  };
 
   // Add after line 344 in handleFormChange or create a new validation function
   const validateRoomCapacity = (room: Room) => {
@@ -1275,14 +1297,48 @@ const ReservationsPage: React.FC = () => {
                 {/* Row 9: Promo Code */}
                 <div className="space-y-2">
                   <Label htmlFor="promoCode">Promo Code (Optional)</Label>
-                  <Input
-                    id="promoCode"
+                  <Select
                     name="promoCode"
                     value={formData.promoCode || ""}
-                    onChange={handleFormChange}
-                    placeholder="Enter promo code"
+                    onValueChange={(v) => {
+                      setFormData(prev => ({ ...prev, promoCode: v }));
+                      // Manually trigger validation logic
+                      if (v) {
+                        validatePromoCode(v)
+                          .then(res => {
+                            if (res.isValid) {
+                              setPromoMessage({ type: 'success', text: `Promo Applied: ${res.percentage}% Off` });
+                            } else {
+                              setPromoMessage({ type: 'error', text: res.message || "Invalid Promo" });
+                            }
+                          })
+                          .catch(err => setPromoMessage({ type: 'error', text: "Error validating promo" }));
+                      } else {
+                        setPromoMessage(null);
+                      }
+                    }}
                     disabled={isSubmitting}
-                  />
+                  >
+                    <SelectTrigger className={promoMessage?.type === 'success' ? 'border-green-500' : ''}>
+                      <SelectValue placeholder="Select a promo code" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Promo Code</SelectItem>
+                      {usePromoCodeContext().promoCodes
+                        .filter(p => p.status === 'active')
+                        .map((code) => (
+                          <SelectItem key={code._id} value={code.code}>
+                            {code.code} ({code.percentage}% Off)
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+
+                  {promoMessage && (
+                    <p className={`text-xs mt-1 ${promoMessage.type === 'success' ? 'text-green-600 font-medium' : 'text-red-500'}`}>
+                      {promoMessage.text}
+                    </p>
+                  )}
                 </div>
 
                 {/* 👇 NEW SECTION: ADVANCE PAYMENT 👇 */}
@@ -1567,6 +1623,14 @@ const ReservationCard = React.memo(
                         </div>
                       </div>
                     </div>
+                    {reservation.promoCode && (
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-500">Promo Code:</span>
+                        <span className="font-medium text-emerald-600">
+                          {reservation.promoCode}
+                        </span>
+                      </div>
+                    )}
                     {reservation.specialRequest && (
                       <div className="mt-4 pt-4 border-t border-gray-100">
                         <div className="flex items-start gap-3">

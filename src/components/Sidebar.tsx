@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useLocation, Link } from "react-router-dom";
-import HSQ from "../../public/HSQ.png";
+const HSQ = "/HSQ.png";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Users,
@@ -17,6 +17,7 @@ import {
   Calendar1,
   BedSingle,
   ArrowLeftRight,
+  Tag,
 } from "lucide-react";
 interface SidebarProps {
   isOpen: boolean;
@@ -96,6 +97,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       href: "/settings",
       icon: Settings,
       roles: ["admin"],
+    },
+    {
+      name: "Promo Codes",
+      href: "/promocodes",
+      icon: Tag,
+      roles: ["admin", "receptionist"],
     },
   ];
 

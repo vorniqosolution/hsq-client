@@ -748,7 +748,8 @@ const InvoiceCard = ({
     : 0;
 
   const additionalDiscountAmount = guest.additionaldiscount || 0;
-  const totalDiscountAmount = standardDiscountAmount + additionalDiscountAmount;
+  const promoDiscountAmount = guest.promoDiscount || 0;
+  const totalDiscountAmount = standardDiscountAmount + additionalDiscountAmount + promoDiscountAmount;
 
   return (
     <div ref={innerRef} className="invoice-print-section">
@@ -785,9 +786,15 @@ const InvoiceCard = ({
             </CardTitle>
             <Badge
               variant="outline"
-              className="bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
+              className={
+                invoice.status === "paid"
+                  ? "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800"
+                  : invoice.status === "cancelled"
+                    ? "bg-red-50 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
+                    : "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
+              }
             >
-              {invoice.status ? "PAID" : "PENDING"}
+              {invoice.status ? invoice.status.toUpperCase() : "PENDING"}
             </Badge>
           </div>
           <CardDescription>
@@ -912,6 +919,16 @@ const InvoiceCard = ({
                   Additional Discount: (Room Rent Portion Only)
                 </span>
                 <span>-Rs{formatNumber(additionalDiscountAmount)}</span>
+              </div>
+            )}
+
+            {guest.promoDiscount && guest.promoDiscount > 0 && (
+              <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+                <span className="font-medium flex items-center">
+                  <Tag className="h-4 w-4 mr-1 opacity-70 invoice-print-hidden" />{" "}
+                  Promo Discount: {guest.promoCode ? `(${guest.promoCode})` : ''}
+                </span>
+                <span>-Rs{formatNumber(guest.promoDiscount)}</span>
               </div>
             )}
 

@@ -67,6 +67,7 @@ import { useRoomContext, Room } from "@/contexts/RoomContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useReservationContext } from "../contexts/ReservationContext";
 import { useDecor } from "@/contexts/DecorContext";
+import { usePromoCodeContext } from "@/contexts/PromoCodeContext";
 
 const INITIAL_FORM_STATE: CreateGuestInput = {
   fullName: "",
@@ -741,6 +742,9 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
     fetchAvailableRooms,
     loading: roomsLoading,
   } = useRoomContext();
+  const { validatePromoCode } = usePromoCodeContext(); // Use PromoContext
+  const [promoMessage, setPromoMessage] = useState<{ type: 'success' | 'error', text: string, discount?: number } | null>(null);
+
   const { packages } = useDecor();
   // console.log("Total Package", packages);
   console.log("decor id", formData.decorPackageid);
@@ -806,6 +810,24 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
       new Date(checkOutDate) > new Date(formData.checkInDate)
     ) {
       fetchAvailableRooms(formData.checkInDate, checkOutDate);
+    }
+  };
+
+  const handlePromoBlur = async () => {
+    if (!formData.promoCode) {
+      setPromoMessage(null);
+      return;
+    }
+
+    try {
+      const res = await validatePromoCode(formData.promoCode);
+      if (res.isValid) {
+        setPromoMessage({ type: 'success', text: `Promo Applied: ${res.percentage}% Off Room Rent`, discount: res.percentage });
+      } else {
+        setPromoMessage({ type: 'error', text: res.message || "Invalid Promo Code" });
+      }
+    } catch (err: any) {
+      setPromoMessage({ type: 'error', text: err.message || "Error validating promo" });
     }
   };
 
@@ -1275,6 +1297,53 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
             </Select>
           </div>
 
+
+          <div>
+            <Label>Promo Code (Optional)</Label>
+            <Select
+              name="promoCode"
+              value={formData.promoCode || ""}
+              onValueChange={(v) => {
+                setFormData(prev => ({ ...prev, promoCode: v }));
+                // Manually trigger validation logic
+                if (v) {
+                  validatePromoCode(v)
+                    .then(res => {
+                      if (res.isValid) {
+                        setPromoMessage({ type: 'success', text: `Promo Applied: ${res.percentage}% Off` });
+                      } else {
+                        setPromoMessage({ type: 'error', text: res.message || "Invalid Promo" });
+                      }
+                    })
+                    .catch(err => setPromoMessage({ type: 'error', text: "Error validating promo" }));
+                } else {
+                  setPromoMessage(null);
+                }
+              }}
+              disabled={isSubmitting}
+            >
+              <SelectTrigger className={promoMessage?.type === 'success' ? 'border-green-500' : ''}>
+                <SelectValue placeholder="Select a promo code" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No Promo Code</SelectItem>
+                {usePromoCodeContext().promoCodes
+                  .filter(p => p.status === 'active')
+                  .map((code) => (
+                    <SelectItem key={code._id} value={code.code}>
+                      {code.code} ({code.percentage}% Off)
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+
+            {promoMessage && (
+              <p className={`text-xs mt-1 ${promoMessage.type === 'success' ? 'text-green-600 font-medium' : 'text-red-500'}`}>
+                {promoMessage.text}
+              </p>
+            )}
+          </div>
+
           <div className="flex items-center space-x-2">
             <input
               type="checkbox"
@@ -1302,7 +1371,7 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
           </Button>
         </form>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 };
 

@@ -66,6 +66,8 @@ export interface Guest {
   gst?: number;
   // 👇 ADD THIS 👇
   advancePayment?: number;
+  promoCode?: string;
+  promoDiscount?: number;
   // 👆 --------- 👆
 }
 
@@ -107,6 +109,7 @@ export interface CreateGuestInput {
   applyDiscount: boolean;
   additionaldiscount: number;
   reservationId?: string;
+  promoCode?: string;
 }
 
 
