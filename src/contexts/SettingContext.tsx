@@ -17,6 +17,10 @@ export interface Settings {
   hotelName: string;
   mattressRate?: number;
   systemAlert?: SystemAlert;
+  seasonConfig?: {
+    summer: { startMonth: number; endMonth: number };
+    winter: { startMonth: number; endMonth: number };
+  };
 }
 
 interface SettingContextType {

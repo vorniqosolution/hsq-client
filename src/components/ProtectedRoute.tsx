@@ -40,7 +40,8 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       "/decor",        // <--- ADDED THIS
       "/transactions",  // <--- Added this too (Sidebar has it)
       "/rooms",         // <--- ADDED: Allow receptionist to access rooms
-      "/Discount"       // <--- ADDED: Allow receptionist to access discounts
+      "/Discount",
+      "/promocodes"       // <--- ADDED: Allow receptionist to access promo codes
     ];
     const isAllowed =
       allowedPaths.includes(location.pathname) ||

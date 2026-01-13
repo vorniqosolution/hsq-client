@@ -104,6 +104,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       icon: Tag,
       roles: ["admin", "receptionist"],
     },
+    {
+      name: "Owner Access",
+      href: "/owners-reception",
+      icon: Users,
+      roles: ["admin"],
+    },
+    {
+      name: "Owners",
+      href: "/owners",
+      icon: Users,
+      roles: ["admin"],
+    },
   ];
 
   const filteredNavItems = mainNavItems.filter(

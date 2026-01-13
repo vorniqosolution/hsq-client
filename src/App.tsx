@@ -42,6 +42,9 @@ import SettingsPage from "./pages/SettingsPage";
 import Decor from "./pages/Decor";
 import TransactionsPage from "./pages/TransactionsPage";
 import PromoCodesPage from "./pages/PromoCodesPage";
+import OwnerReceptionPage from "./pages/OwnerReceptionPage";
+import OwnersPage from "./pages/OwnersPage";
+import { OwnerProvider } from "./contexts/OwnerContext";
 
 const queryClient = new QueryClient();
 
@@ -70,30 +73,34 @@ const App = () => (
                             <RevenueProvider>
                               <InvoiceProvider>
                                 <PromoCodeProvider>
-                                  <AppInitializer>
-                                    <SessionPopup />
-                                    <Routes>
-                                      <Route path="/" element={<Navigate to="/login" replace />} />
-                                      <Route path="/login" element={<LoginPage />} />
-                                      <Route path="/dashboard" element={<ProtectedRoute><Layout><DashboardPage /></Layout></ProtectedRoute>} />
-                                      <Route path="/rooms" element={<ProtectedRoute><Layout><RoomsPage /></Layout></ProtectedRoute>} />
-                                      <Route path="/guests" element={<ProtectedRoute><Layout><GuestsPage /></Layout></ProtectedRoute>} />
-                                      <Route path="/guests/:id" element={<ProtectedRoute><Layout><GuestDetailPage /></Layout></ProtectedRoute>} />
-                                      <Route path="/reservation" element={<ProtectedRoute><Layout><ReservationPage /></Layout></ProtectedRoute>} />
-                                      <Route path="/reservation/:id" element={<ProtectedRoute><Layout><ReservationDetailsPage /></Layout></ProtectedRoute>} />
-                                      <Route path="/Discount" element={<ProtectedRoute><Layout><DiscountPage /></Layout></ProtectedRoute>} />
-                                      <Route path="/Gst" element={<ProtectedRoute><Layout><GstPage /></Layout></ProtectedRoute>} />
-                                      <Route path="/Inventory" element={<ProtectedRoute><Layout><InventoryPage /></Layout></ProtectedRoute>} />
-                                      <Route path="/Invoices" element={<ProtectedRoute><Layout><InvoicesPage /></Layout></ProtectedRoute>} />
-                                      <Route path="/Invoices/:id" element={<ProtectedRoute><Layout><InvoiceDetails /></Layout></ProtectedRoute>} />
-                                      <Route path="/Revenue" element={<ProtectedRoute><Layout><RevenuePage /></Layout></ProtectedRoute>} />
-                                      <Route path="/decor" element={<ProtectedRoute><Layout><Decor /></Layout></ProtectedRoute>} />
-                                      <Route path="/settings" element={<ProtectedRoute><Layout><SettingsPage /></Layout></ProtectedRoute>} />
-                                      <Route path="/promocodes" element={<ProtectedRoute><Layout><PromoCodesPage /></Layout></ProtectedRoute>} />
-                                      <Route path="/transactions" element={<TransactionsPage />} />
-                                      <Route path="*" element={<NotFound />} />
-                                    </Routes>
-                                  </AppInitializer>
+                                  <OwnerProvider>
+                                    <AppInitializer>
+                                      <SessionPopup />
+                                      <Routes>
+                                        <Route path="/" element={<Navigate to="/login" replace />} />
+                                        <Route path="/login" element={<LoginPage />} />
+                                        <Route path="/dashboard" element={<ProtectedRoute><Layout><DashboardPage /></Layout></ProtectedRoute>} />
+                                        <Route path="/rooms" element={<ProtectedRoute><Layout><RoomsPage /></Layout></ProtectedRoute>} />
+                                        <Route path="/guests" element={<ProtectedRoute><Layout><GuestsPage /></Layout></ProtectedRoute>} />
+                                        <Route path="/guests/:id" element={<ProtectedRoute><Layout><GuestDetailPage /></Layout></ProtectedRoute>} />
+                                        <Route path="/reservation" element={<ProtectedRoute><Layout><ReservationPage /></Layout></ProtectedRoute>} />
+                                        <Route path="/reservation/:id" element={<ProtectedRoute><Layout><ReservationDetailsPage /></Layout></ProtectedRoute>} />
+                                        <Route path="/Discount" element={<ProtectedRoute><Layout><DiscountPage /></Layout></ProtectedRoute>} />
+                                        <Route path="/Gst" element={<ProtectedRoute><Layout><GstPage /></Layout></ProtectedRoute>} />
+                                        <Route path="/Inventory" element={<ProtectedRoute><Layout><InventoryPage /></Layout></ProtectedRoute>} />
+                                        <Route path="/Invoices" element={<ProtectedRoute><Layout><InvoicesPage /></Layout></ProtectedRoute>} />
+                                        <Route path="/Invoices/:id" element={<ProtectedRoute><Layout><InvoiceDetails /></Layout></ProtectedRoute>} />
+                                        <Route path="/Revenue" element={<ProtectedRoute><Layout><RevenuePage /></Layout></ProtectedRoute>} />
+                                        <Route path="/decor" element={<ProtectedRoute><Layout><Decor /></Layout></ProtectedRoute>} />
+                                        <Route path="/settings" element={<ProtectedRoute><Layout><SettingsPage /></Layout></ProtectedRoute>} />
+                                        <Route path="/promocodes" element={<ProtectedRoute><Layout><PromoCodesPage /></Layout></ProtectedRoute>} />
+                                        <Route path="/owners-reception" element={<ProtectedRoute><Layout><OwnerReceptionPage /></Layout></ProtectedRoute>} />
+                                        <Route path="/owners" element={<ProtectedRoute><Layout><OwnersPage /></Layout></ProtectedRoute>} />
+                                        <Route path="/transactions" element={<TransactionsPage />} />
+                                        <Route path="*" element={<NotFound />} />
+                                      </Routes>
+                                    </AppInitializer>
+                                  </OwnerProvider>
                                 </PromoCodeProvider>
                               </InvoiceProvider>
                             </RevenueProvider>

@@ -1,10 +1,12 @@
 // SessionPopup.tsx
-import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLocation } from 'react-router-dom';
 
 export default function SessionPopup() {
   const { sessionExpired, logout } = useAuth();
-  if (!sessionExpired) return null;
+  const location = useLocation();
+
+  if (!sessionExpired || location.pathname === "/login") return null;
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center">

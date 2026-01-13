@@ -29,6 +29,7 @@ import {
   LockKeyhole,
   AlertTriangle,
   Banknote,
+  Calendar,
 } from "lucide-react";
 import {
   Dialog,
@@ -196,6 +197,146 @@ const MattressRateSettings = () => {
         </div>
         <Button onClick={handleSave} disabled={!isChanged}>
           Save Mattress Rate
+        </Button>
+      </CardContent>
+    </Card>
+  );
+};
+
+const months = [
+  { value: 0, label: "January" },
+  { value: 1, label: "February" },
+  { value: 2, label: "March" },
+  { value: 3, label: "April" },
+  { value: 4, label: "May" },
+  { value: 5, label: "June" },
+  { value: 6, label: "July" },
+  { value: 7, label: "August" },
+  { value: 8, label: "September" },
+  { value: 9, label: "October" },
+  { value: 10, label: "November" },
+  { value: 11, label: "December" },
+];
+
+const SeasonSettings = () => {
+  const { settings, updateSettings, loading } = useSetting();
+  const [config, setConfig] = useState({
+    summer: { startMonth: 5, endMonth: 7 },
+    winter: { startMonth: 11, endMonth: 0 },
+  });
+  const [isChanged, setIsChanged] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (settings?.seasonConfig) {
+      setConfig(settings.seasonConfig);
+    }
+  }, [settings]);
+
+  const handleChange = (season: "summer" | "winter", field: "startMonth" | "endMonth", value: string) => {
+    setConfig(prev => {
+      const updated = {
+        ...prev,
+        [season]: {
+          ...prev[season],
+          [field]: parseInt(value)
+        }
+      };
+      setIsChanged(true);
+      return updated;
+    });
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    await updateSettings({ seasonConfig: config });
+    setIsChanged(false);
+    setIsSaving(false);
+  };
+
+  if (loading) return null;
+
+  return (
+    <Card className="shadow-lg border border-gray-200 bg-white">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Calendar className="w-5 h-5 text-indigo-600" />
+          Season Configuration
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Summer */}
+        <div className="space-y-2">
+          <Label className="font-semibold text-amber-600">Summer Season</Label>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <span className="text-xs text-gray-500">Starts</span>
+              <Select
+                value={config.summer.startMonth.toString()}
+                onValueChange={(val) => handleChange("summer", "startMonth", val)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map(m => <SelectItem key={`s-start-${m.value}`} value={m.value.toString()}>{m.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs text-gray-500">Ends</span>
+              <Select
+                value={config.summer.endMonth.toString()}
+                onValueChange={(val) => handleChange("summer", "endMonth", val)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map(m => <SelectItem key={`s-end-${m.value}`} value={m.value.toString()}>{m.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        {/* Winter */}
+        <div className="space-y-2 pt-2 border-t">
+          <Label className="font-semibold text-blue-600">Winter Season</Label>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <span className="text-xs text-gray-500">Starts</span>
+              <Select
+                value={config.winter.startMonth.toString()}
+                onValueChange={(val) => handleChange("winter", "startMonth", val)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map(m => <SelectItem key={`w-start-${m.value}`} value={m.value.toString()}>{m.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs text-gray-500">Ends</span>
+              <Select
+                value={config.winter.endMonth.toString()}
+                onValueChange={(val) => handleChange("winter", "endMonth", val)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map(m => <SelectItem key={`w-end-${m.value}`} value={m.value.toString()}>{m.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        <Button onClick={handleSave} disabled={!isChanged || isSaving} className="w-full">
+          {isSaving ? "Saving..." : "Save Season Changes"}
         </Button>
       </CardContent>
     </Card>
@@ -448,25 +589,10 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/* System Alert Settings */}
-          <Card className="shadow-lg border border-gray-200 bg-white">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-orange-500" />
-                System Maintenance Alert
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SystemAlertSettings />
-            </CardContent>
-          </Card>
-
-          {/* Mattress Rate Settings */}
-          <MattressRateSettings />
         </div>
         {/* Main Content: Receptionists Table */}
         <div className="md:col-span-2">
-          <Card>
+          <Card className="h-full">
             <CardHeader>
               <CardTitle>Receptionists</CardTitle>
             </CardHeader>
@@ -520,6 +646,28 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* Configuration Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+        {/* System Alert Settings */}
+        <Card className="shadow-lg border border-gray-200 bg-white">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-orange-500" />
+              System Maintenance Alert
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SystemAlertSettings />
+          </CardContent>
+        </Card>
+
+        {/* Mattress Rate Settings */}
+        <MattressRateSettings />
+
+        {/* Season Configuration */}
+        <SeasonSettings />
       </div>
       {/* Update Receptionist Password Dialog */}
       <Dialog
