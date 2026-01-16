@@ -27,9 +27,11 @@ import {
   Users,
   Banknote,
   Receipt,
+  Menu // Add Menu icon
 } from "lucide-react";
 
 // UI Components
+import Sidebar from "@/components/Sidebar"; // Add Sidebar import
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -1450,6 +1452,7 @@ const GuestDetailPage = () => {
   } = useGuestContext();
 
   // Dialog states
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isExtendOpen, setIsExtendOpen] = useState(false);
@@ -1850,433 +1853,448 @@ const GuestDetailPage = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6 md:px-6 max-w-7xl">
-      {/* Header with navigation and actions - hide during print */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-3 sm:gap-4">
-        <div className="flex items-center flex-wrap gap-2 sm:gap-0">
-          <Link to="/guests">
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-            >
-              <ArrowLeft className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Back to Guests</span>
+    <div className="flex h-screen bg-slate-50">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="flex-1 flex flex-col overflow-hidden relative">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-slate-50">
+          {/* Mobile Toggle */}
+          <div className="lg:hidden mb-4 flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
+              <Menu className="h-6 w-6 text-slate-600" />
             </Button>
-          </Link>
-
-          {guest && (
-            <h1 className="ml-2 sm:ml-4 text-xl sm:text-2xl font-bold text-slate-900 dark:text-white truncate max-w-[200px] sm:max-w-none">
-              {guest.fullName}
-            </h1>
-          )}
-        </div>
-
-        {guest && (
-          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setIsEditOpen(true)}
-              className="border-slate-200 dark:border-slate-700 flex-1 sm:flex-none"
-            >
-              <Edit className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Edit Details</span>
-              <span className="sm:hidden">Edit</span>
-            </Button>
-
-            {guest.status === "checked-in" && (
-              <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setIsExtendOpen(true)}
-                  className="border-blue-200 text-blue-700 hover:bg-blue-50 flex-1 sm:flex-none"
-                >
-                  <Calendar className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Extend Stay</span>
-                  <span className="sm:hidden">Extend</span>
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => setIsCheckoutOpen(true)}
-                  className="bg-red-600 hover:bg-red-700 flex-1 sm:flex-none"
-                >
-                  <LogOut className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Check Out</span>
-                  <span className="sm:hidden">Out</span>
-                </Button>
-              </>
-            )}
-
-            {/* Invoice Action Buttons */}
-            {invoice && (
-              <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handlePrintInvoice}
-                  className="border-slate-200 dark:border-slate-700 flex-1 sm:flex-none"
-                >
-                  <Printer className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Print Invoice</span>
-                  <span className="sm:hidden">Print</span>
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleSendInvoice}
-                  disabled={isSendingEmail}
-                  className="bg-primary hover:bg-primary/90 flex-1 sm:flex-none"
-                >
-                  <Send className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">{isSendingEmail ? "Sending..." : "Email Invoice"}</span>
-                  <span className="sm:hidden">{isSendingEmail ? "..." : "Email"}</span>
-                </Button>
-              </>
-            )}
+            <h1 className="text-xl font-bold text-slate-800">Guest Details</h1>
           </div>
-        )}
-      </div>
 
-      {/* Main content container */}
-      <div className="min-h-[500px]" ref={pageRef}>
-        {loading ? (
-          <GuestDetailSkeleton />
-        ) : error ? (
-          <ErrorDisplay message={error} onRetry={handleRetry} />
-        ) : !guest ? (
-          <ErrorDisplay message="Guest not found" onRetry={undefined} />
-        ) : (
-          <div className="space-y-8">
-            {/* Guest Information Card */}
-            <Card className="overflow-hidden border-slate-200 dark:border-slate-700">
-              <CardHeader className="bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-900 border-b border-slate-200 dark:border-slate-700">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center text-slate-800 dark:text-slate-200">
-                    <User className="mr-2 h-5 w-5 text-primary" />
-                    <span>Guest Information</span>
-                  </CardTitle>
+          <div className="container mx-auto px-4 py-6 md:px-6 max-w-7xl">
+            {/* Header with navigation and actions - hide during print */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-3 sm:gap-4">
+              <div className="flex items-center flex-wrap gap-2 sm:gap-0">
+                <Link to="/guests">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  >
+                    <ArrowLeft className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Back to Guests</span>
+                  </Button>
+                </Link>
 
-                  <Badge className={getStatusColor(guest.status)}>
-                    {guest.status === "checked-in"
-                      ? "Currently Staying"
-                      : "Checked Out"}
-                  </Badge>
-                </div>
-                <CardDescription className="text-slate-500 dark:text-slate-400">
-                  Personal and contact details
-                </CardDescription>
-              </CardHeader>
+                {guest && (
+                  <h1 className="ml-2 sm:ml-4 text-xl sm:text-2xl font-bold text-slate-900 dark:text-white truncate max-w-[200px] sm:max-w-none">
+                    {guest.fullName}
+                  </h1>
+                )}
+              </div>
 
-              <CardContent className="grid md:grid-cols-2 gap-6 pt-6">
-                <div className="space-y-3">
-                  <div className="flex items-start">
-                    <User className="h-4 w-4 mr-2 mt-1 text-slate-400" />
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        Full Name
-                      </p>
-                      <p className="font-medium text-slate-800 dark:text-slate-200">
-                        {guest.fullName}
-                      </p>
-                    </div>
-                  </div>
+              {guest && (
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsEditOpen(true)}
+                    className="border-slate-200 dark:border-slate-700 flex-1 sm:flex-none"
+                  >
+                    <Edit className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Edit Details</span>
+                    <span className="sm:hidden">Edit</span>
+                  </Button>
 
-                  <div className="flex items-start">
-                    <FileText className="h-4 w-4 mr-2 mt-1 text-slate-400" />
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        CNIC
-                      </p>
-                      <p className="font-medium text-slate-800 dark:text-slate-200">
-                        {guest.cnic}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start">
-                    <Home className="h-4 w-4 mr-2 mt-1 text-slate-400" />
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        Address
-                      </p>
-                      <p className="font-medium text-slate-800 dark:text-slate-200">
-                        {guest.address}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-start">
-                    <Phone className="h-4 w-4 mr-2 mt-1 text-slate-400" />
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        Phone
-                      </p>
-                      <p className="font-medium text-slate-800 dark:text-slate-200">
-                        {guest.phone}
-                      </p>
-                    </div>
-                  </div>
-
-                  {guest.email && (
-                    <div className="flex items-start">
-                      <Mail className="h-4 w-4 mr-2 mt-1 text-slate-400" />
-                      <div>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                          Email
-                        </p>
-                        <p className="font-medium text-slate-800 dark:text-slate-200">
-                          {guest.email}
-                        </p>
-                      </div>
-                    </div>
+                  {guest.status === "checked-in" && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setIsExtendOpen(true)}
+                        className="border-blue-200 text-blue-700 hover:bg-blue-50 flex-1 sm:flex-none"
+                      >
+                        <Calendar className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Extend Stay</span>
+                        <span className="sm:hidden">Extend</span>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => setIsCheckoutOpen(true)}
+                        className="bg-red-600 hover:bg-red-700 flex-1 sm:flex-none"
+                      >
+                        <LogOut className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Check Out</span>
+                        <span className="sm:hidden">Out</span>
+                      </Button>
+                    </>
                   )}
 
-                  <div className="flex items-start">
-                    <CreditCard className="h-4 w-4 mr-2 mt-1 text-slate-400" />
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        Payment Method
-                      </p>
-                      <p className="font-medium text-slate-800 dark:text-slate-200 capitalize">
-                        {guest.paymentMethod}
-                      </p>
-                    </div>
-                  </div>
+                  {/* Invoice Action Buttons */}
+                  {invoice && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handlePrintInvoice}
+                        className="border-slate-200 dark:border-slate-700 flex-1 sm:flex-none"
+                      >
+                        <Printer className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Print Invoice</span>
+                        <span className="sm:hidden">Print</span>
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleSendInvoice}
+                        disabled={isSendingEmail}
+                        className="bg-primary hover:bg-primary/90 flex-1 sm:flex-none"
+                      >
+                        <Send className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">{isSendingEmail ? "Sending..." : "Email Invoice"}</span>
+                        <span className="sm:hidden">{isSendingEmail ? "..." : "Email"}</span>
+                      </Button>
+                    </>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
+              )}
+            </div>
 
-            {/* Stay Information Card */}
-            <Card className="overflow-hidden border-slate-200 dark:border-slate-700">
-              <CardHeader className="bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-900 border-b border-slate-200 dark:border-slate-700">
-                <CardTitle className="flex items-center text-slate-800 dark:text-slate-200">
-                  <Clock className="mr-2 h-5 w-5 text-primary" />
-                  <span>Stay Information</span>
-                </CardTitle>
-              </CardHeader>
+            {/* Main content container */}
+            <div className="min-h-[500px]" ref={pageRef}>
+              {loading ? (
+                <GuestDetailSkeleton />
+              ) : error ? (
+                <ErrorDisplay message={error} onRetry={handleRetry} />
+              ) : !guest ? (
+                <ErrorDisplay message="Guest not found" onRetry={undefined} />
+              ) : (
+                <div className="space-y-8">
+                  {/* Guest Information Card */}
+                  <Card className="overflow-hidden border-slate-200 dark:border-slate-700">
+                    <CardHeader className="bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-900 border-b border-slate-200 dark:border-slate-700">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="flex items-center text-slate-800 dark:text-slate-200">
+                          <User className="mr-2 h-5 w-5 text-primary" />
+                          <span>Guest Information</span>
+                        </CardTitle>
 
-              <CardContent className="grid md:grid-cols-2 gap-6 pt-6">
-                {/* Left Column - Room Details */}
-                <div className="space-y-4">
-                  <div className="flex items-start space-x-3">
-                    <Home className="h-4 w-4 mt-0.5 text-slate-400" />
-                    <div className="flex-1">
-                      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
-                        Room Number
-                      </p>
-                      <p className="font-semibold text-base text-slate-800 dark:text-slate-200">
-                        {guest.room.roomNumber}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start space-x-3">
-                    <Tag className="h-4 w-4 mt-0.5 text-slate-400" />
-                    <div className="flex-1">
-                      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
-                        Room Type
-                      </p>
-                      <p className="font-semibold text-base text-slate-800 dark:text-slate-200">
-                        {guest.room.category}
-                        <span className="font-normal text-slate-600 dark:text-slate-400 ml-2">
-                          • {guest.room.bedType}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start space-x-3">
-                    <Users className="h-4 w-4 mt-0.5 text-slate-400" />
-                    <div className="flex-1">
-                      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">
-                        Occupancy
-                      </p>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge
-                          variant="outline"
-                          className="font-medium bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800 px-2.5 py-0.5"
-                        >
-                          {guest.adults || 1} Adult
-                          {(guest.adults || 1) !== 1 ? "s" : ""}
+                        <Badge className={getStatusColor(guest.status)}>
+                          {guest.status === "checked-in"
+                            ? "Currently Staying"
+                            : "Checked Out"}
                         </Badge>
-                        {guest.infants > 0 && (
-                          <Badge
-                            variant="outline"
-                            className="font-medium bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800 px-2.5 py-0.5"
-                          >
-                            {guest.infants} Infant
-                            {guest.infants !== 1 ? "s" : ""}
-                          </Badge>
-                        )}
                       </div>
-                    </div>
-                  </div>
+                      <CardDescription className="text-slate-500 dark:text-slate-400">
+                        Personal and contact details
+                      </CardDescription>
+                    </CardHeader>
 
-                  <div className="flex items-start space-x-3">
-                    <Banknote className="h-4 w-4 mt-0.5 text-slate-400" />
-                    <div className="flex-1">
-                      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
-                        Room Rate
-                      </p>
-                      <p className="font-semibold text-base text-slate-800 dark:text-slate-200">
-                        Rs {guest.room.rate.toLocaleString()}
-                        <span className="font-normal text-sm text-slate-600 dark:text-slate-400">
-                          /night
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                    <CardContent className="grid md:grid-cols-2 gap-6 pt-6">
+                      <div className="space-y-3">
+                        <div className="flex items-start">
+                          <User className="h-4 w-4 mr-2 mt-1 text-slate-400" />
+                          <div>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              Full Name
+                            </p>
+                            <p className="font-medium text-slate-800 dark:text-slate-200">
+                              {guest.fullName}
+                            </p>
+                          </div>
+                        </div>
 
-                {/* Right Column - Stay Timeline & Payment */}
-                <div className="space-y-4">
-                  <div className="flex items-start space-x-3">
-                    <Calendar className="h-4 w-4 mt-0.5 text-slate-400" />
-                    <div className="flex-1">
-                      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
-                        Check-In
-                      </p>
-                      <p className="font-semibold text-base text-slate-800 dark:text-slate-200">
-                        {guest.checkInAt ? formatDate(guest.checkInAt) : "N/A"}
-                      </p>
-                    </div>
-                  </div>
+                        <div className="flex items-start">
+                          <FileText className="h-4 w-4 mr-2 mt-1 text-slate-400" />
+                          <div>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              CNIC
+                            </p>
+                            <p className="font-medium text-slate-800 dark:text-slate-200">
+                              {guest.cnic}
+                            </p>
+                          </div>
+                        </div>
 
-                  <div className="flex items-start space-x-3">
-                    <Calendar className="h-4 w-4 mt-0.5 text-slate-400" />
-                    <div className="flex-1">
-                      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
-                        Check-Out
-                      </p>
-                      <p className="font-semibold text-base text-slate-800 dark:text-slate-200">
-                        {guest.checkOutAt
-                          ? guest.status === "checked-in"
-                            ? formatOnlyDate(guest.checkOutAt)
-                            : formatDate(guest.checkOutAt)
-                          : "N/A"}
-                      </p>
-                    </div>
-                  </div>
+                        <div className="flex items-start">
+                          <Home className="h-4 w-4 mr-2 mt-1 text-slate-400" />
+                          <div>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              Address
+                            </p>
+                            <p className="font-medium text-slate-800 dark:text-slate-200">
+                              {guest.address}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
 
-                  <div className="flex items-start space-x-3">
-                    <Clock className="h-4 w-4 mt-0.5 text-slate-400" />
-                    <div className="flex-1">
-                      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
-                        Duration
-                      </p>
-                      <p className="font-semibold text-base text-slate-800 dark:text-slate-200">
-                        {guest.stayDuration} Night
-                        {guest.stayDuration !== 1 ? "s" : ""}
-                      </p>
-                    </div>
-                  </div>
+                      <div className="space-y-3">
+                        <div className="flex items-start">
+                          <Phone className="h-4 w-4 mr-2 mt-1 text-slate-400" />
+                          <div>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              Phone
+                            </p>
+                            <p className="font-medium text-slate-800 dark:text-slate-200">
+                              {guest.phone}
+                            </p>
+                          </div>
+                        </div>
 
-                  <div className="flex items-start space-x-3">
-                    <Receipt className="h-4 w-4 mt-0.5 text-slate-400" />
-                    <div className="flex-1">
-                      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">
-                        Total Amount
-                      </p>
-                      <div className="space-y-2">
-                        <p className="font-bold text-lg text-slate-800 dark:text-slate-200">
-                          Rs {guest.totalRent.toLocaleString()}
-                        </p>
-                        {(guest.applyDiscount ||
-                          guest.additionaldiscount > 0) && (
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              {guest.applyDiscount && (
+                        {guest.email && (
+                          <div className="flex items-start">
+                            <Mail className="h-4 w-4 mr-2 mt-1 text-slate-400" />
+                            <div>
+                              <p className="text-sm text-slate-500 dark:text-slate-400">
+                                Email
+                              </p>
+                              <p className="font-medium text-slate-800 dark:text-slate-200">
+                                {guest.email}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex items-start">
+                          <CreditCard className="h-4 w-4 mr-2 mt-1 text-slate-400" />
+                          <div>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              Payment Method
+                            </p>
+                            <p className="font-medium text-slate-800 dark:text-slate-200 capitalize">
+                              {guest.paymentMethod}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Stay Information Card */}
+                  <Card className="overflow-hidden border-slate-200 dark:border-slate-700">
+                    <CardHeader className="bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-900 border-b border-slate-200 dark:border-slate-700">
+                      <CardTitle className="flex items-center text-slate-800 dark:text-slate-200">
+                        <Clock className="mr-2 h-5 w-5 text-primary" />
+                        <span>Stay Information</span>
+                      </CardTitle>
+                    </CardHeader>
+
+                    <CardContent className="grid md:grid-cols-2 gap-6 pt-6">
+                      {/* Left Column - Room Details */}
+                      <div className="space-y-4">
+                        <div className="flex items-start space-x-3">
+                          <Home className="h-4 w-4 mt-0.5 text-slate-400" />
+                          <div className="flex-1">
+                            <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
+                              Room Number
+                            </p>
+                            <p className="font-semibold text-base text-slate-800 dark:text-slate-200">
+                              {guest.room.roomNumber}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start space-x-3">
+                          <Tag className="h-4 w-4 mt-0.5 text-slate-400" />
+                          <div className="flex-1">
+                            <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
+                              Room Type
+                            </p>
+                            <p className="font-semibold text-base text-slate-800 dark:text-slate-200">
+                              {guest.room.category}
+                              <span className="font-normal text-slate-600 dark:text-slate-400 ml-2">
+                                • {guest.room.bedType}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start space-x-3">
+                          <Users className="h-4 w-4 mt-0.5 text-slate-400" />
+                          <div className="flex-1">
+                            <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">
+                              Occupancy
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge
+                                variant="outline"
+                                className="font-medium bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800 px-2.5 py-0.5"
+                              >
+                                {guest.adults || 1} Adult
+                                {(guest.adults || 1) !== 1 ? "s" : ""}
+                              </Badge>
+                              {guest.infants > 0 && (
                                 <Badge
                                   variant="outline"
-                                  className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800 px-2 py-0.5"
+                                  className="font-medium bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800 px-2.5 py-0.5"
                                 >
-                                  <Percent className="h-3 w-3 mr-1" />
-                                  Standard
-                                </Badge>
-                              )}
-                              {guest.additionaldiscount > 0 && (
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800 px-2 py-0.5"
-                                >
-                                  <Tag className="h-3 w-3 mr-1" />
-                                  Rs {guest.additionaldiscount} Off
+                                  {guest.infants} Infant
+                                  {guest.infants !== 1 ? "s" : ""}
                                 </Badge>
                               )}
                             </div>
-                          )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-start space-x-3">
+                          <Banknote className="h-4 w-4 mt-0.5 text-slate-400" />
+                          <div className="flex-1">
+                            <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
+                              Room Rate
+                            </p>
+                            <p className="font-semibold text-base text-slate-800 dark:text-slate-200">
+                              Rs {guest.room.rate.toLocaleString()}
+                              <span className="font-normal text-sm text-slate-600 dark:text-slate-400">
+                                /night
+                              </span>
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
+
+                      {/* Right Column - Stay Timeline & Payment */}
+                      <div className="space-y-4">
+                        <div className="flex items-start space-x-3">
+                          <Calendar className="h-4 w-4 mt-0.5 text-slate-400" />
+                          <div className="flex-1">
+                            <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
+                              Check-In
+                            </p>
+                            <p className="font-semibold text-base text-slate-800 dark:text-slate-200">
+                              {guest.checkInAt ? formatDate(guest.checkInAt) : "N/A"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start space-x-3">
+                          <Calendar className="h-4 w-4 mt-0.5 text-slate-400" />
+                          <div className="flex-1">
+                            <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
+                              Check-Out
+                            </p>
+                            <p className="font-semibold text-base text-slate-800 dark:text-slate-200">
+                              {guest.checkOutAt
+                                ? guest.status === "checked-in"
+                                  ? formatOnlyDate(guest.checkOutAt)
+                                  : formatDate(guest.checkOutAt)
+                                : "N/A"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start space-x-3">
+                          <Clock className="h-4 w-4 mt-0.5 text-slate-400" />
+                          <div className="flex-1">
+                            <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
+                              Duration
+                            </p>
+                            <p className="font-semibold text-base text-slate-800 dark:text-slate-200">
+                              {guest.stayDuration} Night
+                              {guest.stayDuration !== 1 ? "s" : ""}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start space-x-3">
+                          <Receipt className="h-4 w-4 mt-0.5 text-slate-400" />
+                          <div className="flex-1">
+                            <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">
+                              Total Amount
+                            </p>
+                            <div className="space-y-2">
+                              <p className="font-bold text-lg text-slate-800 dark:text-slate-200">
+                                Rs {guest.totalRent.toLocaleString()}
+                              </p>
+                              {(guest.applyDiscount ||
+                                guest.additionaldiscount > 0) && (
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    {guest.applyDiscount && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800 px-2 py-0.5"
+                                      >
+                                        <Percent className="h-3 w-3 mr-1" />
+                                        Standard
+                                      </Badge>
+                                    )}
+                                    {guest.additionaldiscount > 0 && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800 px-2 py-0.5"
+                                      >
+                                        <Tag className="h-3 w-3 mr-1" />
+                                        Rs {guest.additionaldiscount} Off
+                                      </Badge>
+                                    )}
+                                  </div>
+                                )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Invoice Card (if available) */}
+                  {invoice && (
+                    <InvoiceCard
+                      invoice={invoice}
+                      guest={guest}
+                      reservation={reservation}
+                      onPrint={handlePrintInvoice}
+                      onSendEmail={handleSendInvoice}
+                      isSendingEmail={isSendingEmail}
+                      innerRef={invoiceRef}
+                      onOpenPayment={(kind: "payment" | "refund") => {
+                        setPaymentModalType(kind);
+                        setPaymentModalMode(
+                          kind === "payment" ? "payment-only" : "refund-only"
+                        );
+                        setPayModalOpen(true);
+                      }}
+                    />
+                  )}
                 </div>
-              </CardContent>
-            </Card>
+              )}
+            </div>
 
-            {/* Invoice Card (if available) */}
-            {invoice && (
-              <InvoiceCard
-                invoice={invoice}
-                guest={guest}
-                reservation={reservation}
-                onPrint={handlePrintInvoice}
-                onSendEmail={handleSendInvoice}
-                isSendingEmail={isSendingEmail}
-                innerRef={invoiceRef}
-                onOpenPayment={(kind: "payment" | "refund") => {
-                  setPaymentModalType(kind);
-                  setPaymentModalMode(
-                    kind === "payment" ? "payment-only" : "refund-only"
-                  );
-                  setPayModalOpen(true);
-                }}
-              />
-            )}
+            {/* Dialogs - always hidden in print */}
+            <div>
+              {guest && (
+                <>
+                  <EditGuestDialog
+                    isOpen={isEditOpen}
+                    setIsOpen={setIsEditOpen}
+                    guest={guest}
+                    onUpdate={handleUpdate}
+                  />
+
+                  <CheckoutDialog
+                    isOpen={isCheckoutOpen}
+                    setIsOpen={setIsCheckoutOpen}
+                    onCheckout={handleCheckout}
+                  />
+
+                  <ExtendStayDialog
+                    isOpen={isExtendOpen}
+                    setIsOpen={setIsExtendOpen}
+                    guest={guest}
+                    invoice={invoice}
+                    onSuccess={() => fetchGuestById(id!)}
+                  />
+                  <PaymentModal
+                    isOpen={isPayModalOpen}
+                    onClose={() => setPayModalOpen(false)}
+                    context="guest"
+                    contextId={guest._id}
+                    onSuccess={handlePaymentSuccess}
+                    // For payments: prefill with balance; for refunds: start at 0 (user types)
+                    defaultAmount={
+                      paymentModalType === "payment" ? invoice?.balanceDue || 0 : 0
+                    }
+                    initialType={paymentModalType}
+                    mode={paymentModalMode}
+                  />
+                </>
+              )}
+            </div>
           </div>
-        )}
-      </div>
-
-      {/* Dialogs - always hidden in print */}
-      <div>
-        {guest && (
-          <>
-            <EditGuestDialog
-              isOpen={isEditOpen}
-              setIsOpen={setIsEditOpen}
-              guest={guest}
-              onUpdate={handleUpdate}
-            />
-
-            <CheckoutDialog
-              isOpen={isCheckoutOpen}
-              setIsOpen={setIsCheckoutOpen}
-              onCheckout={handleCheckout}
-            />
-
-            <ExtendStayDialog
-              isOpen={isExtendOpen}
-              setIsOpen={setIsExtendOpen}
-              guest={guest}
-              invoice={invoice}
-              onSuccess={() => fetchGuestById(id!)}
-            />
-            <PaymentModal
-              isOpen={isPayModalOpen}
-              onClose={() => setPayModalOpen(false)}
-              context="guest"
-              contextId={guest._id}
-              onSuccess={handlePaymentSuccess}
-              // For payments: prefill with balance; for refunds: start at 0 (user types)
-              defaultAmount={
-                paymentModalType === "payment" ? invoice?.balanceDue || 0 : 0
-              }
-              initialType={paymentModalType}
-              mode={paymentModalMode}
-            />
-          </>
-        )}
+        </main>
       </div>
     </div>
   );

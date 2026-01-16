@@ -30,7 +30,10 @@ import {
   AlertTriangle,
   Banknote,
   Calendar,
+  Menu // Add Menu
 } from "lucide-react";
+
+import Sidebar from "@/components/Sidebar";
 import {
   Dialog,
   DialogContent,
@@ -358,6 +361,7 @@ export default function SettingsPage() {
   const [recepPassword, setRecepPassword] = useState("");
   const [recepPasswordLoading, setRecepPasswordLoading] = useState(false);
   const [showRecepPassword, setShowRecepPassword] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Delete confirmation
   const [deleteRecep, setDeleteRecep] = useState<Receptionist | null>(null);
@@ -466,319 +470,334 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto py-10 px-4">
-      <div className="flex items-center gap-3 mb-8">
-        <Settings className="w-8 h-8 text-primary" />
-        <h1 className="text-3xl font-bold">Settings</h1>
-      </div>
-      {/* Responsive 2-column layout */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Left Sidebar: Admin Settings */}
-        <div className="md:col-span-1 space-y-8">
-          <Card className="shadow-lg border border-gray-200 bg-gradient-to-br from-white to-gray-50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <LockKeyhole className="w-5 h-5 text-primary" />
-                Update Your Password
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form
-                onSubmit={Handle_Admin_Update_Password}
-                className="flex flex-col gap-4"
-              >
-                {/* PREVIOUS PASSWORD INPUT-FIELD */}
-                <Label htmlFor="prev-admin-password" className="font-semibold">
-                  Prev Password
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="prev-admin-password"
-                    type={showAdminPassword ? "text" : "password"}
-                    value={adminprevPassword}
-                    onChange={(e) => setadminprevPassword(e.target.value)}
-                    required
-                    placeholder="Enter previous password"
-                    className="pr-10 pl-10"
-                  />
-                  <LockKeyhole className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                    onClick={() => setShowAdminPassword((v) => !v)}
-                    tabIndex={-1}
-                  >
-                    {showAdminPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-                {/* NEW PASSWORD INPUT-FIELD */}
-                <Label htmlFor="admin-password" className="font-semibold">
-                  New Password
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="admin-password"
-                    type={showAdminPassword ? "text" : "password"}
-                    value={adminPassword}
-                    onChange={(e) => setAdminPassword(e.target.value)}
-                    required
-                    placeholder="Enter new password"
-                    className="pr-10 pl-10"
-                  />
-                  <LockKeyhole className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                    onClick={() => setShowAdminPassword((v) => !v)}
-                    tabIndex={-1}
-                  >
-                    {showAdminPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-                {adminPassword && (
-                  <div className="text-xs mt-1">
-                    <span
-                      className={`font-medium ${getPasswordStrength(adminPassword) === "Strong"
-                        ? "text-green-600"
-                        : getPasswordStrength(adminPassword) === "Medium"
-                          ? "text-yellow-600"
-                          : "text-red-600"
-                        }`}
-                    >
-                      {getPasswordStrength(adminPassword)} password
-                    </span>
-                  </div>
-                )}
-                <Button type="submit" disabled={adminPasswordLoading}>
-                  {adminPasswordLoading ? (
-                    <span className="flex items-center gap-2">
-                      <svg
-                        className="animate-spin h-4 w-4 mr-1 text-white"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                          fill="none"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8v8z"
-                        />
-                      </svg>
-                      Updating...
-                    </span>
-                  ) : (
-                    "Update Password"
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+    <div className="flex h-screen bg-slate-50">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="flex-1 flex flex-col overflow-hidden relative">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-slate-50">
+          {/* Mobile Toggle */}
+          <div className="lg:hidden mb-4 flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
+              <Menu className="h-6 w-6 text-slate-600" />
+            </Button>
+            <h1 className="text-xl font-bold text-slate-800">Settings</h1>
+          </div>
 
-        </div>
-        {/* Main Content: Receptionists Table */}
-        <div className="md:col-span-2">
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle>Receptionists</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {receptionists.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={3}
-                        className="text-center py-6 text-gray-500"
-                      >
-                        No Receptionist Found
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    receptionists.map((data) => (
-                      <TableRow key={data._id}>
-                        <TableCell>{data.name}</TableCell>
-                        <TableCell>{data.email}</TableCell>
-                        <TableCell className="flex gap-2 justify-end">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => setSelectedRecep(data)}
-                            title="Update Password"
-                          >
-                            <KeyRound className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            onClick={() => setDeleteRecep(data)}
-                            title="Delete Receptionist"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Configuration Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
-        {/* System Alert Settings */}
-        <Card className="shadow-lg border border-gray-200 bg-white">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-orange-500" />
-              System Maintenance Alert
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <SystemAlertSettings />
-          </CardContent>
-        </Card>
-
-        {/* Mattress Rate Settings */}
-        <MattressRateSettings />
-
-        {/* Season Configuration */}
-        <SeasonSettings />
-      </div>
-      {/* Update Receptionist Password Dialog */}
-      <Dialog
-        open={!!selectedRecep}
-        onOpenChange={() => setSelectedRecep(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Update Password for {selectedRecep?.name}</DialogTitle>
-          </DialogHeader>
-          <form
-            onSubmit={handleRecepPasswordUpdate}
-            className="flex flex-col gap-4"
-          >
-            <Label htmlFor="recep-password" className="font-semibold">
-              New Password
-            </Label>
-            <div className="relative">
-              <Input
-                id="recep-password"
-                type={showRecepPassword ? "text" : "password"}
-                value={recepPassword}
-                onChange={(e) => setRecepPassword(e.target.value)}
-                required
-                placeholder="Enter new password"
-                className="pr-10 pl-10"
-              />
-              <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                onClick={() => setShowRecepPassword((v) => !v)}
-                tabIndex={-1}
-              >
-                {showRecepPassword ? (
-                  <EyeOff className="w-5 h-5" />
-                ) : (
-                  <Eye className="w-5 h-5" />
-                )}
-              </button>
+          <div className="max-w-6xl mx-auto py-10 px-4">
+            <div className="flex items-center gap-3 mb-8">
+              <Settings className="w-8 h-8 text-primary" />
+              <h1 className="text-3xl font-bold">Settings</h1>
             </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setSelectedRecep(null)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={recepPasswordLoading}>
-                {recepPasswordLoading ? (
-                  <span className="flex items-center gap-2">
-                    <svg
-                      className="animate-spin h-4 w-4 mr-1 text-white"
-                      viewBox="0 0 24 24"
+            {/* Responsive 2-column layout */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Left Sidebar: Admin Settings */}
+              <div className="md:col-span-1 space-y-8">
+                <Card className="shadow-lg border border-gray-200 bg-gradient-to-br from-white to-gray-50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <LockKeyhole className="w-5 h-5 text-primary" />
+                      Update Your Password
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form
+                      onSubmit={Handle_Admin_Update_Password}
+                      className="flex flex-col gap-4"
                     >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v8z"
-                      />
-                    </svg>
-                    Updating...
-                  </span>
-                ) : (
-                  "Update"
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+                      {/* PREVIOUS PASSWORD INPUT-FIELD */}
+                      <Label htmlFor="prev-admin-password" className="font-semibold">
+                        Prev Password
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="prev-admin-password"
+                          type={showAdminPassword ? "text" : "password"}
+                          value={adminprevPassword}
+                          onChange={(e) => setadminprevPassword(e.target.value)}
+                          required
+                          placeholder="Enter previous password"
+                          className="pr-10 pl-10"
+                        />
+                        <LockKeyhole className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <button
+                          type="button"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                          onClick={() => setShowAdminPassword((v) => !v)}
+                          tabIndex={-1}
+                        >
+                          {showAdminPassword ? (
+                            <EyeOff className="w-5 h-5" />
+                          ) : (
+                            <Eye className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
+                      {/* NEW PASSWORD INPUT-FIELD */}
+                      <Label htmlFor="admin-password" className="font-semibold">
+                        New Password
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="admin-password"
+                          type={showAdminPassword ? "text" : "password"}
+                          value={adminPassword}
+                          onChange={(e) => setAdminPassword(e.target.value)}
+                          required
+                          placeholder="Enter new password"
+                          className="pr-10 pl-10"
+                        />
+                        <LockKeyhole className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <button
+                          type="button"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                          onClick={() => setShowAdminPassword((v) => !v)}
+                          tabIndex={-1}
+                        >
+                          {showAdminPassword ? (
+                            <EyeOff className="w-5 h-5" />
+                          ) : (
+                            <Eye className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
+                      {adminPassword && (
+                        <div className="text-xs mt-1">
+                          <span
+                            className={`font-medium ${getPasswordStrength(adminPassword) === "Strong"
+                              ? "text-green-600"
+                              : getPasswordStrength(adminPassword) === "Medium"
+                                ? "text-yellow-600"
+                                : "text-red-600"
+                              }`}
+                          >
+                            {getPasswordStrength(adminPassword)} password
+                          </span>
+                        </div>
+                      )}
+                      <Button type="submit" disabled={adminPasswordLoading}>
+                        {adminPasswordLoading ? (
+                          <span className="flex items-center gap-2">
+                            <svg
+                              className="animate-spin h-4 w-4 mr-1 text-white"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                                fill="none"
+                              />
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8v8z"
+                              />
+                            </svg>
+                            Updating...
+                          </span>
+                        ) : (
+                          "Update Password"
+                        )}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
 
-      {/* Delete Receptionist Dialog */}
-      <Dialog open={!!deleteRecep} onOpenChange={() => setDeleteRecep(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Receptionist</DialogTitle>
-          </DialogHeader>
-          <p>
-            Are you sure you want to delete{" "}
-            <span className="font-semibold">{deleteRecep?.name}</span>? This
-            action cannot be undone.
-          </p>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setDeleteRecep(null)}
+              </div>
+              {/* Main Content: Receptionists Table */}
+              <div className="md:col-span-2">
+                <Card className="h-full">
+                  <CardHeader>
+                    <CardTitle>Receptionists</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {receptionists.length === 0 ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={3}
+                              className="text-center py-6 text-gray-500"
+                            >
+                              No Receptionist Found
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          receptionists.map((data) => (
+                            <TableRow key={data._id}>
+                              <TableCell>{data.name}</TableCell>
+                              <TableCell>{data.email}</TableCell>
+                              <TableCell className="flex gap-2 justify-end">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => setSelectedRecep(data)}
+                                  title="Update Password"
+                                >
+                                  <KeyRound className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="icon"
+                                  onClick={() => setDeleteRecep(data)}
+                                  title="Delete Receptionist"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* Configuration Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+              {/* System Alert Settings */}
+              <Card className="shadow-lg border border-gray-200 bg-white">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-orange-500" />
+                    System Maintenance Alert
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <SystemAlertSettings />
+                </CardContent>
+              </Card>
+
+              {/* Mattress Rate Settings */}
+              <MattressRateSettings />
+
+              {/* Season Configuration */}
+              <SeasonSettings />
+            </div>
+            {/* Update Receptionist Password Dialog */}
+            <Dialog
+              open={!!selectedRecep}
+              onOpenChange={() => setSelectedRecep(null)}
             >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => handleDeleteRecep(deleteRecep?._id)}
-            >
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Update Password for {selectedRecep?.name}</DialogTitle>
+                </DialogHeader>
+                <form
+                  onSubmit={handleRecepPasswordUpdate}
+                  className="flex flex-col gap-4"
+                >
+                  <Label htmlFor="recep-password" className="font-semibold">
+                    New Password
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="recep-password"
+                      type={showRecepPassword ? "text" : "password"}
+                      value={recepPassword}
+                      onChange={(e) => setRecepPassword(e.target.value)}
+                      required
+                      placeholder="Enter new password"
+                      className="pr-10 pl-10"
+                    />
+                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      onClick={() => setShowRecepPassword((v) => !v)}
+                      tabIndex={-1}
+                    >
+                      {showRecepPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setSelectedRecep(null)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={recepPasswordLoading}>
+                      {recepPasswordLoading ? (
+                        <span className="flex items-center gap-2">
+                          <svg
+                            className="animate-spin h-4 w-4 mr-1 text-white"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                              fill="none"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8v8z"
+                            />
+                          </svg>
+                          Updating...
+                        </span>
+                      ) : (
+                        "Update"
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+
+            {/* Delete Receptionist Dialog */}
+            <Dialog open={!!deleteRecep} onOpenChange={() => setDeleteRecep(null)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete Receptionist</DialogTitle>
+                </DialogHeader>
+                <p>
+                  Are you sure you want to delete{" "}
+                  <span className="font-semibold">{deleteRecep?.name}</span>? This
+                  action cannot be undone.
+                </p>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setDeleteRecep(null)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => handleDeleteRecep(deleteRecep?._id)}
+                  >
+                    Delete
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

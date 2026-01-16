@@ -20,7 +20,10 @@ import {
   Percent,
   Hash,
   Building,
+  Menu // Add Menu
 } from "lucide-react";
+
+import Sidebar from "@/components/Sidebar";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -131,12 +134,19 @@ const InvoiceDetailsPage = () => {
   } = useInvoiceContext();
 
   const [newStatus, setNewStatus] = useState<Invoice["status"] | "">("");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     if (id) {
-      fetchInvoiceById(id);
+      if (currentInvoice && currentInvoice._id !== id) {
+        // This prevents loop if fetching logic is imperfect?
+        // Actually existing logic is fine.
+        fetchInvoiceById(id);
+      } else if (!currentInvoice) {
+        fetchInvoiceById(id);
+      }
     }
-  }, [id, fetchInvoiceById]);
+  }, [id, fetchInvoiceById, currentInvoice]);
 
   useEffect(() => {
     if (currentInvoice) {
@@ -233,91 +243,101 @@ const InvoiceDetailsPage = () => {
   const refundDue = Math.max(0, netHeld - (currentInvoice.grandTotal || 0));
 
   return (
-    <div className="bg-slate-50 min-h-screen">
-      <Toaster />
-      <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-        <header className="mb-8">
-          <Button
-            onClick={() => navigate("/invoices")}
-            variant="ghost"
-            className="mb-4 text-slate-600 hover:text-slate-900"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to All Invoices
-          </Button>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-4xl font-light text-slate-900 flex items-center gap-3">
-                Invoice{" "}
-                <span className="text-amber-500">
-                  {currentInvoice.invoiceNumber}
-                </span>
-              </h1>
-              <p className="text-slate-500 mt-2">
-                Issued on {formatDate(currentInvoice.issueDate)} by{" "}
-                {currentInvoice.createdBy.name}
-              </p>
-            </div>
-
-            {/* --- MODIFICATION START --- */}
-            {/* Conditional rendering for action buttons based on pdfPath */}
-            <div className="flex items-center gap-2">
-              {currentInvoice.pdfPath ? (
-                // If PDF exists, show Download and Resend buttons
-                <>
-                  <Button
-                    onClick={() => downloadInvoicePdf(currentInvoice._id)}
-                    variant="outline"
-                    disabled={loading}
-                  >
-                    <Download className="h-4 w-4 mr-2" /> Download PDF
-                  </Button>
-                  <Button onClick={handleSendEmail} disabled={loading}>
-                    <Mail className="h-4 w-4 mr-2" />
-                    {loading ? "Resending..." : "Resend Email"}
-                  </Button>
-                </>
-              ) : (
-                // If PDF does not exist, show a single button to generate it
-                <Button onClick={handleSendEmail} disabled={loading}>
-                  <Mail className="h-4 w-4 mr-2" />
-                  {loading ? "Generating..." : "Generate & Send PDF"}
-                </Button>
-              )}
-            </div>
-            {/* --- MODIFICATION END --- */}
+    <div className="flex h-screen bg-slate-50">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="flex-1 flex flex-col overflow-hidden relative">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6 lg:p-8 bg-slate-50">
+          {/* Mobile Toggle */}
+          <div className="lg:hidden mb-4 flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
+              <Menu className="h-6 w-6 text-slate-600" />
+            </Button>
+            <h1 className="text-xl font-bold text-slate-800">Invoice Details</h1>
           </div>
-        </header>
 
-        {/* The rest of the page remains the same */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Guest Information</CardTitle>
-              </CardHeader>
-              {/* NEW: This CardContent uses the permanent snapshot data */}
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <DetailItem
-                  icon={<User size={18} />}
-                  label="Full Name"
-                  value={
-                    currentInvoice.guestDetails?.fullName ||
-                    currentInvoice.guest?.fullName ||
-                    "N/A"
-                  }
-                />
-                <DetailItem
-                  icon={<Phone size={18} />}
-                  label="Phone Number"
-                  value={
-                    currentInvoice.guestDetails?.phone ||
-                    currentInvoice.guest?.phone ||
-                    "N/A"
-                  }
-                />
-                {/* <DetailItem
+          <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+            <header className="mb-8">
+              <Button
+                onClick={() => navigate("/invoices")}
+                variant="ghost"
+                className="mb-4 text-slate-600 hover:text-slate-900"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to All Invoices
+              </Button>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <h1 className="text-4xl font-light text-slate-900 flex items-center gap-3">
+                    Invoice{" "}
+                    <span className="text-amber-500">
+                      {currentInvoice.invoiceNumber}
+                    </span>
+                  </h1>
+                  <p className="text-slate-500 mt-2">
+                    Issued on {formatDate(currentInvoice.issueDate)} by{" "}
+                    {currentInvoice.createdBy.name}
+                  </p>
+                </div>
+
+                {/* --- MODIFICATION START --- */}
+                {/* Conditional rendering for action buttons based on pdfPath */}
+                <div className="flex items-center gap-2">
+                  {currentInvoice.pdfPath ? (
+                    // If PDF exists, show Download and Resend buttons
+                    <>
+                      <Button
+                        onClick={() => downloadInvoicePdf(currentInvoice._id)}
+                        variant="outline"
+                        disabled={loading}
+                      >
+                        <Download className="h-4 w-4 mr-2" /> Download PDF
+                      </Button>
+                      <Button onClick={handleSendEmail} disabled={loading}>
+                        <Mail className="h-4 w-4 mr-2" />
+                        {loading ? "Resending..." : "Resend Email"}
+                      </Button>
+                    </>
+                  ) : (
+                    // If PDF does not exist, show a single button to generate it
+                    <Button onClick={handleSendEmail} disabled={loading}>
+                      <Mail className="h-4 w-4 mr-2" />
+                      {loading ? "Generating..." : "Generate & Send PDF"}
+                    </Button>
+                  )}
+                </div>
+                {/* --- MODIFICATION END --- */}
+              </div>
+            </header>
+
+            {/* The rest of the page remains the same */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column */}
+              <div className="lg:col-span-2 space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Guest Information</CardTitle>
+                  </CardHeader>
+                  {/* NEW: This CardContent uses the permanent snapshot data */}
+                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <DetailItem
+                      icon={<User size={18} />}
+                      label="Full Name"
+                      value={
+                        currentInvoice.guestDetails?.fullName ||
+                        currentInvoice.guest?.fullName ||
+                        "N/A"
+                      }
+                    />
+                    <DetailItem
+                      icon={<Phone size={18} />}
+                      label="Phone Number"
+                      value={
+                        currentInvoice.guestDetails?.phone ||
+                        currentInvoice.guest?.phone ||
+                        "N/A"
+                      }
+                    />
+                    {/* <DetailItem
                   icon={<AtSign size={18} />}
                   label="Email Address"
                   value={currentInvoice.guestDetails?.email || "Not Provided"}
@@ -327,183 +347,185 @@ const InvoiceDetailsPage = () => {
                   label="Address"
                   value={currentInvoice.guest?.address || "N/A"}
                 /> */}
-                <DetailItem
-                  icon={<Building size={18} />}
-                  label="Room Number"
-                  value={
-                    currentInvoice.roomDetails?.roomNumber ||
-                    currentInvoice.guest?.room?.roomNumber ||
-                    "N/A"
-                  }
-                />
-                <DetailItem
-                  icon={<Hash size={18} />}
-                  label="CNIC"
-                  value={
-                    currentInvoice.guestDetails?.cnic ||
-                    currentInvoice.guest?.cnic ||
-                    "N/A"
-                  }
-                />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Billing Details</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <BillingRow
-                    label="Subtotal"
-                    value={formatCurrency(currentInvoice.subtotal)}
-                  />
-                  {currentInvoice.discountAmount > 0 && (
-                    <BillingRow
-                      label="Discount"
-                      value={`- ${formatCurrency(
-                        currentInvoice.discountAmount
-                      )}`}
+                    <DetailItem
+                      icon={<Building size={18} />}
+                      label="Room Number"
+                      value={
+                        currentInvoice.roomDetails?.roomNumber ||
+                        currentInvoice.guest?.room?.roomNumber ||
+                        "N/A"
+                      }
                     />
-                  )}
-                  {currentInvoice.additionaldiscount > 0 && (
-                    <BillingRow
-                      label="Additional Discount"
-                      value={`- ${formatCurrency(
-                        currentInvoice.additionaldiscount
-                      )}`}
+                    <DetailItem
+                      icon={<Hash size={18} />}
+                      label="CNIC"
+                      value={
+                        currentInvoice.guestDetails?.cnic ||
+                        currentInvoice.guest?.cnic ||
+                        "N/A"
+                      }
                     />
-                  )}
-                  {currentInvoice.promoDiscount && currentInvoice.promoDiscount > 0 && (
-                    <BillingRow
-                      label="Promo Discount"
-                      value={`- ${formatCurrency(
-                        currentInvoice.promoDiscount
-                      )}`}
-                    />
-                  )}
-                  <BillingRow
-                    label={`Tax (${currentInvoice.taxRate}%)`}
-                    value={formatCurrency(currentInvoice.taxAmount)}
-                  />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Billing Details</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <BillingRow
+                        label="Subtotal"
+                        value={formatCurrency(currentInvoice.subtotal)}
+                      />
+                      {currentInvoice.discountAmount > 0 && (
+                        <BillingRow
+                          label="Discount"
+                          value={`- ${formatCurrency(
+                            currentInvoice.discountAmount
+                          )}`}
+                        />
+                      )}
+                      {currentInvoice.additionaldiscount > 0 && (
+                        <BillingRow
+                          label="Additional Discount"
+                          value={`- ${formatCurrency(
+                            currentInvoice.additionaldiscount
+                          )}`}
+                        />
+                      )}
+                      {currentInvoice.promoDiscount && currentInvoice.promoDiscount > 0 && (
+                        <BillingRow
+                          label="Promo Discount"
+                          value={`- ${formatCurrency(
+                            currentInvoice.promoDiscount
+                          )}`}
+                        />
+                      )}
+                      <BillingRow
+                        label={`Tax (${currentInvoice.taxRate}%)`}
+                        value={formatCurrency(currentInvoice.taxAmount)}
+                      />
 
-                  {currentInvoice.advanceAdjusted > 0 && (
-                    <div className="flex justify-between items-center py-3 text-emerald-600">
-                      <p className="font-medium">Less: Paid/Advance</p>
-                      <p className="font-semibold text-lg">
-                        - {formatCurrency(currentInvoice.advanceAdjusted)}
+                      {currentInvoice.advanceAdjusted > 0 && (
+                        <div className="flex justify-between items-center py-3 text-emerald-600">
+                          <p className="font-medium">Less: Paid/Advance</p>
+                          <p className="font-semibold text-lg">
+                            - {formatCurrency(currentInvoice.advanceAdjusted)}
+                          </p>
+                        </div>
+                      )}
+
+                      {currentInvoice.totalRefunded &&
+                        currentInvoice.totalRefunded > 0 && (
+                          <BillingRow
+                            label="Refunds Issued"
+                            value={`- ${formatCurrency(
+                              currentInvoice.totalRefunded
+                            )}`}
+                          />
+                        )}
+
+                      {/* 👇 NEW: Refund Due row 👇 */}
+                      {refundDue > 0 && (
+                        <BillingRow
+                          label="Refund Due"
+                          value={formatCurrency(refundDue)}
+                        />
+                      )}
+                      {/* 👆 --------------------- 👆 */}
+                    </div>
+
+                    <hr className="my-4" />
+                    <BillingRow
+                      label="Grand Total"
+                      value={formatCurrency(currentInvoice.grandTotal)}
+                      isBold={true}
+                    />
+                    <div className="flex justify-between items-center py-3 border-t mt-2">
+                      <p className="font-bold text-lg text-slate-800">
+                        Balance Due
+                      </p>
+                      <p
+                        className={`font-bold text-xl ${currentInvoice.balanceDue > 0
+                          ? "text-red-600"
+                          : "text-emerald-600"
+                          }`}
+                      >
+                        {formatCurrency(currentInvoice.balanceDue)}
                       </p>
                     </div>
-                  )}
-
-                  {currentInvoice.totalRefunded &&
-                    currentInvoice.totalRefunded > 0 && (
-                      <BillingRow
-                        label="Refunds Issued"
-                        value={`- ${formatCurrency(
-                          currentInvoice.totalRefunded
-                        )}`}
-                      />
-                    )}
-
-                  {/* 👇 NEW: Refund Due row 👇 */}
-                  {refundDue > 0 && (
-                    <BillingRow
-                      label="Refund Due"
-                      value={formatCurrency(refundDue)}
-                    />
-                  )}
-                  {/* 👆 --------------------- 👆 */}
-                </div>
-
-                <hr className="my-4" />
-                <BillingRow
-                  label="Grand Total"
-                  value={formatCurrency(currentInvoice.grandTotal)}
-                  isBold={true}
-                />
-                <div className="flex justify-between items-center py-3 border-t mt-2">
-                  <p className="font-bold text-lg text-slate-800">
-                    Balance Due
-                  </p>
-                  <p
-                    className={`font-bold text-xl ${currentInvoice.balanceDue > 0
-                        ? "text-red-600"
-                        : "text-emerald-600"
-                      }`}
-                  >
-                    {formatCurrency(currentInvoice.balanceDue)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          {/* Right Column */}
-          <div className="lg:col-span-1 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Invoice Status</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {getStatusBadge(currentInvoice.status)}
-                <div>
-                  <label
-                    htmlFor="status-select"
-                    className="text-sm font-medium text-slate-700"
-                  >
-                    Change Status
-                  </label>
-                  <select
-                    id="status-select"
-                    value={newStatus}
-                    onChange={(e) =>
-                      setNewStatus(e.target.value as Invoice["status"])
-                    }
-                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm rounded-md"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="paid">Paid</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
-                </div>
-                <Button
-                  onClick={handleStatusUpdate}
-                  disabled={newStatus === currentInvoice.status || loading}
-                  className="w-full"
-                >
-                  <Save className="h-4 w-4 mr-2" /> Save Status
-                </Button>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Invoice Items</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-4">
-                  {currentInvoice.items.map((item) => (
-                    <li
-                      key={item._id}
-                      className="flex justify-between items-start"
+                  </CardContent>
+                </Card>
+              </div>
+              {/* Right Column */}
+              <div className="lg:col-span-1 space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Invoice Status</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {getStatusBadge(currentInvoice.status)}
+                    <div>
+                      <label
+                        htmlFor="status-select"
+                        className="text-sm font-medium text-slate-700"
+                      >
+                        Change Status
+                      </label>
+                      <select
+                        id="status-select"
+                        value={newStatus}
+                        onChange={(e) =>
+                          setNewStatus(e.target.value as Invoice["status"])
+                        }
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm rounded-md"
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="paid">Paid</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </div>
+                    <Button
+                      onClick={handleStatusUpdate}
+                      disabled={newStatus === currentInvoice.status || loading}
+                      className="w-full"
                     >
-                      <div>
-                        <p className="font-medium text-slate-800">
-                          {item.description}
-                        </p>
-                        <p className="text-sm text-slate-500">
-                          {item.quantity} x {formatCurrency(item.unitPrice)}
-                        </p>
-                      </div>
-                      <p className="font-semibold text-slate-900">
-                        {formatCurrency(item.total)}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </main>
+                      <Save className="h-4 w-4 mr-2" /> Save Status
+                    </Button>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Invoice Items</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-4">
+                      {currentInvoice.items.map((item) => (
+                        <li
+                          key={item._id}
+                          className="flex justify-between items-start"
+                        >
+                          <div>
+                            <p className="font-medium text-slate-800">
+                              {item.description}
+                            </p>
+                            <p className="text-sm text-slate-500">
+                              {item.quantity} x {formatCurrency(item.unitPrice)}
+                            </p>
+                          </div>
+                          <p className="font-semibold text-slate-900">
+                            {formatCurrency(item.total)}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </main>
+        </main>
+      </div>
     </div>
   );
 };
