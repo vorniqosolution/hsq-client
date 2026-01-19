@@ -4,10 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 
 // Create a configured Axios instance to avoid repetition
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
-const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE,
-  withCredentials: true
-});
 
 // Type definitions
 export interface TaxSettings {
@@ -22,7 +18,7 @@ interface TaxContextType {
   settings: TaxSettings | null;
   loading: boolean;
   error: string | null;
-  
+
   fetchSettings: () => Promise<void>;
   updateSettings: (data: Partial<TaxSettings>) => Promise<void>;
   calculateTax: (amount: number) => number;
@@ -33,7 +29,7 @@ const TaxContext = createContext<TaxContextType | undefined>(undefined);
 
 export const TaxProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
-  
+
   // State
   const [settings, setSettings] = useState<TaxSettings | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -47,7 +43,7 @@ export const TaxProvider = ({ children }: { children: ReactNode }) => {
   ): Promise<T> => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const result = await fn();
       if (onSuccess) onSuccess(result);
@@ -61,7 +57,7 @@ export const TaxProvider = ({ children }: { children: ReactNode }) => {
       } else if (err instanceof Error) {
         message = err.message;
       }
-      
+
       setError(message);
       throw err;
     } finally {
@@ -74,7 +70,7 @@ export const TaxProvider = ({ children }: { children: ReactNode }) => {
     await apiCall(
       async () => {
         // Use the correct endpoint that matches your router
-        const res = await apiClient.get<{ success: boolean; data: TaxSettings }>('/api/tax/get-all-gst');
+        const res = await axios.get<{ success: boolean; data: TaxSettings }>(`${API_BASE}/api/tax/get-all-gst`, { withCredentials: true });
         return res.data.data;
       },
       (data) => setSettings(data),
@@ -87,12 +83,13 @@ export const TaxProvider = ({ children }: { children: ReactNode }) => {
       setError('Only administrators can update tax settings');
       return;
     }
-    
+
     await apiCall(
       async () => {
-        const res = await apiClient.put<{ success: boolean; data: TaxSettings }>(
-          '/api/tax/update-setting',
-          data
+        const res = await axios.put<{ success: boolean; data: TaxSettings }>(
+          `${API_BASE}/api/tax/update-setting`,
+          data,
+          { withCredentials: true }
         );
         return res.data.data;
       },
@@ -121,7 +118,7 @@ export const TaxProvider = ({ children }: { children: ReactNode }) => {
         console.error('Failed to load tax settings:', err);
       }
     };
-    
+
     loadInitialData();
   }, [fetchSettings]);
 

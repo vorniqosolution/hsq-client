@@ -19,7 +19,7 @@ import { DecorProvider } from "./contexts/DecorContext";
 import { SettingProvider } from "./contexts/SettingContext";
 import { PromoCodeProvider } from "./contexts/PromoCodeContext";
 
-import SessionPopup from "@/components/SessionPopup";
+
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -75,7 +75,7 @@ const App = () => (
                                 <PromoCodeProvider>
                                   <OwnerProvider>
                                     <AppInitializer>
-                                      <SessionPopup />
+
                                       <Routes>
                                         <Route path="/" element={<Navigate to="/login" replace />} />
                                         <Route path="/login" element={<LoginPage />} />
@@ -96,7 +96,7 @@ const App = () => (
                                         <Route path="/promocodes" element={<ProtectedRoute><Layout><PromoCodesPage /></Layout></ProtectedRoute>} />
                                         <Route path="/owners-reception" element={<ProtectedRoute><Layout><OwnerReceptionPage /></Layout></ProtectedRoute>} />
                                         <Route path="/owners" element={<ProtectedRoute><Layout><OwnersPage /></Layout></ProtectedRoute>} />
-                                        <Route path="/transactions" element={<TransactionsPage />} />
+                                        <Route path="/transactions" element={<ProtectedRoute><Layout><TransactionsPage /></Layout></ProtectedRoute>} />
                                         <Route path="*" element={<NotFound />} />
                                       </Routes>
                                     </AppInitializer>

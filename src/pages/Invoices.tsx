@@ -49,12 +49,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
-import Sidebar from "@/components/Sidebar";
+
 
 const InvoicesPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isOpen, setIsOpen] = useState(true);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "all" | "pending" | "paid" | "cancelled"
@@ -172,31 +172,10 @@ const InvoicesPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="h-full">
       <Toaster />
 
-      <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)}></Sidebar>
-
       <div className="flex-1 lg:ml-0">
-        {/* FOR SMALL SCREEN */}
-        <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => setIsOpen(true)}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <Menu className="h-5 w-5 text-slate-700" />
-            </button>
-            <div className="flex items-center space-x-2">
-              <Crown className="h-6 w-6 text-amber-500" />
-              <span className="font-light tracking-wider text-slate-900">
-                HSQ ADMIN
-              </span>
-            </div>
-            <div className="w-9" />
-          </div>
-        </div>
-
         <main className="p-8">
           <div className="max-w-7xl mx-auto">
             <header className="flex flex-col md:flex-row md:items-center md:justify-between mb-10">
@@ -496,7 +475,7 @@ const InvoicesPage = () => {
                         disabled={
                           loading ||
                           paginatedInvoices?.currentPage ===
-                            paginatedInvoices?.totalPages
+                          paginatedInvoices?.totalPages
                         }
                       >
                         Next

@@ -46,7 +46,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import Sidebar from "@/components/Sidebar";
+
 
 const TaxSettingsPage: React.FC = () => {
   const { user } = useAuth();
@@ -58,7 +58,7 @@ const TaxSettingsPage: React.FC = () => {
   const [hotelName, setHotelName] = useState<string>("HSQ Towers");
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
-  const [isOpen, setIsOpen] = useState(true);
+
 
   useEffect(() => {
     if (settings) {
@@ -89,31 +89,9 @@ const TaxSettingsPage: React.FC = () => {
   const isAdmin = user?.role === "admin";
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
-      {/* SIDE_BAR COMPONENT */}
-      <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)} />
+    <div className="h-full">
       {/* Main content */}
       <div className="flex-1  lg:ml-0">
-        {/* Mobile header - only for admin */}
-        {isAdmin && (
-          <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4">
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => setIsOpen(true)}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <Menu className="h-5 w-5 text-slate-700" />
-              </button>
-              <div className="flex items-center space-x-2">
-                <Crown className="h-6 w-6 text-amber-500" />
-                <span className="font-light tracking-wider text-slate-900">
-                  HSQ ADMIN
-                </span>
-              </div>
-              <div className="w-9" />
-            </div>
-          </div>
-        )}
         <div className="p-8">
           <div className="max-w-4xl mx-auto">
             <div className="mb-8">

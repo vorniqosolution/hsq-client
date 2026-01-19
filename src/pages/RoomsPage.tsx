@@ -55,7 +55,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Room, useRoomContext } from "../contexts/RoomContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Sidebar from "@/components/Sidebar";
+
 
 const RoomsPage = () => {
   const availableAmenities = [
@@ -99,7 +99,7 @@ const RoomsPage = () => {
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [deletedImages, setDeletedImages] = useState<string[]>([]);
   const { toast } = useToast();
-  const [isOpen, setIsOpen] = useState(true);
+
 
   const [formData, setFormData] = useState<Partial<Room>>({
     roomNumber: "",
@@ -390,30 +390,9 @@ const RoomsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
-      {/* ADD SIDE_BAR */}
-      <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)} />
-      {/* Main content */}
-      <div className={`flex-1 ${isAdmin ? "lg:ml-0" : ""}`}>
-        {isAdmin && (
-          <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4">
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => setIsOpen(true)}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <Menu className="h-5 w-5 text-slate-700" />
-              </button>
-              <div className="flex items-center space-x-2">
-                <Crown className="h-6 w-6 text-amber-500" />
-                <span className="font-light tracking-wider text-slate-900">
-                  HSQ ADMIN
-                </span>
-              </div>
-              <div className="w-9" />
-            </div>
-          </div>
-        )}
+    <div className="h-full">
+      <div className="flex-1">
+        {/* Mobile header removed */}
 
         <div className="p-6 ">
           <div className="max-w-7xl mx-auto">
@@ -1382,9 +1361,8 @@ const RoomsPage = () => {
                                 <div key={index} className="relative group">
                                   <img
                                     src={imageUrl}
-                                    alt={`Room ${formData.roomNumber} - ${
-                                      index + 1
-                                    }`}
+                                    alt={`Room ${formData.roomNumber} - ${index + 1
+                                      }`}
                                     className="w-full h-24 object-cover rounded"
                                   />
                                   <button
@@ -1513,9 +1491,8 @@ const RoomsPage = () => {
                             >
                               <img
                                 src={imageUrl}
-                                alt={`Room ${currentRoom.roomNumber} - ${
-                                  index + 1
-                                }`}
+                                alt={`Room ${currentRoom.roomNumber} - ${index + 1
+                                  }`}
                                 className="w-full h-32 object-cover"
                               />
                             </a>

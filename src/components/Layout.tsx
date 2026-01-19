@@ -1,98 +1,137 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import HSQ from "../../public/HSQ.png";
-import { LayoutDashboard, Users, LogOut, User as UserIcon } from "lucide-react";
+import { Menu, Bell, Search, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import Footer from "./Footer.tsx";
-import SystemAlertBanner from "./SystemAlertBanner";
+import { useSetting } from "@/contexts/SettingContext";
+import Sidebar from "./Sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 const Layout = ({ children }: LayoutProps) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { settings } = useSetting();
 
-  // Choose logo link based on role
-  const logoLink = user?.role === "receptionist" ? "/guests" : "/dashboard";
-
-  // Determine navigation items based on user role
-  const navItems = React.useMemo(() => {
-    if (!user) return [];
-    if (user.role === "receptionist") {
-      return [{ path: "/guests", label: "Guests", icon: Users }];
-    }
-    if (user.role === "admin") {
-      return [
-        { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      ];
-    }
-    return [];
-  }, [user]);
-
-  const isActive = (path: string) => location.pathname === path;
-
-  const handleLogout = () => logout();
+  // Helper to get current page title
+  const getPageTitle = (pathname: string) => {
+    const path = pathname.split("/")[1];
+    if (!path) return "Dashboard";
+    return path.charAt(0).toUpperCase() + path.slice(1);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-100 print:bg-white">
-      <SystemAlertBanner />
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b print:hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Link to={logoLink} className="flex items-center gap-2">
-                <div className="w-8 h-8  rounded-lg flex items-center justify-center">
-                  <img src={HSQ} alt={HSQ} />
-                </div>
-                <span className="text-xl font-bold text-gray-900">
-                  HSQ Towers
-                </span>
-              </Link>
+    <div className="flex h-screen bg-slate-50 overflow-hidden">
+      {/* Global Sidebar */}
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-              <div className="hidden md:ml-10 md:flex md:space-x-8">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`inline-flex items-center px-1 pt-1 text-sm font-medium border-b-2 transition-colors ${isActive(item.path)
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                      }`}
-                  >
-                    <item.icon className="w-4 h-4 mr-2" />
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Top Navbar / Header */}
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 lg:px-8 z-10 shrink-0">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden text-slate-500 hover:text-slate-700"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
 
-            <div className="flex items-center gap-2 sm:gap-4">
-              {user && (
-                <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600 print:hidden">
-                  <UserIcon className="w-4 h-4" />
-                  <span>{user.email}</span>
-                </div>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-gray-600 hover:text-gray-900 print:hidden"
-                onClick={handleLogout}
-              >
-                <LogOut className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Logout</span>
-              </Button>
+            <div className="flex flex-col">
+              <h1 className="text-xl font-semibold text-slate-900 tracking-tight">
+                {getPageTitle(location.pathname)}
+              </h1>
+              <span className="text-xs text-slate-500 hidden sm:inline-block">
+                {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              </span>
             </div>
           </div>
-        </div>
-      </nav>
-      {/* Main Content */}
-      <main>{children}</main>
-      <Footer />
+
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Search - Visual only for now */}
+            <div className="relative hidden md:block w-64">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search..."
+                className="pl-9 h-9 bg-slate-100 border-none focus-visible:ring-1 focus-visible:ring-slate-300 focus-visible:bg-white transition-colors"
+              />
+            </div>
+
+            <Button variant="ghost" size="icon" className="text-slate-500 hover:bg-slate-100 rounded-full relative">
+              <Bell className="h-5 w-5" />
+              <span className="absolute top-2 right-2.5 h-2 w-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                  <Avatar className="h-9 w-9 border border-slate-200">
+                    <AvatarImage src={`https://ui-avatars.com/api/?name=${user?.name || 'User'}&background=random`} alt={user?.name} />
+                    <AvatarFallback>{user?.name?.charAt(0) || "U"}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user?.name}</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user?.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/settings">Profile & Settings</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-red-600 focus:text-red-600 cursor-pointer" onClick={logout}>
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </header>
+
+        {/* Alert Pill */}
+        {settings?.systemAlert?.isActive && (
+          <div className="flex justify-center pt-4 pb-2 px-4">
+            <div
+              className={`px-6 py-2 text-sm font-medium flex items-center shadow-sm border rounded-full backdrop-blur-md animate-in slide-in-from-top-2 z-20 ${settings.systemAlert.type === "error"
+                ? "bg-red-50/80 border-red-200 text-red-900"
+                : settings.systemAlert.type === "warning"
+                  ? "bg-amber-50/80 border-amber-200 text-amber-900"
+                  : "bg-blue-50/80 border-blue-200 text-blue-900"
+                }`}
+            >
+              <span className="mr-2.5 flex h-2 w-2 rounded-full ring-[3px] ring-opacity-20 flex-shrink-0 animate-pulse bg-current" />
+              <span>{settings.systemAlert.message}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Scrollable Page Content */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 scroll-smooth">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 };

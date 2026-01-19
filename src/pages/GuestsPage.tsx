@@ -4,7 +4,6 @@ import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import DatePicker from "react-datepicker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Sidebar from "@/components/Sidebar";
 import {
   Search,
   Eye,
@@ -85,465 +84,6 @@ const INITIAL_FORM_STATE: CreateGuestInput = {
   adults: 1,
   infants: 0,
   extraMattresses: 0,
-};
-
-const GuestsPage: React.FC = () => {
-  const {
-    guests,
-    loading: guestsLoading,
-    error,
-    fetchGuests,
-    createGuest,
-    deleteGuest,
-    // ADD THESE
-    guestActivityReport,
-    fetchGuestActivityReport,
-  } = useGuestContext();
-
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const { getReservationById } = useReservationContext();
-  const isAdmin = user?.role === "admin";
-  const ITEMS_PER_PAGE = 15;
-  const [currentPage, setCurrentPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [searchCategory, setSearchCategory] = useState("name");
-  const [isCheckInDialogOpen, setIsCheckInDialogOpen] = useState(false);
-  const [guestToDelete, setGuestToDelete] = useState<Guest | null>(null);
-  const [isOpen, setIsOpen] = useState(true);
-  const [searchParams] = useSearchParams();
-  const [viewMode, setViewMode] = useState<"list" | "report">("list");
-  const [reportDate, setReportDate] = useState(new Date());
-  const [prefill, setPrefill] = useState<Partial<CreateGuestInput> | null>(
-    null
-  );
-
-  useEffect(() => {
-    const qpId = searchParams.get("reservation");
-    if (qpId) {
-      (async () => {
-        try {
-          const r = (await getReservationById(qpId)) as any;
-          if (r) {
-            setPrefill({
-              fullName: r.fullName || "",
-              address: r.address || "",
-              phone: r.phone || "",
-              cnic: r.cnic || "",
-              email: r.email || "",
-              adults: r.adults || 1,
-              infants: r.infants || 0,
-              roomNumber:
-                typeof r.room === "object" ? r.room.roomNumber : r.roomNumber,
-              // Allow the user to set their own check-in date
-              checkInDate: format(new Date(r.startAt), "yyyy-MM-dd"),
-              checkOutDate: format(new Date(r.endAt), "yyyy-MM-dd"),
-              reservationId: r._id,
-            });
-            setIsCheckInDialogOpen(true);
-          }
-        } catch (err) {
-          console.error("Failed to fetch reservation for prefill:", err);
-        }
-      })();
-    }
-  }, [searchParams, getReservationById]);
-
-  useEffect(() => {
-    const loadData = async () => {
-      // A timezone-safe helper function
-      const formatDateToYYYYMMDD = (date: Date) =>
-        date.toISOString().split("T")[0];
-
-      if (viewMode === "report") {
-        // If in report mode, fetch the guest activity report
-        const dateString = formatDateToYYYYMMDD(reportDate);
-        await fetchGuestActivityReport(dateString);
-      } else {
-        // If in list mode, fetch the main list of all guests
-        await fetchGuests();
-      }
-    };
-
-    loadData();
-  }, [viewMode, reportDate, fetchGuestActivityReport, fetchGuests]);
-
-  const filteredGuests = useMemo(() => {
-    setCurrentPage(1);
-
-    if (!searchTerm) return guests;
-    const searchLower = searchTerm.toLowerCase();
-
-    return guests.filter((guest) => {
-      switch (searchCategory) {
-        case "name":
-          return guest.fullName.toLowerCase().includes(searchLower);
-        case "phone":
-          return guest.phone.includes(searchTerm);
-        case "roomNumber":
-          return guest.room?.roomNumber?.toLowerCase().includes(searchLower);
-        case "status":
-          return guest.status.toLowerCase().includes(searchLower);
-        default:
-          return (
-            guest.fullName.toLowerCase().includes(searchLower) ||
-            guest.phone.includes(searchTerm) ||
-            guest.room?.roomNumber?.toLowerCase().includes(searchLower)
-          );
-      }
-    });
-  }, [guests, searchTerm, searchCategory]);
-
-  const paginatedGuests = useMemo(() => {
-    const firstPageIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const lastPageIndex = firstPageIndex + ITEMS_PER_PAGE;
-    return filteredGuests.slice(firstPageIndex, lastPageIndex);
-  }, [currentPage, filteredGuests]);
-
-  const totalPages = Math.ceil(filteredGuests.length / ITEMS_PER_PAGE);
-
-  const handleClearFilters = useCallback(() => {
-    setSearchTerm("");
-    fetchGuests();
-  }, [fetchGuests]);
-
-  const handleDeleteConfirm = useCallback(async () => {
-    if (!guestToDelete) return;
-    if (user.role === "receptionist") {
-      toast({
-        title: "Error",
-        description: "Only Admin can delete a guest.",
-        variant: "destructive",
-      });
-      return;
-    }
-    try {
-      await deleteGuest(guestToDelete._id);
-      toast({
-        title: "Success",
-        description: `Guest "${guestToDelete.fullName}" has been deleted.`,
-      });
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to delete the guest. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setGuestToDelete(null);
-    }
-  }, [guestToDelete, deleteGuest, toast, user.role]);
-
-  const renderContent = () => {
-    if (guestsLoading) return <GuestListSkeleton />;
-    if (error)
-      return <div className="text-center text-red-500 p-6">{error}</div>;
-
-    if (viewMode === "report") {
-      if (!guestActivityReport) {
-        return (
-          <div className="text-center text-gray-500 p-6">
-            Select a date to generate the report.
-          </div>
-        );
-      }
-
-      // Helper component to render a list of guests
-      const ReportList = ({ data }) => (
-        <Card>
-          <CardContent className="p-4 space-y-3">
-            {data.length > 0 ? (
-              data.map((item) => (
-                <div
-                  key={item._id}
-                  className="flex items-center justify-between p-3 border rounded-lg bg-background hover:bg-muted/50"
-                >
-                  <div className="flex items-center gap-4">
-                    <User className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="font-semibold text-sm">{item.fullName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Room {item.room?.roomNumber || "N/A"}
-                      </p>
-                    </div>
-                  </div>
-                  <Link to={`/guests/${item._id}`}>
-                    <Button variant="ghost" size="sm">
-                      <Eye className="h-4 w-4 mr-2" /> View
-                    </Button>
-                  </Link>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground text-center">
-                No activity.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      );
-
-      return (
-        <Tabs defaultValue="checkIns" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="checkIns">
-              Check-Ins ({guestActivityReport.summary.checkIns})
-            </TabsTrigger>
-            <TabsTrigger value="checkOuts">
-              Check-Outs ({guestActivityReport.summary.checkOuts})
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="checkIns" className="mt-4">
-            <ReportList data={guestActivityReport.data.checkIns} />
-          </TabsContent>
-          <TabsContent value="checkOuts" className="mt-4">
-            <ReportList data={guestActivityReport.data.checkOuts} />
-          </TabsContent>
-        </Tabs>
-      );
-    }
-
-    if (filteredGuests.length === 0) {
-      return (
-        <div className="text-center text-gray-500 p-6">
-          No guests found. Try adjusting your search or filters.
-        </div>
-      );
-    }
-    return (
-      <div className="space-y-4">
-        {paginatedGuests.map((guest) => (
-          <GuestCard
-            key={guest._id}
-            guest={guest}
-            onDelete={() => setGuestToDelete(guest)}
-          />
-        ))}
-      </div>
-    );
-  };
-
-  const getPageNumbers = (currentPage: number, totalPages: number) => {
-    if (totalPages <= 7) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-
-    const pages: (number | string)[] = [1];
-
-    if (currentPage > 3) pages.push("...");
-
-    const start = Math.max(2, currentPage - 1);
-    const end = Math.min(totalPages - 1, currentPage + 1);
-
-    for (let i = start; i <= end; i++) {
-      pages.push(i);
-    }
-
-    if (currentPage < totalPages - 2) pages.push("...");
-
-    pages.push(totalPages);
-
-    return pages;
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-50 flex">
-      <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)} />
-      <div className={`flex-1 ${isAdmin ? "lg:ml-0" : ""}`}>
-        {isAdmin && (
-          <div className="lg:hidden bg-white shadow-sm border-b p-4">
-            <div className="flex items-center justify-between">
-              <button onClick={() => setIsOpen(true)} className="p-2">
-                <Menu className="h-5 w-5" />
-              </button>
-              <div className="flex items-center space-x-2">
-                <Crown className="h-6 w-6 text-amber-500" />
-                <span className="font-light tracking-wider">HSQ ADMIN</span>
-              </div>
-              <div className="w-9" />
-            </div>
-          </div>
-        )}
-        <div className="container mx-auto p-4 md:p-6 lg:p-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-            <h1 className="text-3xl font-bold tracking-tight">Guests</h1>
-            <Button
-              onClick={() => setIsCheckInDialogOpen(true)}
-              className="bg-amber-500 hover:bg-amber-600"
-            >
-              <UserPlus className="mr-2 h-4 w-4" />
-              Check In Guest
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
-            {/* Column 1: View Mode Selector */}
-            <div className="md:col-span-1 space-y-1.5">
-              <Label htmlFor="view-mode-select">View Mode</Label>
-              <Select
-                value={viewMode}
-                onValueChange={(v) => setViewMode(v as "list" | "report")}
-              >
-                <SelectTrigger id="view-mode-select">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="list">All Guests List</SelectItem>
-                  <SelectItem value="report">Daily Activity Report</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {viewMode === "list" ? (
-              <>
-                {/* Your original search and category selectors go here */}
-                <div className="flex items-center space-x-2 md:col-span-2 pt-7">
-                  <div className="relative flex-grow">
-                    {/* <Label>Search Mode</Label> */}
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      placeholder="Search guests..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 w-full"
-                    />
-                  </div>
-                  <Select
-                    value={searchCategory}
-                    onValueChange={(value) => setSearchCategory(value)}
-                  >
-                    <SelectTrigger className="w-[150px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="name">Name</SelectItem>
-                      <SelectItem value="phone">Phone</SelectItem>
-                      <SelectItem value="roomNumber">Room</SelectItem>
-                      <SelectItem value="status">Status</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
-            ) : (
-              // Date Picker for the report view
-              <div className="md:col-span-2 space-y-1.5">
-                <Label htmlFor="report-date-picker">Report Date</Label>
-                <div className="relative">
-                  <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <DatePicker
-                    id="report-date-picker"
-                    selected={reportDate}
-                    onChange={(date: Date) => setReportDate(date)}
-                    dateFormat="yyyy-MM-dd"
-                    className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ..."
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="relative min-h-[400px]">{renderContent()}</div>
-          {totalPages > 1 && (
-            <Card className="mt-4">
-              <CardContent className="p-4 flex justify-center">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setCurrentPage((prev) => Math.max(prev - 1, 1));
-                        }}
-                        className={
-                          currentPage === 1
-                            ? "pointer-events-none opacity-50"
-                            : ""
-                        }
-                      />
-                    </PaginationItem>
-
-                    {/* --- CHANGED SECTION START --- */}
-                    {getPageNumbers(currentPage, totalPages).map(
-                      (page, index) => (
-                        <PaginationItem key={index}>
-                          {page === "..." ? (
-                            <PaginationEllipsis />
-                          ) : (
-                            <PaginationLink
-                              href="#"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setCurrentPage(page as number);
-                              }}
-                              isActive={currentPage === page}
-                            >
-                              {page}
-                            </PaginationLink>
-                          )}
-                        </PaginationItem>
-                      )
-                    )}
-                    {/* --- CHANGED SECTION END --- */}
-
-                    <PaginationItem>
-                      <PaginationNext
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setCurrentPage((prev) =>
-                            Math.min(prev + 1, totalPages)
-                          );
-                        }}
-                        className={
-                          currentPage === totalPages
-                            ? "pointer-events-none opacity-50"
-                            : ""
-                        }
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </CardContent>
-            </Card>
-          )}
-
-          <CheckInFormDialog
-            isOpen={isCheckInDialogOpen}
-            setIsOpen={setIsCheckInDialogOpen}
-            createGuest={createGuest}
-            prefill={prefill}
-          />
-          <AlertDialog
-            open={!!guestToDelete}
-            onOpenChange={(open) => !open && setGuestToDelete(null)}
-          >
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently delete the guest record for{" "}
-                  <span className="font-semibold">
-                    {guestToDelete?.fullName}
-                  </span>
-                  .
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDeleteConfirm}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      </div>
-    </div>
-  );
 };
 
 const GuestCard: React.FC<{ guest: Guest; onDelete: () => void }> = React.memo(
@@ -742,14 +282,11 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
     fetchAvailableRooms,
     loading: roomsLoading,
   } = useRoomContext();
-  const { validatePromoCode } = usePromoCodeContext(); // Use PromoContext
+  const { validatePromoCode, promoCodes } = usePromoCodeContext();
   const [promoMessage, setPromoMessage] = useState<{ type: 'success' | 'error', text: string, discount?: number } | null>(null);
 
   const { packages } = useDecor();
-  // console.log("Total Package", packages);
-  console.log("decor id", formData.decorPackageid);
-  // console.log("name", formData.fullName);
-  // console.log("Addtional discount", formData.additionaldiscount);
+
   useEffect(() => {
     if (isOpen) {
       const todayStr = format(new Date(), "yyyy-MM-dd");
@@ -830,44 +367,6 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
       setPromoMessage({ type: 'error', text: err.message || "Error validating promo" });
     }
   };
-
-  // const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   const { name, value } = e.currentTarget;
-
-  //   // Create a copy of the current errors to modify
-  //   const newErrors = { ...formErrors };
-
-  //   // Validate CNIC field
-  //   if (name === "cnic") {
-  //     // Check if the value is not empty and doesn't match the 13-digit pattern
-  //     if (value && !/^\d{13}$/.test(value)) {
-  //       newErrors.cnic = "CNIC must be exactly 13 digits.";
-  //     } else {
-  //       newErrors.cnic = ""; // Clear the error if it's valid or empty
-  //     }
-  //   }
-
-  //   // Validate Phone field
-  //   if (name === "phone") {
-  //     // Check if the value is not empty and doesn't match the 11-digit pattern
-  //     if (value && !/^\d{11}$/.test(value)) {
-  //       newErrors.phone = "Phone must be exactly 11 digits.";
-  //     } else {
-  //       newErrors.phone = ""; // Clear the error if it's valid or empty
-  //     }
-  //   }
-
-  //   // Update the error state with any new messages
-  //   setFormErrors(newErrors);
-
-  //   // Update the form data state as before
-  //   const isCheckbox = e.currentTarget.type === "checkbox";
-  //   const checked = e.currentTarget.checked;
-  //   setFormData((prev) => ({
-  //     ...prev,
-  //     [name]: isCheckbox ? checked : value,
-  //   }));
-  // };
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.currentTarget;
@@ -1092,20 +591,6 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            {/* <div>
-              <Label htmlFor="checkInDate">Check-in Date</Label>
-              <Input
-                id="checkInDate"
-                name="checkInDate"
-                type="date"
-                value={formData.checkInDate}
-                onChange={handleCheckInDateChange}
-                min={format(new Date(), "yyyy-MM-dd")} // Prevent past dates
-                className="mt-1"
-                required
-                disabled={isSubmitting}
-              />
-            </div> */}
             <div>
               <Label htmlFor="checkInDate">Check-in Date</Label>
               <Input
@@ -1208,9 +693,8 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
               </SelectContent>
             </Select>
           </div>
-          {/* add new field decor get all decor */}
           <div>
-            <Label>Decor Package(OPTIONAL)</Label>
+            <Label>Decor Package (Optional)</Label>
             <Select
               name="decorPackage"
               value={formData.decorPackageid || "none"}
@@ -1222,15 +706,11 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
               </SelectTrigger>
 
               <SelectContent>
-                {packages.length === 0 ? (
-                  <SelectItem value="none">
-                    <span className="flex items-center gap-2">
-                      None (No decor package)
-                    </span>
-                  </SelectItem>
-                ) : (
-                  ""
-                )}
+                <SelectItem value="none">
+                  <span className="flex items-center gap-2">
+                    None (No decor package)
+                  </span>
+                </SelectItem>
                 {packages && packages.length > 0 ? (
                   packages.map((decor) => {
                     const isSelected = decor._id === formData.decorPackageid;
@@ -1245,7 +725,7 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
                           }`}
                       >
                         <span className="flex items-center gap-4 mt-2">
-                          <div className="flex flex-col">
+                          <div className="flex flex-col text-left">
                             <span className="font-medium">
                               {decor.title} — Rs{decor.price}
                               {isSelected && (
@@ -1262,11 +742,7 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
                       </SelectItem>
                     );
                   })
-                ) : (
-                  <div className="px-2 py-4 text-center text-gray-500">
-                    {/* {decorLoading ? "Loading..." : "No decor packages available"} */}
-                  </div>
-                )}
+                ) : null}
               </SelectContent>
             </Select>
           </div>
@@ -1327,7 +803,7 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No Promo Code</SelectItem>
-                {usePromoCodeContext().promoCodes
+                {promoCodes
                   .filter(p => p.status === 'active')
                   .map((code) => (
                     <SelectItem key={code._id} value={code.code}>
@@ -1372,6 +848,581 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
         </form>
       </DialogContent>
     </Dialog >
+  );
+};
+
+const GuestsPage: React.FC = () => {
+  const {
+    guests,
+    loading: guestsLoading,
+    error,
+    fetchGuests,
+    createGuest,
+    deleteGuest,
+    // ADD THESE
+    guestActivityReport,
+    fetchGuestActivityReport,
+    // Add Checked-out history
+    checkedOutByRange,
+    fetchCheckedOutByRange,
+  } = useGuestContext();
+
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const { getReservationById } = useReservationContext();
+  const isAdmin = user?.role === "admin";
+  const ITEMS_PER_PAGE = 15;
+  const HISTORY_ITEMS_PER_PAGE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchCategory, setSearchCategory] = useState("name");
+  const [isCheckInDialogOpen, setIsCheckInDialogOpen] = useState(false);
+  const [guestToDelete, setGuestToDelete] = useState<Guest | null>(null);
+  const [searchParams] = useSearchParams();
+  const [viewMode, setViewMode] = useState<"list" | "report" | "history">("list");
+  const [reportDate, setReportDate] = useState(new Date());
+  // Date range for Checked-out History
+  const [historyDateRange, setHistoryDateRange] = useState<{
+    startDate: Date;
+    endDate: Date;
+  }>({
+    startDate: new Date(),
+    endDate: new Date(),
+  });
+  const [prefill, setPrefill] = useState<Partial<CreateGuestInput> | null>(
+    null
+  );
+
+  useEffect(() => {
+    const qpId = searchParams.get("reservation");
+    if (qpId) {
+      (async () => {
+        try {
+          const r = (await getReservationById(qpId)) as any;
+          if (r) {
+            setPrefill({
+              fullName: r.fullName || "",
+              address: r.address || "",
+              phone: r.phone || "",
+              cnic: r.cnic || "",
+              email: r.email || "",
+              adults: r.adults || 1,
+              infants: r.infants || 0,
+              roomNumber:
+                typeof r.room === "object" ? r.room.roomNumber : r.roomNumber,
+              // Allow the user to set their own check-in date
+              checkInDate: format(new Date(r.startAt), "yyyy-MM-dd"),
+              checkOutDate: format(new Date(r.endAt), "yyyy-MM-dd"),
+              reservationId: r._id,
+            });
+            setIsCheckInDialogOpen(true);
+          }
+        } catch (err) {
+          console.error("Failed to fetch reservation for prefill:", err);
+        }
+      })();
+    }
+  }, [searchParams, getReservationById]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      const formatDateToYYYYMMDD = (date: Date) =>
+        date.toISOString().split("T")[0];
+
+      if (viewMode === "report") {
+        const dateString = formatDateToYYYYMMDD(reportDate);
+        await fetchGuestActivityReport(dateString);
+      } else if (viewMode === "history") {
+        // Fetch checked-out history
+        const startStr = formatDateToYYYYMMDD(historyDateRange.startDate);
+        const endStr = formatDateToYYYYMMDD(historyDateRange.endDate);
+        await fetchCheckedOutByRange(startStr, endStr);
+      } else {
+        await fetchGuests();
+      }
+    };
+
+    loadData();
+  }, [
+    viewMode,
+    reportDate,
+    historyDateRange, // Fetch when range changes
+    fetchGuestActivityReport,
+    fetchGuests,
+    fetchCheckedOutByRange,
+  ]);
+
+  const filteredGuests = useMemo(() => {
+    setCurrentPage(1);
+
+    if (!searchTerm) return guests;
+    const searchLower = searchTerm.toLowerCase();
+
+    return guests.filter((guest) => {
+      switch (searchCategory) {
+        case "name":
+          return guest.fullName.toLowerCase().includes(searchLower);
+        case "phone":
+          return guest.phone.includes(searchTerm);
+        case "roomNumber":
+          return guest.room?.roomNumber?.toLowerCase().includes(searchLower);
+        case "status":
+          return guest.status.toLowerCase().includes(searchLower);
+        default:
+          return (
+            guest.fullName.toLowerCase().includes(searchLower) ||
+            guest.phone.includes(searchTerm) ||
+            guest.room?.roomNumber?.toLowerCase().includes(searchLower)
+          );
+      }
+    });
+  }, [guests, searchTerm, searchCategory]);
+
+  const paginatedGuests = useMemo(() => {
+    const firstPageIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const lastPageIndex = firstPageIndex + ITEMS_PER_PAGE;
+    return filteredGuests.slice(firstPageIndex, lastPageIndex);
+  }, [currentPage, filteredGuests]);
+
+  const paginatedHistory = useMemo(() => {
+    if (viewMode !== "history") return [];
+    const firstPageIndex = (currentPage - 1) * HISTORY_ITEMS_PER_PAGE;
+    const lastPageIndex = firstPageIndex + HISTORY_ITEMS_PER_PAGE;
+    return (checkedOutByRange || []).slice(firstPageIndex, lastPageIndex);
+  }, [currentPage, checkedOutByRange, viewMode]);
+
+  const totalPages = useMemo(() => {
+    if (viewMode === "history") {
+      return Math.ceil((checkedOutByRange?.length || 0) / HISTORY_ITEMS_PER_PAGE);
+    }
+    return Math.ceil(filteredGuests.length / ITEMS_PER_PAGE);
+  }, [filteredGuests.length, checkedOutByRange, viewMode]);
+
+  const handleClearFilters = useCallback(() => {
+    setSearchTerm("");
+    fetchGuests();
+  }, [fetchGuests]);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!guestToDelete) return;
+    if (user.role === "receptionist") {
+      toast({
+        title: "Error",
+        description: "Only Admin can delete a guest.",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+    try {
+      await deleteGuest(guestToDelete._id);
+      toast({
+        title: "Success",
+        description: `Guest "${guestToDelete.fullName}" has been deleted.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to delete the guest. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setGuestToDelete(null);
+    }
+  }, [guestToDelete, deleteGuest, toast, user.role]);
+
+  const renderContent = () => {
+    if (guestsLoading) return <GuestListSkeleton />;
+    if (error)
+      return <div className="text-center text-red-500 p-6">{error}</div>;
+
+    if (viewMode === "report") {
+      if (!guestActivityReport) {
+        return (
+          <div className="text-center text-gray-500 p-6">
+            Select a date to generate the report.
+          </div>
+        );
+      }
+
+      // Helper component to render a list of guests
+      const ReportList = ({ data }) => (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            {data.length > 0 ? (
+              data.map((item) => (
+                <div
+                  key={item._id}
+                  className="flex items-center justify-between p-3 border rounded-lg bg-background hover:bg-muted/50"
+                >
+                  <div className="flex items-center gap-4">
+                    <User className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="font-semibold text-sm">{item.fullName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Room {item.room?.roomNumber || "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                  <Link to={`/guests/${item._id}`}>
+                    <Button variant="ghost" size="sm">
+                      <Eye className="h-4 w-4 mr-2" /> View
+                    </Button>
+                  </Link>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground text-center">
+                No activity.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      );
+
+      return (
+        <Tabs defaultValue="checkIns" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="checkIns">
+              Check-Ins ({guestActivityReport.summary.checkIns})
+            </TabsTrigger>
+            <TabsTrigger value="checkOuts">
+              Check-Outs ({guestActivityReport.summary.checkOuts})
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="checkIns" className="mt-4">
+            <ReportList data={guestActivityReport.data.checkIns} />
+          </TabsContent>
+          <TabsContent value="checkOuts" className="mt-4">
+            <ReportList data={guestActivityReport.data.checkOuts} />
+          </TabsContent>
+        </Tabs>
+      );
+    }
+
+    // Checked-Out History Rendering
+    if (viewMode === "history") {
+      if (!checkedOutByRange || checkedOutByRange.length === 0) {
+        return (
+          <div className="text-center text-gray-500 p-6 bg-white rounded-lg border">
+            No checked-out guests found for this date range.
+          </div>
+        );
+      }
+
+      return (
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <Badge variant="secondary" className="text-sm px-3 py-1">
+              Total Check-outs: {checkedOutByRange.length}
+            </Badge>
+          </div>
+          <Card>
+            <CardContent className="p-0">
+              <div className="rounded-md border">
+                <div className="grid grid-cols-12 gap-4 p-4 border-b bg-muted/40 font-medium text-sm">
+                  <div className="col-span-4">Guest Name</div>
+                  <div className="col-span-2">Room</div>
+                  <div className="col-span-2">Check In</div>
+                  <div className="col-span-2">Check Out</div>
+                  <div className="col-span-2 text-right">Action</div>
+                </div>
+                <div className="divide-y">
+                  {paginatedHistory.map((guest) => (
+                    <div
+                      key={guest._id}
+                      className="grid grid-cols-12 gap-4 p-4 items-center text-sm hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="col-span-4 font-medium flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        {guest.fullName}
+                      </div>
+                      <div className="col-span-2">
+                        <Badge variant="outline" className="font-normal">
+                          {guest.room?.roomNumber || "N/A"}
+                        </Badge>
+                      </div>
+                      <div className="col-span-2 text-muted-foreground">
+                        {new Date(guest.checkInAt).toLocaleDateString()}
+                      </div>
+                      <div className="col-span-2 text-muted-foreground">
+                        {new Date(guest.checkOutAt).toLocaleDateString()}
+                      </div>
+                      <div className="col-span-2 text-right">
+                        <Link to={`/guests/${guest._id}`}>
+                          <Button variant="ghost" size="sm" className="h-8">
+                            <Eye className="h-4 w-4 mr-2" /> View
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
+    if (filteredGuests.length === 0) {
+      return (
+        <div className="text-center text-gray-500 p-6">
+          No guests found. Try adjusting your search or filters.
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-4">
+        {paginatedGuests.map((guest) => (
+          <GuestCard
+            key={guest._id}
+            guest={guest}
+            onDelete={() => setGuestToDelete(guest)}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  const getPageNumbers = (currentPage: number, totalPages: number) => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    const pages: (number | string)[] = [1];
+
+    if (currentPage > 3) pages.push("...");
+
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+
+    if (currentPage < totalPages - 2) pages.push("...");
+
+    pages.push(totalPages);
+
+    return pages;
+  };
+
+  return (
+    <>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+        <h1 className="text-3xl font-bold tracking-tight">Guests</h1>
+        <Button
+          onClick={() => setIsCheckInDialogOpen(true)}
+          className="bg-amber-500 hover:bg-amber-600"
+        >
+          <UserPlus className="mr-2 h-4 w-4" />
+          Check In Guest
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
+        {/* Column 1: View Mode Selector */}
+        <div className="md:col-span-1 space-y-1.5">
+          <Label htmlFor="view-mode-select">View Mode</Label>
+          <Select
+            value={viewMode}
+            onValueChange={(v) => setViewMode(v as "list" | "report" | "history")}
+          >
+            <SelectTrigger id="view-mode-select">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="list">All Guests List</SelectItem>
+              <SelectItem value="report">Daily Activity Report</SelectItem>
+              <SelectItem value="history">Checked-out History</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {viewMode === "list" ? (
+          <>
+            <div className="flex items-center space-x-2 md:col-span-2 pt-7">
+              <div className="relative flex-grow">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search guests..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-full"
+                />
+              </div>
+              <Select
+                value={searchCategory}
+                onValueChange={(value) => setSearchCategory(value)}
+              >
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Name</SelectItem>
+                  <SelectItem value="phone">Phone</SelectItem>
+                  <SelectItem value="roomNumber">Room</SelectItem>
+                  <SelectItem value="status">Status</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        ) : (
+          <div className="md:col-span-2 space-y-1.5 ">
+            {viewMode === "report" && (
+              <>
+                <Label>Report Date</Label>
+                <div className="relative">
+                  <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <DatePicker
+                    selected={reportDate}
+                    onChange={(date: Date) => setReportDate(date)}
+                    dateFormat="yyyy-MM-dd"
+                    className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                </div>
+              </>
+            )}
+            {viewMode === "history" && (
+              <div className="flex gap-4">
+                <div className="space-y-1.5 flex-1">
+                  <Label>Start Date</Label>
+                  <div className="relative">
+                    <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <DatePicker
+                      selected={historyDateRange.startDate}
+                      onChange={(date: Date) =>
+                        setHistoryDateRange((prev) => ({
+                          ...prev,
+                          startDate: date,
+                        }))
+                      }
+                      dateFormat="yyyy-MM-dd"
+                      className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5 flex-1">
+                  <Label>End Date</Label>
+                  <div className="relative">
+                    <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <DatePicker
+                      selected={historyDateRange.endDate}
+                      onChange={(date: Date) =>
+                        setHistoryDateRange((prev) => ({
+                          ...prev,
+                          endDate: date,
+                        }))
+                      }
+                      dateFormat="yyyy-MM-dd"
+                      className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="relative">{renderContent()}</div>
+      {totalPages > 1 && (
+        <Card className="mt-4">
+          <CardContent className="p-4 flex justify-center">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setCurrentPage((prev) => Math.max(prev - 1, 1));
+                    }}
+                    className={
+                      currentPage === 1
+                        ? "pointer-events-none opacity-50"
+                        : ""
+                    }
+                  />
+                </PaginationItem>
+
+                {getPageNumbers(currentPage, totalPages).map(
+                  (page, index) => (
+                    <PaginationItem key={index}>
+                      {page === "..." ? (
+                        <PaginationEllipsis />
+                      ) : (
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentPage(page as number);
+                          }}
+                          isActive={currentPage === page}
+                        >
+                          {page}
+                        </PaginationLink>
+                      )}
+                    </PaginationItem>
+                  )
+                )}
+
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setCurrentPage((prev) =>
+                        Math.min(prev + 1, totalPages)
+                      );
+                    }}
+                    className={
+                      currentPage === totalPages
+                        ? "pointer-events-none opacity-50"
+                        : ""
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </CardContent>
+        </Card>
+      )}
+
+      <CheckInFormDialog
+        isOpen={isCheckInDialogOpen}
+        setIsOpen={setIsCheckInDialogOpen}
+        createGuest={createGuest}
+        prefill={prefill}
+      />
+      <AlertDialog
+        open={!!guestToDelete}
+        onOpenChange={(open) => !open && setGuestToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the guest record for{" "}
+              <span className="font-semibold">
+                {guestToDelete?.fullName}
+              </span>
+              .
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 

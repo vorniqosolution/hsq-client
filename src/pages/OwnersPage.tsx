@@ -24,13 +24,13 @@ import { Label } from "@/components/ui/label";
 import { Plus, Search, Calendar, User, Home, CreditCard, Eye, Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import Sidebar from "@/components/Sidebar";
+
 import { Menu } from "lucide-react";
 
 const OwnersPage = () => {
     const { owners, fetchOwners, createOwner, updateOwner, deleteOwner, loading } = useOwnerContext();
     const { rooms, fetchRooms } = useRoomContext();
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+
     const [searchTerm, setSearchTerm] = useState("");
 
     // Dialog States
@@ -177,17 +177,9 @@ const OwnersPage = () => {
     };
 
     return (
-        <div className="flex h-screen bg-slate-50">
-            <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <div className="h-full">
             <div className="flex-1 flex flex-col overflow-hidden relative">
                 <main className="flex-1 overflow-y-auto p-4 lg:p-8">
-                    {/* Mobile Toggle */}
-                    <div className="lg:hidden mb-4 flex items-center gap-3">
-                        <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
-                            <Menu className="h-6 w-6 text-slate-600" />
-                        </Button>
-                        <h1 className="text-xl font-bold text-slate-800">Owners</h1>
-                    </div>
 
                     <div className="max-w-7xl mx-auto space-y-6">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

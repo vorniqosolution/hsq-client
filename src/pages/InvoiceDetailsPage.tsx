@@ -23,7 +23,7 @@ import {
   Menu // Add Menu
 } from "lucide-react";
 
-import Sidebar from "@/components/Sidebar";
+
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -134,7 +134,7 @@ const InvoiceDetailsPage = () => {
   } = useInvoiceContext();
 
   const [newStatus, setNewStatus] = useState<Invoice["status"] | "">("");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+
 
   useEffect(() => {
     if (id) {
@@ -243,17 +243,9 @@ const InvoiceDetailsPage = () => {
   const refundDue = Math.max(0, netHeld - (currentInvoice.grandTotal || 0));
 
   return (
-    <div className="flex h-screen bg-slate-50">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <div className="h-full">
       <div className="flex-1 flex flex-col overflow-hidden relative">
         <main className="flex-1 overflow-y-auto p-4 lg:p-6 lg:p-8 bg-slate-50">
-          {/* Mobile Toggle */}
-          <div className="lg:hidden mb-4 flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
-              <Menu className="h-6 w-6 text-slate-600" />
-            </Button>
-            <h1 className="text-xl font-bold text-slate-800">Invoice Details</h1>
-          </div>
 
           <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
             <header className="mb-8">

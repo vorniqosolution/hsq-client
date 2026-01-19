@@ -9,7 +9,7 @@ import {
     Plus,
     Menu // Add Menu
 } from "lucide-react";
-import Sidebar from "@/components/Sidebar";
+
 import {
     Card,
     CardContent,
@@ -50,7 +50,7 @@ const PromoCodesPage = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+
 
     const [newPromo, setNewPromo] = useState<CreatePromoInput>({
         code: "",
@@ -125,17 +125,9 @@ const PromoCodesPage = () => {
     }
 
     return (
-        <div className="flex h-screen bg-slate-50">
-            <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <div className="h-full">
             <div className="flex-1 flex flex-col overflow-hidden relative">
                 <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-slate-50">
-                    {/* Mobile Toggle */}
-                    <div className="lg:hidden mb-4 flex items-center gap-3">
-                        <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
-                            <Menu className="h-6 w-6 text-slate-600" />
-                        </Button>
-                        <h1 className="text-xl font-bold text-slate-800">Promo Codes</h1>
-                    </div>
 
                     <div className="p-8">
                         <div className="max-w-7xl mx-auto">

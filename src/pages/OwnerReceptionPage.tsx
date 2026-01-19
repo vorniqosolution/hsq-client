@@ -35,7 +35,7 @@ import { format } from "date-fns";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import Sidebar from "@/components/Sidebar";
+
 
 const OwnerReceptionPage = () => {
     const { currentOwner, usageStats, loading, searchOwner, markAttendance } =
@@ -43,7 +43,7 @@ const OwnerReceptionPage = () => {
     const [cardIdInput, setCardIdInput] = useState("");
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [chargeAmount, setChargeAmount] = useState<string>("");
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -81,17 +81,9 @@ const OwnerReceptionPage = () => {
     };
 
     return (
-        <div className="flex h-screen bg-slate-50">
-            <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <div className="h-full">
             <div className="flex-1 flex flex-col overflow-hidden relative">
                 <main className="flex-1 overflow-y-auto p-4 lg:p-8">
-                    {/* Mobile Toggle */}
-                    <div className="lg:hidden mb-4 flex items-center gap-3">
-                        <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
-                            <Menu className="h-6 w-6 text-slate-600" />
-                        </Button>
-                        <h1 className="text-xl font-bold text-slate-800">Reception</h1>
-                    </div>
 
                     <div className="max-w-4xl mx-auto space-y-8">
                         <div>

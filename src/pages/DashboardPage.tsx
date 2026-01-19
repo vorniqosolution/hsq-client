@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import Sidebar from "../components/Sidebar";
+
 import {
     CheckCircle,
     Key,
@@ -97,7 +97,7 @@ interface TimelineEvent {
 }
 
 const DashboardPage = () => {
-    const [isOpen, setIsOpen] = useState(true);
+
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [arrivals, setArrivals] = useState<Arrival[]>([]);
     const [roomStatuses, setRoomStatuses] = useState<RoomStatus[]>([]);
@@ -249,28 +249,10 @@ const DashboardPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50/50 flex overflow-hidden font-sans">
-            <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)} />
-            <div className="flex-1 lg:ml-0 overflow-hidden flex flex-col h-screen">
+        <div className="h-full bg-slate-50/50 flex flex-col font-sans">
+            <div className="flex-1 overflow-hidden flex flex-col h-full">
 
-                {/* Header */}
-                <header className="bg-white/80 backdrop-blur-md border-b px-8 py-4 flex items-center justify-between shadow-sm z-10 sticky top-0">
-                    <div>
-                        <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                            <LayoutDashboard className="h-5 w-5 text-amber-500" />
-                            Executive Dashboard
-                        </h1>
-                        <p className="text-xs text-slate-500 mt-0.5 font-medium">
-                            {format(new Date(), "EEEE, MMMM do yyyy")}
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <Button variant="outline" size="sm" onClick={fetchData} disabled={loading} className="gap-2 h-9">
-                            <RefreshCcw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-                            Refresh
-                        </Button>
-                    </div>
-                </header>
+
 
                 {/* Scrollable Content */}
                 <main className="flex-1 overflow-y-auto p-6 lg:p-8">

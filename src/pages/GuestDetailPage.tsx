@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 
 // UI Components
-import Sidebar from "@/components/Sidebar"; // Add Sidebar import
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -1452,7 +1452,7 @@ const GuestDetailPage = () => {
   } = useGuestContext();
 
   // Dialog states
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isExtendOpen, setIsExtendOpen] = useState(false);
@@ -1853,17 +1853,9 @@ const GuestDetailPage = () => {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <div className="h-full">
       <div className="flex-1 flex flex-col overflow-hidden relative">
         <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-slate-50">
-          {/* Mobile Toggle */}
-          <div className="lg:hidden mb-4 flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
-              <Menu className="h-6 w-6 text-slate-600" />
-            </Button>
-            <h1 className="text-xl font-bold text-slate-800">Guest Details</h1>
-          </div>
 
           <div className="container mx-auto px-4 py-6 md:px-6 max-w-7xl">
             {/* Header with navigation and actions - hide during print */}

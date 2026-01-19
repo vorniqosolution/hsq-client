@@ -77,7 +77,7 @@ import {
   CreateReservationInput,
 } from "@/contexts/ReservationContext";
 import { usePromoCodeContext } from "@/contexts/PromoCodeContext";
-import Sidebar from "@/components/Sidebar";
+
 import {
   Pagination,
   PaginationContent,
@@ -205,7 +205,7 @@ const ReservationsPage: React.FC = () => {
     useState<Reservation | null>(null); // <-- Add
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [isOpen, setIsOpen] = useState(true);
+
   const [viewMode, setViewMode] = useState<"list" | "report">("list");
   const [reportDate, setReportDate] = useState(new Date());
   const hasLoadedRef = useRef(false);
@@ -797,126 +797,101 @@ const ReservationsPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex ">
-      {/* Sidebar */}
-      <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)} />
-      {/* Main content */}
-      <div className={`flex-1 ${isAdmin ? "lg:ml-0" : ""}`}>
-        {/* Mobile header - only for admin */}
-        {isAdmin && (
-          <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => setIsOpen(true)}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <Menu className="h-5 w-5 text-slate-700" />
-              </button>
-              <div className="flex items-center space-x-2">
-                <Crown className="h-6 w-6 text-amber-500" />
-                <span className="font-light tracking-wider text-slate-900">
-                  HSQ ADMIN
-                </span>
-              </div>
-              <div className="w-9" />
-            </div>
+    <div>
+      {/* Main content area */}
+      <div className="container mx-auto p-4 md:p-6 lg:p-8 ">
+        {/* Page Header - fixed height */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <h1 className="text-3xl font-bold tracking-tight">Reservations</h1>
+
+          <div className="flex gap-2 ml-auto">
+            <Button
+              onClick={() => setIsCreateDialogOpen(true)}
+              className="bg-amber-500 hover:bg-amber-600"
+            >
+              <Calendar className="mr-2 h-4 w-4" />
+              New Reservation
+            </Button>
           </div>
-        )}
+        </div>
 
-        {/* Main content area */}
-        <div className="container mx-auto p-4 md:p-6 lg:p-8 ">
-          {/* Page Header - fixed height */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-            <h1 className="text-3xl font-bold tracking-tight">Reservations</h1>
-
-            <div className="flex gap-2 ml-auto">
-              <Button
-                onClick={() => setIsCreateDialogOpen(true)}
-                className="bg-amber-500 hover:bg-amber-600"
-              >
-                <Calendar className="mr-2 h-4 w-4" />
-                New Reservation
-              </Button>
-            </div>
+        {/* Toolbar - fixed height */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50">
+          {/* Column 1: View Mode Selector - Always visible */}
+          <div className="md:col-span-1 space-y-1.5">
+            <Label htmlFor="view-mode-select">
+              Check reservation or calender
+            </Label>
+            <Select
+              value={viewMode}
+              onValueChange={(v) => setViewMode(v as "list" | "report")}
+            >
+              <SelectTrigger id="view-mode-select">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="list">All Reservations List</SelectItem>
+                <SelectItem value="report">Daily Reservations</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Toolbar - fixed height */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50">
-            {/* Column 1: View Mode Selector - Always visible */}
-            <div className="md:col-span-1 space-y-1.5">
-              <Label htmlFor="view-mode-select">
-                Check reservation or calender
-              </Label>
-              <Select
-                value={viewMode}
-                onValueChange={(v) => setViewMode(v as "list" | "report")}
-              >
-                <SelectTrigger id="view-mode-select">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="list">All Reservations List</SelectItem>
-                  <SelectItem value="report">Daily Reservations</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {viewMode === "list" ? (
-              <>
-                {/* Filter 2: Search (for 'list' mode) */}
-                <div className="md:col-span-1 space-y-1.5">
-                  <Label htmlFor="search-input">Search</Label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="search-input"
-                      placeholder="Search by name, phone...."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10"
-                    />
-                  </div>
-                </div>
-
-                {/* Filter 3: Status (for 'list' mode) */}
-                <div className="md:col-span-1 space-y-1.5">
-                  <Label htmlFor="status-filter">Status</Label>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger id="status-filter">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Statuses</SelectItem>
-                      <SelectItem value="reserved">Reserved</SelectItem>
-                      <SelectItem value="upcoming">Upcoming</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="expired">Expired</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
-            ) : (
-              // Date Picker (for 'report' mode)
-              <div className="md:col-span-2 space-y-1.5">
-                <Label htmlFor="report-date-picker">Report Date</Label>
+          {viewMode === "list" ? (
+            <>
+              {/* Filter 2: Search (for 'list' mode) */}
+              <div className="md:col-span-1 space-y-1.5">
+                <Label htmlFor="search-input">Search</Label>
                 <div className="relative">
-                  <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <DatePicker
-                    id="report-date-picker"
-                    selected={reportDate}
-                    onChange={(date: Date) => setReportDate(date)}
-                    dateFormat="yyyy-MM-dd"
-                    className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background"
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="search-input"
+                    placeholder="Search by name, phone...."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10"
                   />
                 </div>
               </div>
-            )}
-          </div>
 
-          <ContentContainer>{renderedContent}</ContentContainer>
+              {/* Filter 3: Status (for 'list' mode) */}
+              <div className="md:col-span-1 space-y-1.5">
+                <Label htmlFor="status-filter">Status</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger id="status-filter">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="reserved">Reserved</SelectItem>
+                    <SelectItem value="upcoming">Upcoming</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="expired">Expired</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          ) : (
+            // Date Picker (for 'report' mode)
+            <div className="md:col-span-2 space-y-1.5">
+              <Label htmlFor="report-date-picker">Report Date</Label>
+              <div className="relative">
+                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <DatePicker
+                  id="report-date-picker"
+                  selected={reportDate}
+                  onChange={(date: Date) => setReportDate(date)}
+                  dateFormat="yyyy-MM-dd"
+                  className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background"
+                />
+              </div>
+            </div>
+          )}
+        </div>
 
-          {/* {totalPages > 1 && (
+        <ContentContainer>{renderedContent}</ContentContainer>
+
+        {/* {totalPages > 1 && (
             <Card className="mt-4">
               <CardContent className="p-4 flex justify-center">
                 <Pagination>
@@ -973,505 +948,505 @@ const ReservationsPage: React.FC = () => {
             </Card>
           )} */}
 
-          {totalPages > 1 && (
-            <Card className="mt-4">
-              <CardContent className="p-4 flex justify-center">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setCurrentPage((prev) => Math.max(prev - 1, 1));
-                        }}
-                        className={
-                          currentPage === 1
-                            ? "pointer-events-none opacity-50"
-                            : ""
-                        }
-                      />
-                    </PaginationItem>
-
-                    {/* --- CHANGED SECTION START --- */}
-                    {getPageNumbers(currentPage, totalPages).map(
-                      (page, index) => (
-                        <PaginationItem key={index}>
-                          {page === "..." ? (
-                            <PaginationEllipsis />
-                          ) : (
-                            <PaginationLink
-                              href="#"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setCurrentPage(page as number);
-                              }}
-                              isActive={currentPage === page}
-                            >
-                              {page}
-                            </PaginationLink>
-                          )}
-                        </PaginationItem>
-                      )
-                    )}
-                    {/* --- CHANGED SECTION END --- */}
-
-                    <PaginationItem>
-                      <PaginationNext
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setCurrentPage((prev) =>
-                            Math.min(prev + 1, totalPages)
-                          );
-                        }}
-                        className={
-                          currentPage === totalPages
-                            ? "pointer-events-none opacity-50"
-                            : ""
-                        }
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Create Reservation Dialog */}
-          <Dialog
-            open={isCreateDialogOpen}
-            onOpenChange={setIsCreateDialogOpen}
-          >
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto sm:max-h-[80vh]">
-              <DialogHeader>
-                <DialogTitle>New Reservation</DialogTitle>
-              </DialogHeader>
-
-              <form
-                onSubmit={handleCreateReservation}
-                className="space-y-4 pt-4"
-              >
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName">Guest Name</Label>
-                    <Input
-                      id="fullName"
-                      name="fullName"
-                      value={formData.fullName}
-                      onChange={handleFormChange}
-                      placeholder="John Doe"
-                      disabled={isSubmitting}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="cnic">CNIC</Label>
-                    <Input
-                      id="cnic"
-                      name="cnic"
-                      value={formData.cnic}
-                      onChange={handleFormChange}
-                      placeholder="1234567890123"
-                      disabled={isSubmitting}
-                      required
-                      maxLength={13} // Helps guide the user
-                    />
-                    {formErrors.cnic && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {formErrors.cnic}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="checkin">Check-In Date</Label>
-                    <Input
-                      id="checkin"
-                      name="checkin"
-                      type="date"
-                      value={formData.checkin}
-                      onChange={handleFormChange}
-                      min={new Date().toISOString().split("T")[0]}
-                      disabled={isSubmitting}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="checkout">Check-Out Date</Label>
-                    <Input
-                      id="checkout"
-                      name="checkout"
-                      type="date"
-                      value={formData.checkout}
-                      onChange={handleFormChange}
-                      min={
-                        formData.checkin ||
-                        new Date().toISOString().split("T")[0]
+        {totalPages > 1 && (
+          <Card className="mt-4">
+            <CardContent className="p-4 flex justify-center">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setCurrentPage((prev) => Math.max(prev - 1, 1));
+                      }}
+                      className={
+                        currentPage === 1
+                          ? "pointer-events-none opacity-50"
+                          : ""
                       }
-                      disabled={isSubmitting}
-                      required
                     />
-                  </div>
+                  </PaginationItem>
+
+                  {/* --- CHANGED SECTION START --- */}
+                  {getPageNumbers(currentPage, totalPages).map(
+                    (page, index) => (
+                      <PaginationItem key={index}>
+                        {page === "..." ? (
+                          <PaginationEllipsis />
+                        ) : (
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setCurrentPage(page as number);
+                            }}
+                            isActive={currentPage === page}
+                          >
+                            {page}
+                          </PaginationLink>
+                        )}
+                      </PaginationItem>
+                    )
+                  )}
+                  {/* --- CHANGED SECTION END --- */}
+
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setCurrentPage((prev) =>
+                          Math.min(prev + 1, totalPages)
+                        );
+                      }}
+                      className={
+                        currentPage === totalPages
+                          ? "pointer-events-none opacity-50"
+                          : ""
+                      }
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Create Reservation Dialog */}
+        <Dialog
+          open={isCreateDialogOpen}
+          onOpenChange={setIsCreateDialogOpen}
+        >
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto sm:max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>New Reservation</DialogTitle>
+            </DialogHeader>
+
+            <form
+              onSubmit={handleCreateReservation}
+              className="space-y-4 pt-4"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Guest Name</Label>
+                  <Input
+                    id="fullName"
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleFormChange}
+                    placeholder="John Doe"
+                    disabled={isSubmitting}
+                    required
+                  />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Select Room</Label>
-                  <Select
-                    name="roomNumber"
-                    value={formData.roomNumber}
-                    onValueChange={(v) => handleSelectChange("roomNumber", v)}
-                    disabled={
-                      isSubmitting ||
-                      !formData.checkin ||
-                      !formData.checkout ||
-                      loading
+                  <Label htmlFor="cnic">CNIC</Label>
+                  <Input
+                    id="cnic"
+                    name="cnic"
+                    value={formData.cnic}
+                    onChange={handleFormChange}
+                    placeholder="1234567890123"
+                    disabled={isSubmitting}
+                    required
+                    maxLength={13} // Helps guide the user
+                  />
+                  {formErrors.cnic && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {formErrors.cnic}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="checkin">Check-In Date</Label>
+                  <Input
+                    id="checkin"
+                    name="checkin"
+                    type="date"
+                    value={formData.checkin}
+                    onChange={handleFormChange}
+                    min={new Date().toISOString().split("T")[0]}
+                    disabled={isSubmitting}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="checkout">Check-Out Date</Label>
+                  <Input
+                    id="checkout"
+                    name="checkout"
+                    type="date"
+                    value={formData.checkout}
+                    onChange={handleFormChange}
+                    min={
+                      formData.checkin ||
+                      new Date().toISOString().split("T")[0]
                     }
+                    disabled={isSubmitting}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Select Room</Label>
+                <Select
+                  name="roomNumber"
+                  value={formData.roomNumber}
+                  onValueChange={(v) => handleSelectChange("roomNumber", v)}
+                  disabled={
+                    isSubmitting ||
+                    !formData.checkin ||
+                    !formData.checkout ||
+                    loading
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        loading
+                          ? "Fetching rooms..."
+                          : !formData.checkout
+                            ? "Select dates to see rooms"
+                            : "Select an available room"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableRooms.length > 0 ? (
+                      availableRooms.map((r) => (
+                        <SelectItem key={r._id} value={r.roomNumber}>
+                          Room {r.roomNumber} — {r.category} — (Rs{r.rate}
+                          /night)
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="px-2 py-4 text-center text-gray-500">
+                        {formData.checkout
+                          ? "No rooms available"
+                          : "Select dates first"}
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleFormChange}
+                    placeholder="+92 300 1234567"
+                    disabled={isSubmitting}
+                    required
+                    maxLength={11} // Helps guide the user
+                  />
+                  {formErrors.phone && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {formErrors.phone}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Input
+                    id="address"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleFormChange}
+                    placeholder="123 Main St, Anytown"
+                    disabled={isSubmitting}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email (Optional)</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email || ""}
+                    onChange={handleFormChange}
+                    placeholder="guest@example.com"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="adults">Adults</Label>
+                  <Input
+                    id="adults"
+                    name="adults"
+                    type="number"
+                    min="1"
+                    value={formData.adults || 1}
+                    onChange={handleFormChange}
+                    disabled={isSubmitting}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="infants">Infants</Label>
+                  <Input
+                    id="infants"
+                    name="infants"
+                    type="number"
+                    min="0"
+                    value={formData.infants || 0}
+                    onChange={handleFormChange}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+
+              {/* Row 7: Arrival Time and Payment Method */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="arrivalTime">Expected Arrival Time</Label>
+                  <Input
+                    id="arrivalTime"
+                    name="arrivalTime"
+                    type="time"
+                    value={formData.arrivalTime || ""}
+                    onChange={handleFormChange}
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="paymentMethod">Payment Method</Label>
+                  <Select
+                    value={formData.paymentMethod || ""}
+                    onValueChange={(v) =>
+                      handleSelectChange("paymentMethod", v)
+                    }
+                    disabled={isSubmitting}
                   >
                     <SelectTrigger>
-                      <SelectValue
-                        placeholder={
-                          loading
-                            ? "Fetching rooms..."
-                            : !formData.checkout
-                              ? "Select dates to see rooms"
-                              : "Select an available room"
-                        }
-                      />
+                      <SelectValue placeholder="Select payment method" />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableRooms.length > 0 ? (
-                        availableRooms.map((r) => (
-                          <SelectItem key={r._id} value={r.roomNumber}>
-                            Room {r.roomNumber} — {r.category} — (Rs{r.rate}
-                            /night)
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <div className="px-2 py-4 text-center text-gray-500">
-                          {formData.checkout
-                            ? "No rooms available"
-                            : "Select dates first"}
-                        </div>
-                      )}
+                      <SelectItem value="Cash">Cash</SelectItem>
+                      <SelectItem value="Card">Card</SelectItem>
+                      <SelectItem value="Online">Online</SelectItem>
+                      <SelectItem value="PayAtHotel">Pay at Hotel</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              {/* Row 8: Special Request */}
+              <div className="space-y-2">
+                <Label htmlFor="specialRequest">
+                  Special Requests (Optional)
+                </Label>
+                <textarea
+                  id="specialRequest"
+                  name="specialRequest"
+                  value={formData.specialRequest || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      specialRequest: e.target.value,
+                    }))
+                  }
+                  placeholder="Any special requests or notes..."
+                  disabled={isSubmitting}
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  style={{ resize: "vertical" }}
+                />
+              </div>
+
+              {/* Row 9: Promo Code */}
+              <div className="space-y-2">
+                <Label htmlFor="promoCode">Promo Code (Optional)</Label>
+                <Select
+                  name="promoCode"
+                  value={formData.promoCode || ""}
+                  onValueChange={(v) => {
+                    setFormData(prev => ({ ...prev, promoCode: v }));
+                    // Manually trigger validation logic
+                    if (v) {
+                      validatePromoCode(v)
+                        .then(res => {
+                          if (res.isValid) {
+                            setPromoMessage({ type: 'success', text: `Promo Applied: ${res.percentage}% Off` });
+                          } else {
+                            setPromoMessage({ type: 'error', text: res.message || "Invalid Promo" });
+                          }
+                        })
+                        .catch(err => setPromoMessage({ type: 'error', text: "Error validating promo" }));
+                    } else {
+                      setPromoMessage(null);
+                    }
+                  }}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger className={promoMessage?.type === 'success' ? 'border-green-500' : ''}>
+                    <SelectValue placeholder="Select a promo code" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Promo Code</SelectItem>
+                    {usePromoCodeContext().promoCodes
+                      .filter(p => p.status === 'active')
+                      .map((code) => (
+                        <SelectItem key={code._id} value={code.code}>
+                          {code.code} ({code.percentage}% Off)
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+
+                {promoMessage && (
+                  <p className={`text-xs mt-1 ${promoMessage.type === 'success' ? 'text-green-600 font-medium' : 'text-red-500'}`}>
+                    {promoMessage.text}
+                  </p>
+                )}
+              </div>
+
+              {/* 👇 NEW SECTION: ADVANCE PAYMENT 👇 */}
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mt-4 mb-4">
+                <h3 className="font-semibold text-blue-800 mb-3 flex items-center">
+                  <Crown className="h-4 w-4 mr-2" />
+                  Advance Payment (Optional)
+                </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
+                    <Label htmlFor="advanceAmount" className="text-blue-900">
+                      Amount (Rs)
+                    </Label>
                     <Input
-                      id="phone"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleFormChange}
-                      placeholder="+92 300 1234567"
-                      disabled={isSubmitting}
-                      required
-                      maxLength={11} // Helps guide the user
-                    />
-                    {formErrors.phone && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {formErrors.phone}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Address</Label>
-                    <Input
-                      id="address"
-                      name="address"
-                      value={formData.address}
-                      onChange={handleFormChange}
-                      placeholder="123 Main St, Anytown"
-                      disabled={isSubmitting}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email (Optional)</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email || ""}
-                      onChange={handleFormChange}
-                      placeholder="guest@example.com"
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="adults">Adults</Label>
-                    <Input
-                      id="adults"
-                      name="adults"
-                      type="number"
-                      min="1"
-                      value={formData.adults || 1}
-                      onChange={handleFormChange}
-                      disabled={isSubmitting}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="infants">Infants</Label>
-                    <Input
-                      id="infants"
-                      name="infants"
+                      id="advanceAmount"
+                      name="advanceAmount"
                       type="number"
                       min="0"
-                      value={formData.infants || 0}
+                      placeholder="0"
+                      value={formData.advanceAmount || ""}
                       onChange={handleFormChange}
                       disabled={isSubmitting}
+                      className="bg-white"
                     />
                   </div>
-                </div>
 
-                {/* Row 7: Arrival Time and Payment Method */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="arrivalTime">Expected Arrival Time</Label>
-                    <Input
-                      id="arrivalTime"
-                      name="arrivalTime"
-                      type="time"
-                      value={formData.arrivalTime || ""}
-                      onChange={handleFormChange}
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="paymentMethod">Payment Method</Label>
+                    <Label
+                      htmlFor="advancePaymentMethod"
+                      className="text-blue-900"
+                    >
+                      Method
+                    </Label>
                     <Select
-                      value={formData.paymentMethod || ""}
+                      value={formData.advancePaymentMethod || "Cash"}
                       onValueChange={(v) =>
-                        handleSelectChange("paymentMethod", v)
+                        handleSelectChange("advancePaymentMethod", v)
                       }
                       disabled={isSubmitting}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select payment method" />
+                      <SelectTrigger className="bg-white">
+                        <SelectValue placeholder="Method" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Cash">Cash</SelectItem>
                         <SelectItem value="Card">Card</SelectItem>
                         <SelectItem value="Online">Online</SelectItem>
-                        <SelectItem value="PayAtHotel">Pay at Hotel</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
+              </div>
+              {/* 👆 ---------------------------- 👆 */}
 
-                {/* Row 8: Special Request */}
-                <div className="space-y-2">
-                  <Label htmlFor="specialRequest">
-                    Special Requests (Optional)
-                  </Label>
-                  <textarea
-                    id="specialRequest"
-                    name="specialRequest"
-                    value={formData.specialRequest || ""}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        specialRequest: e.target.value,
-                      }))
-                    }
-                    placeholder="Any special requests or notes..."
-                    disabled={isSubmitting}
-                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    style={{ resize: "vertical" }}
-                  />
-                </div>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={
+                  isSubmitting ||
+                  !formData.roomNumber ||
+                  formErrors.phone !== "" ||
+                  formErrors.cnic !== ""
+                }
+              >
+                {isSubmitting ? "Processing..." : "Create Reservation"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
 
-                {/* Row 9: Promo Code */}
-                <div className="space-y-2">
-                  <Label htmlFor="promoCode">Promo Code (Optional)</Label>
-                  <Select
-                    name="promoCode"
-                    value={formData.promoCode || ""}
-                    onValueChange={(v) => {
-                      setFormData(prev => ({ ...prev, promoCode: v }));
-                      // Manually trigger validation logic
-                      if (v) {
-                        validatePromoCode(v)
-                          .then(res => {
-                            if (res.isValid) {
-                              setPromoMessage({ type: 'success', text: `Promo Applied: ${res.percentage}% Off` });
-                            } else {
-                              setPromoMessage({ type: 'error', text: res.message || "Invalid Promo" });
-                            }
-                          })
-                          .catch(err => setPromoMessage({ type: 'error', text: "Error validating promo" }));
-                      } else {
-                        setPromoMessage(null);
-                      }
-                    }}
-                    disabled={isSubmitting}
-                  >
-                    <SelectTrigger className={promoMessage?.type === 'success' ? 'border-green-500' : ''}>
-                      <SelectValue placeholder="Select a promo code" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No Promo Code</SelectItem>
-                      {usePromoCodeContext().promoCodes
-                        .filter(p => p.status === 'active')
-                        .map((code) => (
-                          <SelectItem key={code._id} value={code.code}>
-                            {code.code} ({code.percentage}% Off)
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-
-                  {promoMessage && (
-                    <p className={`text-xs mt-1 ${promoMessage.type === 'success' ? 'text-green-600 font-medium' : 'text-red-500'}`}>
-                      {promoMessage.text}
-                    </p>
-                  )}
-                </div>
-
-                {/* 👇 NEW SECTION: ADVANCE PAYMENT 👇 */}
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mt-4 mb-4">
-                  <h3 className="font-semibold text-blue-800 mb-3 flex items-center">
-                    <Crown className="h-4 w-4 mr-2" />
-                    Advance Payment (Optional)
-                  </h3>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="advanceAmount" className="text-blue-900">
-                        Amount (Rs)
-                      </Label>
-                      <Input
-                        id="advanceAmount"
-                        name="advanceAmount"
-                        type="number"
-                        min="0"
-                        placeholder="0"
-                        value={formData.advanceAmount || ""}
-                        onChange={handleFormChange}
-                        disabled={isSubmitting}
-                        className="bg-white"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="advancePaymentMethod"
-                        className="text-blue-900"
-                      >
-                        Method
-                      </Label>
-                      <Select
-                        value={formData.advancePaymentMethod || "Cash"}
-                        onValueChange={(v) =>
-                          handleSelectChange("advancePaymentMethod", v)
-                        }
-                        disabled={isSubmitting}
-                      >
-                        <SelectTrigger className="bg-white">
-                          <SelectValue placeholder="Method" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Cash">Cash</SelectItem>
-                          <SelectItem value="Card">Card</SelectItem>
-                          <SelectItem value="Online">Online</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-                {/* 👆 ---------------------------- 👆 */}
-
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={
-                    isSubmitting ||
-                    !formData.roomNumber ||
-                    formErrors.phone !== "" ||
-                    formErrors.cnic !== ""
-                  }
-                >
-                  {isSubmitting ? "Processing..." : "Create Reservation"}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-
-          {/* Delete Confirmation Dialog */}
-          <AlertDialog
-            open={!!reservationToDelete}
-            onOpenChange={(open) => !open && setReservationToDelete(null)}
-          >
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete the
-                  reservation for{" "}
-                  <span className="font-semibold">
-                    {reservationToDelete?.fullName}
-                  </span>
-                  .
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDeleteReservation}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          <AlertDialog
-            open={!!reservationToHardDelete} // This dialog is controlled by our new state variable
-            onOpenChange={(open) => !open && setReservationToHardDelete(null)} // Allows closing the dialog
-          >
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action is irreversible. It will{" "}
-                  <span className="font-bold text-red-600">
-                    PERMANENTLY DELETE
-                  </span>{" "}
-                  the reservation record for{" "}
-                  <span className="font-semibold">
-                    {reservationToHardDelete?.fullName}
-                  </span>
-                  . All associated data will be lost forever.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>{" "}
-                {/* The safe "no" option */}
-                <AlertDialogAction
-                  onClick={handleHardDelete} // Calls the new handler function when the user confirms
-                  className="bg-red-600 hover:bg-red-700" // Styled to look dangerous
-                >
-                  Confirm Permanent Deletion
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog
+          open={!!reservationToDelete}
+          onOpenChange={(open) => !open && setReservationToDelete(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the
+                reservation for{" "}
+                <span className="font-semibold">
+                  {reservationToDelete?.fullName}
+                </span>
+                .
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteReservation}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <AlertDialog
+          open={!!reservationToHardDelete} // This dialog is controlled by our new state variable
+          onOpenChange={(open) => !open && setReservationToHardDelete(null)} // Allows closing the dialog
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action is irreversible. It will{" "}
+                <span className="font-bold text-red-600">
+                  PERMANENTLY DELETE
+                </span>{" "}
+                the reservation record for{" "}
+                <span className="font-semibold">
+                  {reservationToHardDelete?.fullName}
+                </span>
+                . All associated data will be lost forever.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>{" "}
+              {/* The safe "no" option */}
+              <AlertDialogAction
+                onClick={handleHardDelete} // Calls the new handler function when the user confirms
+                className="bg-red-600 hover:bg-red-700" // Styled to look dangerous
+              >
+                Confirm Permanent Deletion
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
+
   );
 };
 
@@ -1737,7 +1712,7 @@ const ReservationCard = React.memo(
 const ReservationListSkeleton: React.FC = () => (
   <div className="space-y-4">
     {[...Array(5)].map((_, i) => (
-      <Card key={i} className="min-h-screen">
+      <Card key={i} className="">
         <CardContent className="grid grid-cols-1 md:grid-cols-5 items-center gap-4 p-4 h-full">
           <div className="md:col-span-2 space-y-2">
             <Skeleton className="h-6 w-48" />

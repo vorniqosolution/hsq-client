@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import PaymentModal from "@/components/modals/PaymentModal";
-import Sidebar from "@/components/Sidebar"; // Added Sidebar import
+
 import {
   ArrowLeft,
   Calendar,
@@ -129,7 +129,7 @@ const ReservationDetailsPage: React.FC = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   const { getReservationById, loading, error } = useReservationContext();
   const { rooms: allRooms } = useRoomContext();
   const [reservation, setReservation] = useState<Reservation | null>(null);
@@ -325,31 +325,9 @@ const ReservationDetailsPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex overflow-hidden">
-      {/* Sidebar - Replaced inline code with Component */}
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
+    <div className="h-full overflow-hidden">
       {/* Main content */}
-      <div className="flex-1 w-full h-screen overflow-y-auto flex flex-col">
-        {isAdmin && (
-          <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                aria-label="Toggle Menu"
-              >
-                <Menu className="h-5 w-5 text-slate-700" />
-              </button>
-              <div className="flex items-center space-x-2">
-                <span className="font-light tracking-wider text-slate-900">
-                  HSQ ADMIN
-                </span>
-              </div>
-              <div className="w-9" />
-            </div>
-          </div>
-        )}
+      <div className="flex-1 w-full h-full overflow-y-auto flex flex-col">
 
         <div className="container mx-auto p-4 md:p-6 lg:p-8 flex-grow">
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-4">

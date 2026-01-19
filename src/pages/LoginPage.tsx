@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Eye, EyeOff, LogIn, Mail, Lock, Building2 } from "lucide-react";
+import { Eye, EyeOff, LogIn, Mail, Lock, Building2, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-const BASE_URL= import.meta.env.VITE_API_BASE_URL;
 import HSQ from "../../public/HSQ.png";
 import {
   Card,
@@ -24,19 +23,19 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-console.log("BASE URL",BASE_URL)
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-center">
           <div className="relative w-16 h-16 mx-auto mb-4">
-            <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-blue-500 rounded-full animate-ping opacity-75"></div>
-            <div className="relative bg-gradient-to-r from-emerald-500 to-blue-600 rounded-full w-16 h-16 flex items-center justify-center">
-              <Building2 className="w-8 h-8 text-white" />
+            <div className="absolute inset-0 bg-amber-500 rounded-full animate-ping opacity-25"></div>
+            <div className="relative bg-slate-900 border border-slate-800 rounded-full w-16 h-16 flex items-center justify-center shadow-lg shadow-amber-900/20">
+              <Crown className="w-8 h-8 text-amber-500" />
             </div>
           </div>
-          <p className="text-slate-600 font-medium">
-            Loading your dashboard...
+          <p className="text-slate-400 font-light tracking-wide">
+            Accessing Secure Portal...
           </p>
         </div>
       </div>
@@ -56,7 +55,11 @@ console.log("BASE URL",BASE_URL)
     setIsSubmitting(false);
 
     if (result.success) {
-      toast({ title: "Logged in", description: result.message });
+      toast({
+        title: "Welcome Back",
+        description: "You have successfully logged in.",
+        className: "bg-emerald-950 border-emerald-900 text-emerald-50"
+      });
     } else {
       setError(result.message);
       toast({
@@ -68,96 +71,95 @@ console.log("BASE URL",BASE_URL)
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center px-4 py-8">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-40">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `radial-gradient(circle at 25px 25px, rgba(59, 130, 246, 0.1) 2px, transparent 0),
-                           radial-gradient(circle at 75px 75px, rgba(16, 185, 129, 0.1) 2px, transparent 0)`,
-            backgroundSize: "100px 100px",
-          }}
-        ></div>
-      </div>
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden">
+      {/* Background Elements */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black z-0"></div>
+
+      {/* Animated Glows */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-amber-500/5 blur-[120px] rounded-full animate-pulse"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-slate-800/20 blur-[100px] rounded-full"></div>
+
       <div className="relative z-10 w-full max-w-md">
+
         {/* Logo Section */}
-        <div className="text-center mb-8">
-          <img
-            src={HSQ}
-            alt="HSQ Towers Logo"
-            className="w-20 h-auto mx-auto transform hover:scale-105 transition-transform duration-300"
-          />
+        <div className="text-center mb-8 flex flex-col items-center animate-fade-in-down">
+          <div className="h-24 w-24 bg-slate-900 rounded-2xl flex items-center justify-center shadow-2xl shadow-black/50 border border-slate-800 mb-6 group transition-all duration-500 hover:border-amber-500/30 hover:shadow-amber-900/20">
+            <img
+              src={HSQ}
+              alt="HSQ Logo"
+              className="w-16 h-auto opacity-90 group-hover:opacity-100 transition-opacity duration-300"
+            />
+          </div>
+          <h1 className="text-3xl font-light text-slate-100 tracking-wider">HSQ <span className="font-semibold text-amber-500">TOWERS</span></h1>
+          <p className="text-slate-500 text-sm mt-2 tracking-wide font-light">MANAGEMENT PORTAL</p>
         </div>
+
         {/* Login Card */}
-        <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm animate-slide-up">
-          <CardHeader className="text-center pb-4">
-            <CardTitle className="text-2xl font-semibold text-slate-800">
-              Welcome Back
+        <Card className="border border-slate-800 bg-slate-900/60 backdrop-blur-xl shadow-2xl shadow-black/80">
+          <CardHeader className="text-center pb-2 pt-8">
+            <CardTitle className="text-xl font-medium text-slate-200">
+              Sign In
             </CardTitle>
-            <CardDescription className="text-slate-600">
-              Sign in to access your dashboard
+            <CardDescription className="text-slate-500">
+              Enter your credentials to continue
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="pt-0">
+          <CardContent className="pt-6 pb-8 px-8">
             <form onSubmit={handleSubmit} className="space-y-5">
+
               {/* Email Field */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-700 font-medium">
+                <Label htmlFor="email" className="text-slate-400 text-xs font-medium uppercase tracking-wider ml-1">
                   Email Address
                 </Label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                    <Mail className="h-5 w-5 text-slate-500 group-focus-within:text-amber-500 transition-colors duration-300" />
                   </div>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="Enter your email"
+                    placeholder="name@company.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="pl-10 h-12 border-2 border-slate-200 focus:border-emerald-500 rounded-xl bg-white/50 transition-all duration-300 focus:shadow-lg focus:shadow-emerald-500/20"
+                    className="pl-10 h-11 bg-slate-950/50 border-slate-800 text-slate-200 placeholder:text-slate-600 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 rounded-lg transition-all"
                   />
                 </div>
               </div>
 
               {/* Password Field */}
               <div className="space-y-2">
-                <Label
-                  htmlFor="password"
-                  className="text-slate-700 font-medium"
-                >
-                  Password
-                </Label>
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="password" className="text-slate-400 text-xs font-medium uppercase tracking-wider ml-1">
+                    Password
+                  </Label>
+                </div>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                    <Lock className="h-5 w-5 text-slate-500 group-focus-within:text-amber-500 transition-colors duration-300" />
                   </div>
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
+                    placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="pl-10 pr-12 h-12 border-2 border-slate-200 focus:border-emerald-500 rounded-xl bg-white/50 transition-all duration-300 focus:shadow-lg focus:shadow-emerald-500/20"
+                    className="pl-10 pr-10 h-11 bg-slate-950/50 border-slate-800 text-slate-200 placeholder:text-slate-600 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 rounded-lg transition-all"
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-0 top-0 h-full px-3 text-slate-400 hover:text-slate-600 hover:bg-transparent"
+                    className="absolute right-0 top-0 h-full w-10 px-0 text-slate-500 hover:text-amber-400 hover:bg-transparent transition-colors"
                     onClick={() => setShowPassword(!showPassword)}
-                    aria-label={
-                      showPassword ? "Hide password" : "Show password"
-                    }
                   >
                     {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
+                      <EyeOff className="w-4 h-4" />
                     ) : (
-                      <Eye className="w-5 h-5" />
+                      <Eye className="w-4 h-4" />
                     )}
                   </Button>
                 </div>
@@ -165,9 +167,9 @@ console.log("BASE URL",BASE_URL)
 
               {/* Error Message */}
               {error && (
-                <div className="p-4 rounded-xl bg-red-50 border border-red-200 animate-shake">
-                  <p className="text-red-700 text-sm font-medium flex items-center gap-2">
-                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                <div className="p-3 rounded-lg bg-red-950/30 border border-red-900/50 flex items-start gap-3">
+                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-red-400 text-sm font-light leading-relaxed">
                     {error}
                   </p>
                 </div>
@@ -177,36 +179,34 @@ console.log("BASE URL",BASE_URL)
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full h-12 bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 disabled:transform-none disabled:opacity-70"
+                className="w-full h-11 bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold rounded-lg shadow-lg shadow-amber-900/20 hover:shadow-amber-900/40 transform active:scale-[0.98] transition-all duration-200 mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
-                  <div className="flex items-center gap-3">
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>Signing In...</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin"></div>
+                    <span>Authenticating...</span>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-3">
-                    <LogIn className="w-5 h-5" />
+                  <div className="flex items-center justify-center gap-2">
+                    <LogIn className="w-4 h-4" />
                     <span>Sign In</span>
                   </div>
                 )}
               </Button>
-
-              {/* Security Notice */}
-              <div className="text-center pt-4">
-                <p className="text-xs text-slate-500 flex items-center justify-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  Secured with 256-bit SSL encryption
-                </p>
-              </div>
             </form>
+          </CardContent>
+
+          <CardContent className="pb-6 pt-0 px-8 text-center border-t border-slate-800/50">
+            <p className="text-xs text-slate-600 mt-6 font-light">
+              By signing in, you agree to the company policies.
+            </p>
           </CardContent>
         </Card>
 
         {/* Footer */}
-        <div className="text-center mt-8 animate-fade-in">
-          <p className="text-slate-500 text-sm">
-            © 2025 Vorqino solutions. All rights reserved.
+        <div className="text-center mt-8">
+          <p className="text-slate-600 text-xs font-mono">
+            SECURE CONNECTION • 256-BIT ENCRYPTION
           </p>
         </div>
       </div>

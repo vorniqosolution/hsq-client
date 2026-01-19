@@ -31,6 +31,15 @@ export interface GuestActivityResponse {
   data: GuestActivityData;
 }
 
+export interface CheckedOutGuest {
+  _id: string;
+  fullName: string;
+  room: { _id: string; roomNumber: string; category: string } | null;
+  checkInAt: string;
+  checkOutAt: string;
+  status: string;
+}
+
 export interface Room {
   _id: string;
   roomNumber: string;
@@ -126,6 +135,10 @@ interface GuestContextType {
   guestActivityReport: GuestActivityResponse | null;
   fetchGuestActivityReport: (date: string) => Promise<void>;
 
+  // Checked-out guests by date range
+  checkedOutByRange: CheckedOutGuest[] | null;
+  fetchCheckedOutByRange: (startDate: string, endDate: string) => Promise<void>;
+
   fetchGuests: () => Promise<void>;
   fetchGuestsByCategory: (category: string) => Promise<void>;
   fetchGuestById: (id: string) => Promise<void>;
@@ -149,6 +162,8 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
   const [guestActivityReport, setGuestActivityReport] =
     useState<GuestActivityResponse | null>(null);
+  const [checkedOutByRange, setCheckedOutByRange] =
+    useState<CheckedOutGuest[] | null>(null);
 
   const apiCall = useCallback(
     async <T,>(
@@ -197,6 +212,24 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
           setGuestActivityReport(response);
         },
         "Failed to fetch guest activity report"
+      );
+    },
+    [apiCall]
+  );
+
+  const fetchCheckedOutByRange = useCallback(
+    async (startDate: string, endDate: string) => {
+      setCheckedOutByRange(null);
+      await apiCall(
+        () =>
+          apiClient
+            .get<{ success: boolean; data: CheckedOutGuest[] }>(
+              `/api/guests/checked-out-by-range`,
+              { params: { startDate, endDate } }
+            )
+            .then((res) => res.data.data),
+        (data) => setCheckedOutByRange(data),
+        "Failed to fetch checked-out guests history"
       );
     },
     [apiCall]
@@ -351,6 +384,8 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
 
       guestActivityReport,
       fetchGuestActivityReport,
+      checkedOutByRange,
+      fetchCheckedOutByRange,
     }),
     [
       guests,
@@ -369,8 +404,9 @@ export const GuestProvider = ({ children }: { children: ReactNode }) => {
       downloadInvoicePdf,
       sendInvoiceByEmail,
       guestActivityReport,
-
       fetchGuestActivityReport,
+      checkedOutByRange,
+      fetchCheckedOutByRange,
     ]
   );
 

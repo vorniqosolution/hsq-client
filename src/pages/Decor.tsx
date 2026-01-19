@@ -34,7 +34,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import Sidebar from "@/components/Sidebar";
+
 
 export default function Decor() {
   const { user } = useAuth();
@@ -47,7 +47,7 @@ export default function Decor() {
     deletePackage,
   } = useDecor();
 
-  const [isOpen, setIsOpen] = useState(true);
+
   const [openAdd, setOpenAdd] = useState(false);
   const [openUpdate, setOpenUpdate] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
@@ -262,32 +262,10 @@ export default function Decor() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
-      {/* Sidebar */}
-      <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)} />
-
+    <div className="h-full">
       {/* Main content */}
       <div className="flex-1 lg:ml-0">
-        {/* Mobile header */}
-        {isAdmin && (
-          <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4">
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => setIsOpen(true)}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <Menu className="h-5 w-5 text-slate-700" />
-              </button>
-              <div className="flex items-center space-x-2">
-                <Crown className="h-6 w-6 text-amber-500" />
-                <span className="font-light tracking-wider text-slate-900">
-                  HSQ ADMIN
-                </span>
-              </div>
-              <div className="w-9" />
-            </div>
-          </div>
-        )}
+
 
         <div className="p-8">
           <div className="max-w-7xl mx-auto">
@@ -541,11 +519,10 @@ function PackageCard({ pkg, onEdit, onDelete }: any) {
                   <button
                     key={idx}
                     onClick={() => setImageIndex(idx)}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      idx === imageIndex
+                    className={`w-2 h-2 rounded-full transition-all ${idx === imageIndex
                         ? "bg-white w-4"
                         : "bg-white/50 hover:bg-white/75"
-                    }`}
+                      }`}
                   />
                 ))}
               </div>
@@ -849,11 +826,10 @@ function Form({
           {items.map((item: any) => (
             <div
               key={item._id}
-              className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
-                formState.itemsQty?.[item.name]
+              className={`flex items-center justify-between p-3 rounded-lg border transition-all ${formState.itemsQty?.[item.name]
                   ? "border-amber-400 bg-amber-50"
                   : "border-slate-200 bg-white hover:border-slate-300"
-              }`}
+                }`}
             >
               <span className="text-sm font-medium text-slate-700 truncate mr-2">
                 {item.name}

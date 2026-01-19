@@ -105,10 +105,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import Sidebar from "@/components/Sidebar";
+
 
 const InventoryPage = () => {
-  const [isOpen, setIsOpen] = useState(true);
+
   const location = useLocation();
 
   // === MODAL STATES ===
@@ -429,27 +429,8 @@ const InventoryPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
-      <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)} />
-
-      <div className="flex-1 lg:ml-0">
-        <div className="lg:hidden bg-white shadow-sm border-b border-gray-100 px-4 py-4">
-          <div className="flex items-center ">
-            <button
-              onClick={() => setIsOpen(true)}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <Menu className="h-5 w-5 text-slate-700" />
-            </button>
-            <div className="flex items-center space-x-2">
-              <Crown className="h-6 w-6 text-amber-500" />
-              <span className="font-light tracking-wider text-slate-900">
-                HSQ ADMIN
-              </span>
-            </div>
-            <div className="w-9" />
-          </div>
-        </div>
+    <div className="h-full">
+      <div className="flex-1">
 
         <div className="p-8">
           <div className="max-w-7xl mx-auto">
@@ -730,7 +711,7 @@ const InventoryPage = () => {
                               {category === "all"
                                 ? "All Categories"
                                 : category.charAt(0).toUpperCase() +
-                                  category.slice(1)}
+                                category.slice(1)}
                             </option>
                           ))}
                         </select>
@@ -794,21 +775,20 @@ const InventoryPage = () => {
                               <Badge className="capitalize bg-slate-100 text-slate-800 hover:bg-slate-200">
                                 {/* FIX: Safely access category name, checking for null and providing a fallback. */}
                                 {typeof item.category === "object" &&
-                                item.category
+                                  item.category
                                   ? item.category.name
                                   : "Uncategorized"}
                               </Badge>
                             </td>
                             <td className="py-4 px-6 text-right">
                               <span
-                                className={`font-medium ${
-                                  item.quantityOnHand <= item.reorderLevel
+                                className={`font-medium ${item.quantityOnHand <= item.reorderLevel
                                     ? "text-red-600"
                                     : item.quantityOnHand <=
                                       item.reorderLevel * 1.5
-                                    ? "text-amber-600"
-                                    : "text-emerald-600"
-                                }`}
+                                      ? "text-amber-600"
+                                      : "text-emerald-600"
+                                  }`}
                               >
                                 {item.quantityOnHand}
                               </span>
@@ -951,7 +931,7 @@ const InventoryPage = () => {
                             {
                               items.filter((item) =>
                                 typeof item.category === "object" &&
-                                item.category
+                                  item.category
                                   ? item.category._id === category._id
                                   : item.category === category._id
                               ).length
@@ -1032,11 +1012,11 @@ const InventoryPage = () => {
                         // Safely resolve the item name:
                         const itemName =
                           transaction.item &&
-                          typeof transaction.item === "object" &&
-                          transaction.item.name
+                            typeof transaction.item === "object" &&
+                            transaction.item.name
                             ? transaction.item.name
                             : items.find((i) => i._id === transaction.item)
-                                ?.name ?? "Item Deleted";
+                              ?.name ?? "Item Deleted";
 
                         return (
                           <TableRow key={transaction._id}>
@@ -1049,11 +1029,11 @@ const InventoryPage = () => {
                                   transaction.transactionType === "issue"
                                     ? "bg-red-100 text-red-800"
                                     : transaction.transactionType === "return"
-                                    ? "bg-green-100 text-green-800"
-                                    : transaction.transactionType ===
-                                      "adjustment"
-                                    ? "bg-blue-100 text-blue-800"
-                                    : "bg-amber-100 text-amber-800"
+                                      ? "bg-green-100 text-green-800"
+                                      : transaction.transactionType ===
+                                        "adjustment"
+                                        ? "bg-blue-100 text-blue-800"
+                                        : "bg-amber-100 text-amber-800"
                                 }
                               >
                                 {transaction.transactionType

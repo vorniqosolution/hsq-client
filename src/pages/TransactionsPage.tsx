@@ -22,7 +22,7 @@ import {
   Calendar,
   Menu
 } from "lucide-react";
-import Sidebar from "@/components/Sidebar";
+
 
 const formatDateTime = (iso: string) =>
   new Date(iso).toLocaleString("en-US", {
@@ -43,7 +43,7 @@ const formatPKR = (amount: number) =>
 const TransactionsPage: React.FC = () => {
   const { transactions, fetchTransactions, loading } = useTransaction();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+
 
   const [typeFilter, setTypeFilter] = useState<
     "all" | "advance" | "payment" | "refund"
@@ -140,17 +140,9 @@ const TransactionsPage: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <div className="h-full">
       <div className="flex-1 flex flex-col overflow-hidden relative">
         <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-slate-50">
-          {/* Mobile Toggle */}
-          <div className="lg:hidden mb-4 flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
-              <Menu className="h-6 w-6 text-slate-600" />
-            </Button>
-            <h1 className="text-xl font-bold text-slate-800">Transactions Ledger</h1>
-          </div>
 
           <div className="container mx-auto max-w-7xl px-4 py-6 md:px-6">
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

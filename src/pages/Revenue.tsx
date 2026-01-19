@@ -25,7 +25,7 @@ import {
   Banknote,
   Users,
 } from "lucide-react";
-import Sidebar from "@/components/Sidebar";
+
 
 // The getISOWeek and getWeeksInMonth functions remain the same
 const getISOWeek = (date: Date): number => {
@@ -56,7 +56,7 @@ const getWeeksInMonth = (year: number, month: number) => {
       const startOfWeek = new Date(dateCopy);
       startOfWeek.setDate(
         dateCopy.getDate() -
-          (dateCopy.getDay() === 0 ? 6 : dateCopy.getDay() - 1)
+        (dateCopy.getDay() === 0 ? 6 : dateCopy.getDay() - 1)
       );
       const endOfWeek = new Date(startOfWeek);
       endOfWeek.setDate(startOfWeek.getDate() + 6);
@@ -88,7 +88,7 @@ const RevenuePage = () => {
   } = useRevenueContext();
 
   const [reportType, setReportType] = useState("monthly");
-  const [isOpen, setIsOpen] = useState(true);
+
   const [params, setParams] = useState({
     year: new Date().getFullYear(),
     month: new Date().getMonth() + 1,
@@ -401,263 +401,261 @@ const RevenuePage = () => {
 
   // Function to render report data
   // Function to render report data
-const renderReportData = () => {
-  if (!reportData) {
-    return (
-      <div className="py-12 text-center">
-        <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-        <p className="text-slate-500 font-light">
-          Select and fetch a report to view data
-        </p>
-      </div>
-    );
-  }
-
-  const getReportBadge = () => (
-    <span className="bg-amber-100 text-amber-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-      {reportType}
-    </span>
-  );
-
-  // --- Monthly Report ---
-  if ("monthlyrevenue" in reportData) {
-    const data = reportData as MonthlyRevenueResponse;
-    const revenue = data.monthlyrevenue?.totalRevenue ?? 0;
-    const invoiceCount = data.monthlyrevenue?.invoiceCount ?? 0; // In new system, this is invoice count
-
-    return (
-      <div>
-        <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200">
-          <div className="flex items-center space-x-2">
-            <Calendar className="h-5 w-5 text-amber-500" />
-            <h3 className="text-lg font-light text-slate-900">Monthly Report ({data.month}/{data.year})</h3>
-            {getReportBadge()}
-          </div>
-          <button onClick={handleDownload} className="flex items-center space-x-1 bg-amber-500 hover:bg-amber-600 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors">
-            <Download className="h-4 w-4" />
-            <span>Download Excel</span>
-          </button>
+  const renderReportData = () => {
+    if (!reportData) {
+      return (
+        <div className="py-12 text-center">
+          <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+          <p className="text-slate-500 font-light">
+            Select and fetch a report to view data
+          </p>
         </div>
-        <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
-              <div className="text-sm text-slate-500 mb-1">Total Revenue</div>
-              <div className="text-2xl font-light text-slate-900">Rs: {revenue.toLocaleString()}</div>
-            </div>
-            <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
-              <div className="text-sm text-slate-500 mb-1">Total Invoices</div>
-              <div className="text-2xl font-light text-slate-900">{invoiceCount.toLocaleString()}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // --- Weekly Report ---
-  if ("weeklyrevenue" in reportData) {
-    const data = reportData as WeeklyRevenueResponse;
-    const revenue = data.weeklyrevenue?.totalRevenue ?? 0;
-    const invoiceCount = data.weeklyrevenue?.invoiceCount ?? 0; // In new system, this is invoice count
-
-    return (
-      <div>
-        <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200">
-          <div className="flex items-center space-x-2">
-            <Calendar className="h-5 w-5 text-amber-500" />
-            <h3 className="text-lg font-light text-slate-900">Weekly Report (Week {data.week}, {data.year})</h3>
-            {getReportBadge()}
-          </div>
-          <button onClick={handleDownload} className="flex items-center space-x-1 bg-amber-500 hover:bg-amber-600 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors">
-            <Download className="h-4 w-4" />
-            <span>Download Excel</span>
-          </button>
-        </div>
-        <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
-              <div className="text-sm text-slate-500 mb-1">Total Revenue</div>
-              <div className="text-2xl font-light text-slate-900">Rs: {revenue.toLocaleString()}</div>
-            </div>
-            <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
-              <div className="text-sm text-slate-500 mb-1">Total Invoices</div>
-              <div className="text-2xl font-light text-slate-900">{invoiceCount.toLocaleString()}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // --- Category Report ---
-  if ("categories" in reportData) {
-    const data = reportData as RoomCategoryRevenueResponse;
-    const categories = data.categories ?? [];
-
-    return (
-      <div>
-        <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200">
-          <div className="flex items-center space-x-2">
-            <Tag className="h-5 w-5 text-amber-500" />
-            <h3 className="text-lg font-light text-slate-900">Room Category Revenue ({data.month}/{data.year})</h3>
-            {getReportBadge()}
-          </div>
-          <button onClick={handleDownload} className="flex items-center space-x-1 bg-amber-500 hover:bg-amber-600 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors">
-            <Download className="h-4 w-4" />
-            <span>Download Excel</span>
-          </button>
-        </div>
-        <div className="space-y-4">
-          {categories.length > 0 ? (
-            categories.map((cat, index) => (
-              <div key={index} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                <div className="flex justify-between items-center mb-3">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                    <h4 className="text-md font-medium text-slate-800">{cat.category}</h4>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-slate-50 p-3 rounded">
-                    <div className="text-xs text-slate-500">Total Revenue</div>
-                    <div className="text-lg font-medium text-slate-900">Rs: {(cat.totalRevenue ?? 0).toLocaleString()}</div>
-                  </div>
-                  <div className="bg-slate-50 p-3 rounded">
-                    <div className="text-xs text-slate-500">Total Invoices</div>
-                    <div className="text-lg font-medium text-slate-900">{(cat.invoiceCount ?? 0).toLocaleString()}</div>
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-             <p className="text-center text-slate-500 py-8">No category data found for this period.</p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // --- Discounted Guests Report ---
-  if ("guests" in reportData) {
-    const data = reportData as DiscountedGuestsResponse;
-  // This is the correct array to use
-  const discountedGuestList = data.guests ?? []; 
-
-    return (
-      <div>
-        <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200">
-          <div className="flex items-center space-x-2">
-            <Users className="h-5 w-5 text-amber-500" />
-            <h3 className="text-lg font-light text-slate-900">Discounted Guests ({data.month}/{data.year})</h3>
-            <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">{data.count} guests</span>
-          </div>
-          <button onClick={handleDownload} className="flex items-center space-x-1 bg-amber-500 hover:bg-amber-600 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors">
-            <Download className="h-4 w-4" />
-            <span>Download Excel</span>
-          </button>
-        </div>
-        <div className="space-y-4">
-        {discountedGuestList.length > 0 ? (
-          discountedGuestList.map((guest, index) => ( 
-            <div key={index} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-              <div className="flex flex-col md:flex-row justify-between mb-3">
-                <div className="flex items-center space-x-2 mb-2 md:mb-0">
-                  <div className="w-8 h-8 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-sm font-medium">
-                    {guest.fullName.substring(0, 2).toUpperCase()}
-                  </div>
-                  <div>
-                    <h4 className="text-md font-medium text-slate-800">{guest.fullName}</h4>
-                    <p className="text-xs text-slate-500">
-                      {guest.roomCategory} - Room {guest.roomNumber}
-                    </p>
-                  </div>
-                </div>
-                {/* Use the new, correct discountAmount field */}
-                {guest.discountAmount > 0 && 
-                  <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">
-                    Discount Applied
-                  </span>
-                }
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-slate-50 p-3 rounded">
-                  <div className="text-xs text-slate-500">Total Discount</div>
-                  <div className="text-sm font-medium text-slate-900">
-                    Rs: {(guest.discountAmount ?? 0).toLocaleString()}
-                  </div>
-                </div>
-                <div className="bg-slate-50 p-3 rounded">
-                  <div className="text-xs text-slate-500">Final Bill</div>
-                  <div className="text-sm font-medium text-slate-900">
-                    Rs: {(guest.totalRent ?? 0).toLocaleString()}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))
-        ) : (
-          <p className="text-center text-slate-500 py-8">No discounted invoices found for this period.</p>
-        )}
-      </div>
-      </div>
-    );
-  }
-
-  // --- Daily, Yearly, and All-Time Reports ---
-  // Using a single block for these as their structure is similar
-  if ("totalRevenue" in reportData) {
-    const data = reportData as DailyRevenueResponse | YearlyRevenueResponse | AllRevenueResponse;
-    const revenue = data.totalRevenue ?? 0;
-    const invoiceCount = data.invoiceCount ?? 0;
-    let title = "All-Time Revenue";
-    let icon = <Banknote className="h-5 w-5 text-amber-500" />;
-    
-    if ("day" in data) {
-      title = `Daily Report (${data.day}/${data.month}/${data.year})`;
-      icon = <Calendar className="h-5 w-5 text-amber-500" />;
-    } else if ("year" in data) {
-      title = `Yearly Report (${data.year})`;
-      icon = <BarChart3 className="h-5 w-5 text-amber-500" />;
+      );
     }
 
-    return (
-      <div>
-        <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200">
-          <div className="flex items-center space-x-2">
-            {icon}
-            <h3 className="text-lg font-light text-slate-900">{title}</h3>
-            {reportType !== 'all-time' && getReportBadge()}
-          </div>
-          <button onClick={handleDownload} className="flex items-center space-x-1 bg-amber-500 hover:bg-amber-600 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors">
-            <Download className="h-4 w-4" />
-            <span>Download Excel</span>
-          </button>
-        </div>
-        <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
-              <div className="text-sm text-slate-500 mb-1">Total Revenue</div>
-              <div className="text-2xl font-light text-slate-900">Rs: {revenue.toLocaleString()}</div>
-            </div>
-            <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
-              <div className="text-sm text-slate-500 mb-1">Total Invoices</div>
-              <div className="text-2xl font-light text-slate-900">{invoiceCount.toLocaleString()}</div>
-            </div>
-          </div>
-        </div>
-      </div>
+    const getReportBadge = () => (
+      <span className="bg-amber-100 text-amber-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+        {reportType}
+      </span>
     );
-  }
 
-  return <p className="text-center text-slate-500 py-8">Could not determine the report type.</p>;
-};
+    // --- Monthly Report ---
+    if ("monthlyrevenue" in reportData) {
+      const data = reportData as MonthlyRevenueResponse;
+      const revenue = data.monthlyrevenue?.totalRevenue ?? 0;
+      const invoiceCount = data.monthlyrevenue?.invoiceCount ?? 0; // In new system, this is invoice count
+
+      return (
+        <div>
+          <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200">
+            <div className="flex items-center space-x-2">
+              <Calendar className="h-5 w-5 text-amber-500" />
+              <h3 className="text-lg font-light text-slate-900">Monthly Report ({data.month}/{data.year})</h3>
+              {getReportBadge()}
+            </div>
+            <button onClick={handleDownload} className="flex items-center space-x-1 bg-amber-500 hover:bg-amber-600 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors">
+              <Download className="h-4 w-4" />
+              <span>Download Excel</span>
+            </button>
+          </div>
+          <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
+                <div className="text-sm text-slate-500 mb-1">Total Revenue</div>
+                <div className="text-2xl font-light text-slate-900">Rs: {revenue.toLocaleString()}</div>
+              </div>
+              <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
+                <div className="text-sm text-slate-500 mb-1">Total Invoices</div>
+                <div className="text-2xl font-light text-slate-900">{invoiceCount.toLocaleString()}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // --- Weekly Report ---
+    if ("weeklyrevenue" in reportData) {
+      const data = reportData as WeeklyRevenueResponse;
+      const revenue = data.weeklyrevenue?.totalRevenue ?? 0;
+      const invoiceCount = data.weeklyrevenue?.invoiceCount ?? 0; // In new system, this is invoice count
+
+      return (
+        <div>
+          <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200">
+            <div className="flex items-center space-x-2">
+              <Calendar className="h-5 w-5 text-amber-500" />
+              <h3 className="text-lg font-light text-slate-900">Weekly Report (Week {data.week}, {data.year})</h3>
+              {getReportBadge()}
+            </div>
+            <button onClick={handleDownload} className="flex items-center space-x-1 bg-amber-500 hover:bg-amber-600 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors">
+              <Download className="h-4 w-4" />
+              <span>Download Excel</span>
+            </button>
+          </div>
+          <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
+                <div className="text-sm text-slate-500 mb-1">Total Revenue</div>
+                <div className="text-2xl font-light text-slate-900">Rs: {revenue.toLocaleString()}</div>
+              </div>
+              <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
+                <div className="text-sm text-slate-500 mb-1">Total Invoices</div>
+                <div className="text-2xl font-light text-slate-900">{invoiceCount.toLocaleString()}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // --- Category Report ---
+    if ("categories" in reportData) {
+      const data = reportData as RoomCategoryRevenueResponse;
+      const categories = data.categories ?? [];
+
+      return (
+        <div>
+          <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200">
+            <div className="flex items-center space-x-2">
+              <Tag className="h-5 w-5 text-amber-500" />
+              <h3 className="text-lg font-light text-slate-900">Room Category Revenue ({data.month}/{data.year})</h3>
+              {getReportBadge()}
+            </div>
+            <button onClick={handleDownload} className="flex items-center space-x-1 bg-amber-500 hover:bg-amber-600 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors">
+              <Download className="h-4 w-4" />
+              <span>Download Excel</span>
+            </button>
+          </div>
+          <div className="space-y-4">
+            {categories.length > 0 ? (
+              categories.map((cat, index) => (
+                <div key={index} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                      <h4 className="text-md font-medium text-slate-800">{cat.category}</h4>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-slate-50 p-3 rounded">
+                      <div className="text-xs text-slate-500">Total Revenue</div>
+                      <div className="text-lg font-medium text-slate-900">Rs: {(cat.totalRevenue ?? 0).toLocaleString()}</div>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded">
+                      <div className="text-xs text-slate-500">Total Invoices</div>
+                      <div className="text-lg font-medium text-slate-900">{(cat.invoiceCount ?? 0).toLocaleString()}</div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-slate-500 py-8">No category data found for this period.</p>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // --- Discounted Guests Report ---
+    if ("guests" in reportData) {
+      const data = reportData as DiscountedGuestsResponse;
+      // This is the correct array to use
+      const discountedGuestList = data.guests ?? [];
+
+      return (
+        <div>
+          <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200">
+            <div className="flex items-center space-x-2">
+              <Users className="h-5 w-5 text-amber-500" />
+              <h3 className="text-lg font-light text-slate-900">Discounted Guests ({data.month}/{data.year})</h3>
+              <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">{data.count} guests</span>
+            </div>
+            <button onClick={handleDownload} className="flex items-center space-x-1 bg-amber-500 hover:bg-amber-600 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors">
+              <Download className="h-4 w-4" />
+              <span>Download Excel</span>
+            </button>
+          </div>
+          <div className="space-y-4">
+            {discountedGuestList.length > 0 ? (
+              discountedGuestList.map((guest, index) => (
+                <div key={index} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                  <div className="flex flex-col md:flex-row justify-between mb-3">
+                    <div className="flex items-center space-x-2 mb-2 md:mb-0">
+                      <div className="w-8 h-8 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-sm font-medium">
+                        {guest.fullName.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <h4 className="text-md font-medium text-slate-800">{guest.fullName}</h4>
+                        <p className="text-xs text-slate-500">
+                          {guest.roomCategory} - Room {guest.roomNumber}
+                        </p>
+                      </div>
+                    </div>
+                    {/* Use the new, correct discountAmount field */}
+                    {guest.discountAmount > 0 &&
+                      <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                        Discount Applied
+                      </span>
+                    }
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-slate-50 p-3 rounded">
+                      <div className="text-xs text-slate-500">Total Discount</div>
+                      <div className="text-sm font-medium text-slate-900">
+                        Rs: {(guest.discountAmount ?? 0).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded">
+                      <div className="text-xs text-slate-500">Final Bill</div>
+                      <div className="text-sm font-medium text-slate-900">
+                        Rs: {(guest.totalRent ?? 0).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-slate-500 py-8">No discounted invoices found for this period.</p>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // --- Daily, Yearly, and All-Time Reports ---
+    // Using a single block for these as their structure is similar
+    if ("totalRevenue" in reportData) {
+      const data = reportData as DailyRevenueResponse | YearlyRevenueResponse | AllRevenueResponse;
+      const revenue = data.totalRevenue ?? 0;
+      const invoiceCount = data.invoiceCount ?? 0;
+      let title = "All-Time Revenue";
+      let icon = <Banknote className="h-5 w-5 text-amber-500" />;
+
+      if ("day" in data) {
+        title = `Daily Report (${data.day}/${data.month}/${data.year})`;
+        icon = <Calendar className="h-5 w-5 text-amber-500" />;
+      } else if ("year" in data) {
+        title = `Yearly Report (${data.year})`;
+        icon = <BarChart3 className="h-5 w-5 text-amber-500" />;
+      }
+
+      return (
+        <div>
+          <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200">
+            <div className="flex items-center space-x-2">
+              {icon}
+              <h3 className="text-lg font-light text-slate-900">{title}</h3>
+              {reportType !== 'all-time' && getReportBadge()}
+            </div>
+            <button onClick={handleDownload} className="flex items-center space-x-1 bg-amber-500 hover:bg-amber-600 text-white py-2 px-3 rounded-md text-sm font-medium transition-colors">
+              <Download className="h-4 w-4" />
+              <span>Download Excel</span>
+            </button>
+          </div>
+          <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
+                <div className="text-sm text-slate-500 mb-1">Total Revenue</div>
+                <div className="text-2xl font-light text-slate-900">Rs: {revenue.toLocaleString()}</div>
+              </div>
+              <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
+                <div className="text-sm text-slate-500 mb-1">Total Invoices</div>
+                <div className="text-2xl font-light text-slate-900">{invoiceCount.toLocaleString()}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return <p className="text-center text-slate-500 py-8">Could not determine the report type.</p>;
+  };
 
   return (
-    <div className=" w-full flex gap-10 bg-slate-50 ">
-      <div className="w-[20%]">
-        <Sidebar isOpen={isOpen} onClose={() => setIsOpen(false)}></Sidebar>
-      </div>
-      <div className=" w-[80%] ">
+    <div className="w-full flex gap-10 bg-slate-50">
+      <div className="w-full">
+
         {/* Header */}
         <div className=" p-4 md:items-center md:justify-between mb-8">
           <div>

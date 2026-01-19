@@ -103,7 +103,7 @@
 //   if (!context) throw new Error("useDecor must be used inside <DecorProvider>");
 //   return context;
 // };
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import axios, { AxiosInstance } from "axios";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
@@ -154,9 +154,13 @@ export const DecorProvider = ({ children }: { children: React.ReactNode }) => {
       setPackages(res.data.data);
     } catch (err) {
       console.error("Fetch failed", err);
-      alert("Failed to load decor packages");
+      // alert("Failed to load decor packages"); // Removed intrusive alert on load
     }
   }, []);
+
+  useEffect(() => {
+    fetchPackages();
+  }, [fetchPackages]);
 
   // ------------ CREATE package ---------------- //
   const createPackage = useCallback(async (data: FormData) => {
