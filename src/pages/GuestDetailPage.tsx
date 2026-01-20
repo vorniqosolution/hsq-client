@@ -2275,9 +2275,11 @@ const GuestDetailPage = () => {
                     context="guest"
                     contextId={guest._id}
                     onSuccess={handlePaymentSuccess}
-                    // For payments: prefill with balance; for refunds: start at 0 (user types)
+                    // For payments: prefill with balance; for refunds: prefill with refund amount
                     defaultAmount={
-                      paymentModalType === "payment" ? invoice?.balanceDue || 0 : 0
+                      paymentModalType === "payment"
+                        ? invoice?.balanceDue || 0
+                        : Math.max(0, (invoice?.advanceAdjusted || 0) - (invoice?.grandTotal || 0))
                     }
                     initialType={paymentModalType}
                     mode={paymentModalMode}

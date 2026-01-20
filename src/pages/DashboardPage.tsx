@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
     CheckCircle,
@@ -97,12 +98,7 @@ interface TimelineEvent {
 }
 
 const DashboardPage = () => {
-
-    const [stats, setStats] = useState<DashboardStats | null>(null);
-    const [arrivals, setArrivals] = useState<Arrival[]>([]);
-    const [roomStatuses, setRoomStatuses] = useState<RoomStatus[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const queryClient = useQueryClient();
 
     // Filter & Search State
     const [filterStatus, setFilterStatus] = useState<string>("All");
@@ -110,72 +106,83 @@ const DashboardPage = () => {
 
     // Dialog State
     const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
-    const [roomTimeline, setRoomTimeline] = useState<TimelineEvent[]>([]);
-    const [timelineLoading, setTimelineLoading] = useState(false);
-    const [cancellationLoading, setCancellationLoading] = useState<string | null>(null);
 
-    const fetchData = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            const [statsRes, arrivalsRes, statusesRes] = await Promise.all([
-                apiClient.get("/api/dashboard/stats"),
-                apiClient.get("/api/dashboard/arrivals"),
-                apiClient.get("/api/dashboard/room-statuses"),
-            ]);
+    // --- QUERIES ---
 
-            setStats(statsRes.data.data);
-            setArrivals(arrivalsRes.data.data);
-            setRoomStatuses(statusesRes.data.data);
-        } catch (err) {
-            console.error("Dashboard fetch error:", err);
-            setError("Failed to load dashboard data. Please try again.");
-        } finally {
-            setLoading(false);
+    // 1. Dashboard Stats
+    const statsQuery = useQuery({
+        queryKey: ["dashboardStats"],
+        queryFn: async () => {
+            const res = await apiClient.get("/api/dashboard/stats");
+            return res.data.data as DashboardStats;
+        },
+        staleTime: 60 * 1000, // 1 minute
+    });
+
+    // 2. Arrivals
+    const arrivalsQuery = useQuery({
+        queryKey: ["dashboardArrivals"],
+        queryFn: async () => {
+            const res = await apiClient.get("/api/dashboard/arrivals");
+            return res.data.data as Arrival[];
+        },
+        staleTime: 5 * 60 * 1000, // 5 minutes
+    });
+
+    // 3. Room Statuses
+    const roomStatusesQuery = useQuery({
+        queryKey: ["dashboardRoomStatuses"],
+        queryFn: async () => {
+            const res = await apiClient.get("/api/dashboard/room-statuses");
+            return res.data.data as RoomStatus[];
+        },
+        staleTime: 30 * 1000, // 30 seconds (keep specific room status fresh)
+    });
+
+    // 4. Room Timeline (Dependent on selectedRoomId)
+    const timelineQuery = useQuery({
+        queryKey: ["roomTimeline", selectedRoomId],
+        queryFn: async () => {
+            if (!selectedRoomId) return [];
+            const res = await apiClient.get<{ timeline: TimelineEvent[] }>(`/api/rooms/${selectedRoomId}/timeline`);
+            return res.data.timeline;
+        },
+        enabled: !!selectedRoomId, // Only fetch when a room is selected
+        staleTime: 0, // Always fetch fresh timeline when opening dialog
+    });
+
+    // --- MUTATIONS ---
+
+    const cancelReservationMutation = useMutation({
+        mutationFn: (reservationId: string) =>
+            apiClient.delete(`/api/reservation/cancel-reservation/${reservationId}/cancel`),
+        onSuccess: () => {
+            // Invalidate all dashboard queries to refresh UI
+            queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+            queryClient.invalidateQueries({ queryKey: ["dashboardArrivals"] });
+            queryClient.invalidateQueries({ queryKey: ["dashboardRoomStatuses"] });
+            queryClient.invalidateQueries({ queryKey: ["roomTimeline", selectedRoomId] });
+        },
+        onError: (err) => {
+            console.error("Cancellation error:", err);
+            alert("Failed to cancel reservation.");
         }
-    };
-
-    const fetchTimeline = async (roomId: string) => {
-        try {
-            setTimelineLoading(true);
-            const res = await apiClient.get<{ timeline: TimelineEvent[] }>(`/api/rooms/${roomId}/timeline`);
-            setRoomTimeline(res.data.timeline);
-        } catch (err) {
-            console.error("Timeline fetch error", err);
-        } finally {
-            setTimelineLoading(false);
-        }
-    };
+    });
 
     const handleCancelReservation = async (reservationId: string) => {
         if (!window.confirm("Are you sure you want to cancel this reservation? This action cannot be undone.")) return;
-
-        try {
-            setCancellationLoading(reservationId);
-            await apiClient.delete(`/api/reservation/cancel-reservation/${reservationId}/cancel`);
-            // Refresh timeline
-            if (selectedRoomId) fetchTimeline(selectedRoomId);
-            // Refresh stats/arrivals
-            fetchData();
-        } catch (err) {
-            console.error("Cancellation error:", err);
-            alert("Failed to cancel reservation.");
-        } finally {
-            setCancellationLoading(null);
-        }
+        cancelReservationMutation.mutate(reservationId);
     };
 
-    useEffect(() => {
-        fetchData();
-    }, []);
+    // Loading State
+    const isLoading = statsQuery.isLoading || arrivalsQuery.isLoading || roomStatusesQuery.isLoading;
 
-    useEffect(() => {
-        if (selectedRoomId) {
-            fetchTimeline(selectedRoomId);
-        } else {
-            setRoomTimeline([]);
-        }
-    }, [selectedRoomId]);
+    // Data Accessors (safely fallback to empty/null)
+    const stats = statsQuery.data || null;
+    const arrivals = arrivalsQuery.data || [];
+    const roomStatuses = roomStatusesQuery.data || [];
+    const roomTimeline = timelineQuery.data || [];
+
 
     // Computed Filtered Rooms
     const filteredRooms = useMemo(() => {
@@ -219,8 +226,8 @@ const DashboardPage = () => {
                     <div>
                         <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">{label}</p>
                         <div className="flex items-baseline gap-2">
-                            <p className="text-3xl font-bold text-slate-900 mt-1">{loading ? <Skeleton className="h-8 w-16" /> : count}</p>
-                            {total !== undefined && !loading && (
+                            <p className="text-3xl font-bold text-slate-900 mt-1">{isLoading ? <Skeleton className="h-8 w-16" /> : count}</p>
+                            {total !== undefined && !isLoading && (
                                 <span className="text-xs font-medium text-slate-400">/ {total}</span>
                             )}
                         </div>
@@ -251,8 +258,6 @@ const DashboardPage = () => {
     return (
         <div className="h-full bg-slate-50/50 flex flex-col font-sans">
             <div className="flex-1 overflow-hidden flex flex-col h-full">
-
-
 
                 {/* Scrollable Content */}
                 <main className="flex-1 overflow-y-auto p-6 lg:p-8">
@@ -349,7 +354,7 @@ const DashboardPage = () => {
 
                                         <div className="p-6 overflow-y-auto max-h-[500px]">
                                             <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-3">
-                                                {loading ? (
+                                                {isLoading ? (
                                                     Array.from({ length: 24 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)
                                                 ) : filteredRooms.length === 0 ? (
                                                     <div className="col-span-full py-10 text-center text-slate-400 flex flex-col items-center">
@@ -406,7 +411,7 @@ const DashboardPage = () => {
                                     </span>
                                 </CardHeader>
                                 <CardContent className="p-0">
-                                    {loading ? (
+                                    {isLoading ? (
                                         <div className="p-6 space-y-4">
                                             {[1, 2].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
                                         </div>
@@ -467,7 +472,7 @@ const DashboardPage = () => {
                     </DialogHeader>
 
                     <div className="flex-1 overflow-y-auto p-6 bg-slate-50/30 min-h-[300px] max-h-[60vh]">
-                        {timelineLoading ? (
+                        {timelineQuery.isLoading ? (
                             <div className="space-y-4">
                                 <Skeleton className="h-12 w-full rounded-lg" />
                                 <Skeleton className="h-32 w-full rounded-lg" />
@@ -583,9 +588,9 @@ const DashboardPage = () => {
                                                             size="sm"
                                                             className="h-7 text-xs px-3 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-0 shadow-none"
                                                             onClick={() => handleCancelReservation(event.id!)}
-                                                            disabled={cancellationLoading === event.id}
+                                                            disabled={cancelReservationMutation.isPending}
                                                         >
-                                                            {cancellationLoading === event.id ? "Cancelling..." : "Cancel Reservation"}
+                                                            {cancelReservationMutation.isPending && cancelReservationMutation.variables === event.id ? "Cancelling..." : "Cancel Reservation"}
                                                         </Button>
                                                     </div>
                                                 )}

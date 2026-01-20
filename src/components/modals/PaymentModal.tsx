@@ -109,7 +109,7 @@
 //             {errorMsg}
 //           </div>
 //         )}
-        
+
 //          <div className="mb-4">
 //           <label className="block text-sm font-medium text-gray-700 mb-1">
 //             Transaction Type
@@ -259,14 +259,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     }
   }, [initialType, mode, isOpen]);
 
-  // UX: prefill amount when receiving payment; clear when refunding
+  // UX: prefill amount when receiving payment or issuing refund
   useEffect(() => {
     if (!isOpen) return;
-    if (type === "payment") {
-      setAmount(defaultAmount > 0 ? defaultAmount.toString() : "");
-    } else {
-      setAmount("");
-    }
+    setAmount(defaultAmount > 0 ? defaultAmount.toString() : "");
   }, [type, defaultAmount, isOpen]);
 
   if (!isOpen) return null;
@@ -280,8 +276,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         ? "Refund Advance"
         : "Record Advance Payment"
       : isRefund
-      ? "Issue Refund"
-      : "Receive Payment";
+        ? "Issue Refund"
+        : "Receive Payment";
 
   const subtitle =
     context === "reservation"
@@ -361,11 +357,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               type="button"
               disabled={mode === "refund-only"}
               onClick={() => setType("payment")}
-              className={`px-3 py-1 rounded-full transition ${
-                type === "payment"
+              className={`px-3 py-1 rounded-full transition ${type === "payment"
                   ? "bg-white text-slate-900 shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
-              } ${mode === "refund-only" ? "opacity-50 cursor-not-allowed" : ""}`}
+                } ${mode === "refund-only" ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {context === "reservation" ? "Add Advance" : "Receive Payment"}
             </button>
@@ -373,13 +368,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               type="button"
               disabled={mode === "payment-only"}
               onClick={() => setType("refund")}
-              className={`ml-1 px-3 py-1 rounded-full transition ${
-                type === "refund"
+              className={`ml-1 px-3 py-1 rounded-full transition ${type === "refund"
                   ? "bg-white text-red-700 shadow-sm"
                   : "text-red-500 hover:text-red-600"
-              } ${
-                mode === "payment-only" ? "opacity-50 cursor-not-allowed" : ""
-              }`}
+                } ${mode === "payment-only" ? "opacity-50 cursor-not-allowed" : ""
+                }`}
             >
               Issue Refund
             </button>
