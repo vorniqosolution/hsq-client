@@ -220,17 +220,13 @@ const ReservationsPage: React.FC = () => {
       if (viewMode === "report") {
         const dateString = formatDateToYYYYMMDD(reportDate);
         await fetchDailyActivityReport(dateString);
-      } else {
-        if (!hasLoadedRef.current) {
-          await fetchReservations();
-          hasLoadedRef.current = true;
-        }
       }
+      // Manual fetchReservations() removed to allow React Query cache usage
       setIsInitialLoad(false);
     };
 
     loadData();
-  }, [viewMode, reportDate, fetchDailyActivityReport, fetchReservations]);
+  }, [viewMode, reportDate, fetchDailyActivityReport]);
 
   const getReservationStatus = useCallback((reservation: Reservation) => {
     if (reservation.status === "checked-out") return "checked-out";
@@ -1687,7 +1683,7 @@ const ReservationCard = React.memo(
                       <span className="md:hidden ml-2">Cancel</span>
                     </Button>
                   )}
-                  {isAdmin && status === "cancelled" && (
+                  {isAdmin && (status === "cancelled" || status === "checked-out" || status === "expired") && (
                     <Button
                       variant="destructive"
                       size="sm"

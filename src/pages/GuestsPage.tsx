@@ -67,6 +67,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useReservationContext } from "../contexts/ReservationContext";
 import { useDecor } from "@/contexts/DecorContext";
 import { usePromoCodeContext } from "@/contexts/PromoCodeContext";
+import ExtendStayDialog from "@/components/dialogs/ExtendStayDialog";
 
 const INITIAL_FORM_STATE: CreateGuestInput = {
   fullName: "",
@@ -86,158 +87,114 @@ const INITIAL_FORM_STATE: CreateGuestInput = {
   extraMattresses: 0,
 };
 
-const GuestCard: React.FC<{ guest: Guest; onDelete: () => void }> = React.memo(
-  ({ guest, onDelete }) => {
-    const getStatusColor = (status: string) =>
-      status === "checked-in"
-        ? "bg-green-100 text-green-800"
-        : "bg-red-100 text-red-800 border-red-200";
+const GuestCard: React.FC<{ guest: Guest; onDelete: () => void; onExtend: (guest: Guest) => void; }> = React.memo(
+  ({ guest, onDelete, onExtend }) => {
+    // Status Logic
+    const isCheckedIn = guest.status === "checked-in";
+    const statusColor = isCheckedIn ? "text-emerald-500" : "text-amber-500";
+    const statusLabel = isCheckedIn ? "Active" : "Checked Out";
 
-    // Helper function to safely format dates
-    const formatDate = (
-      dateValue: string | undefined,
-      fallback: string = "N/A"
-    ) => {
-      if (!dateValue) return fallback;
+    // Format helpers
+    const formatDate = (dateValue: string | undefined) => {
+      if (!dateValue) return "N/A";
       try {
-        const date = new Date(dateValue);
-        if (isNaN(date.getTime())) return fallback; // Check if date is invalid
-        return format(toZonedTime(date, "Asia/Karachi"), "MMM dd, yyyy");
-      } catch {
-        return fallback;
-      }
+        return format(toZonedTime(new Date(dateValue), "Asia/Karachi"), "dd MMM, EEE");
+      } catch { return "N/A"; }
     };
 
-    // Helper function to calculate duration safely
-    const calculateDuration = () => {
-      if (!guest.checkInAt || !guest.checkOutAt) return "N/A";
-      try {
-        const checkIn = new Date(guest.checkInAt);
-        const checkOut = new Date(guest.checkOutAt);
-        if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) return "N/A";
 
-        const nights = Math.ceil(
-          (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)
-        );
-        return `${nights} nights`;
-      } catch {
-        return "N/A";
-      }
+
+    // Category Badge Color
+    const getCategoryColor = (category: string = "") => {
+      const lower = category.toLowerCase();
+      if (lower.includes("presidential")) return "bg-purple-100 text-purple-700";
+      if (lower.includes("executive")) return "bg-blue-100 text-blue-700";
+      return "bg-slate-100 text-slate-700";
     };
 
     return (
-      <Card className="hover:shadow transition-shadow">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            {/* Guest Information Section */}
-            <div className="flex-1 space-y-3">
-              <div className="flex items-start justify-between md:justify-start md:items-center gap-4">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {guest.fullName}
-                </h3>
-                <Badge className={`${getStatusColor(guest.status)} md:hidden`}>
-                  {guest.status}
+      <Card className="hover:shadow-md transition-shadow duration-200 border-none shadow-sm mb-3">
+        <CardContent className="p-0">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center min-h-[80px]">
+
+            {/* 1. Name Section */}
+            <div className="flex-1 p-4 md:pl-6 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800">
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base mb-1">
+                {guest.fullName}
+              </h3>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className={`uppercase text-[10px] tracking-wider font-semibold rounded-md px-2 py-0.5 ${getCategoryColor(guest.room?.category)}`}>
+                  {guest.room?.category || "ROOM"}
                 </Badge>
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                <div className="flex flex-col">
-                  <span className="text-gray-500 text-xs uppercase tracking-wider mb-1">
-                    Room
-                  </span>
-                  <span className="font-medium text-gray-900">
-                    {guest.room?.roomNumber || "Unassigned"}
-                  </span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-gray-500 text-xs uppercase tracking-wider mb-1">
-                    Phone
-                  </span>
-                  <span className="font-medium text-gray-900">
-                    {guest?.phone || "N/A"}
-                  </span>
-                </div>
+            {/* 2. Time Section */}
+            <div className="w-full md:w-[220px] p-4 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800">
+              <div className="flex flex-col gap-1">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-semibold text-slate-700 dark:text-slate-300 w-16">IN</span>
+                  <div className="text-right">
+                    <span className="font-medium">{formatDate(guest.checkInAt)}</span>
 
-                <div className="flex flex-col">
-                  <span className="text-gray-500 text-xs uppercase tracking-wider mb-1">
-                    Check-in
-                  </span>
-                  <span className="font-medium text-gray-900">
-                    {formatDate(guest.checkInAt)}
-                  </span>
+                  </div>
                 </div>
-
-                <div className="flex flex-col">
-                  <span className="text-gray-500 text-xs uppercase tracking-wider mb-1">
-                    Check-out
-                  </span>
-                  <span className="font-medium text-gray-900">
-                    {formatDate(guest.checkOutAt)}
-                  </span>
-                </div>
-
-                <div className="flex flex-col">
-                  <span className="text-gray-500 text-xs uppercase tracking-wider mb-1">
-                    Duration
-                  </span>
-                  <span className="font-medium text-gray-900">
-                    {calculateDuration()}
-                  </span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-gray-500 text-xs uppercase tracking-wider mb-1">
-                    Occupancy
-                  </span>
-                  <span className="font-medium text-gray-900">
-                    {guest.adults || 1} Adult{guest.adults !== 1 ? "s" : ""}
-                    {guest.infants > 0 &&
-                      `, ${guest.infants} Infant${guest.infants !== 1 ? "s" : ""
-                      }`}
-                  </span>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-semibold text-slate-700 dark:text-slate-300 w-16">OUT</span>
+                  <div className="text-right">
+                    <span className="font-medium">{formatDate(guest.checkOutAt)}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Status Badge - Hidden on mobile, shown in header instead */}
-            <div className="hidden md:flex items-center px-4">
-              <Badge className={getStatusColor(guest.status)}>
-                {guest.status}
-              </Badge>
+            {/* 3. Location / Room Section */}
+            <div className="w-full md:w-[250px] p-4 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800">
+              <p className="font-bold text-slate-900 dark:text-slate-200">
+                Room {guest.room?.roomNumber || "N/A"}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                {guest.adults || 1} Adult{guest.adults !== 1 ? 's' : ''}
+                {guest.infants > 0 && `, ${guest.infants} Infant${guest.infants !== 1 ? 's' : ''}`}
+              </p>
+              <p className="text-xs text-slate-400 truncate mt-0.5">
+                {/* Fallback to show status text if needed, or remove completely */}
+              </p>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 md:border-l md:pl-6">
-              <Link to={`/guests/${guest._id}`}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="hover:bg-gray-50"
-                >
-                  <Eye className="mr-2 h-4 w-4" />
-                  View Details
-                </Button>
-              </Link>
-              {guest.status === "checked-in" && (
-                <Link to={`/guests/${guest._id}?action=extend`}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-emerald-500 text-emerald-600 hover:bg-emerald-50"
-                  >
-                    <CalendarPlus className="mr-2 h-4 w-4" />
-                    Extend Stay
+            {/* 4. Status & Actions */}
+            <div className="w-full md:w-[200px] p-4 flex items-center justify-between md:justify-end gap-4">
+              {/* Status Dot */}
+              <div className="flex items-center gap-2 mr-auto md:mr-4">
+                <div className={`h-2 w-2 rounded-full ${isCheckedIn ? 'bg-emerald-500' : 'bg-amber-400'}`}></div>
+                <span className={`text-sm font-medium whitespace-nowrap ${statusColor}`}>{statusLabel}</span>
+              </div>
+
+              {/* Actions Menu (simplified) */}
+              <div className="flex items-center gap-1">
+                <Link to={`/guests/${guest._id}`}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50">
+                    <Eye className="h-4 w-4" />
                   </Button>
                 </Link>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onDelete}
-                className="hover:bg-red-50 hover:text-red-600"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+
+                {guest.status === "checked-in" && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50" onClick={() => onExtend(guest)}>
+                    <CalendarPlus className="h-4 w-4" />
+                  </Button>
+                )}
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                  onClick={onDelete}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
+
           </div>
         </CardContent>
       </Card>
@@ -865,6 +822,8 @@ const GuestsPage: React.FC = () => {
     // Add Checked-out history
     checkedOutByRange,
     fetchCheckedOutByRange,
+    fetchGuestById,
+    invoice,
   } = useGuestContext();
 
   const { toast } = useToast();
@@ -889,6 +848,29 @@ const GuestsPage: React.FC = () => {
     startDate: new Date(),
     endDate: new Date(),
   });
+
+  // Extend Stay Dialog State
+  const [isExtendOpen, setIsExtendOpen] = useState(false);
+  const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
+  const [isFetchingInvoice, setIsFetchingInvoice] = useState(false);
+
+  const handleExtendClick = useCallback(async (guest: Guest) => {
+    setIsFetchingInvoice(true);
+    try {
+      await fetchGuestById(guest._id);
+      setSelectedGuest(guest);
+      setIsExtendOpen(true);
+    } catch (e) {
+      toast({
+        title: "Error",
+        description: "Failed to load guest details for extension.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsFetchingInvoice(false);
+    }
+  }, [fetchGuestById, toast]);
+
   const [prefill, setPrefill] = useState<Partial<CreateGuestInput> | null>(
     null
   );
@@ -1179,6 +1161,7 @@ const GuestsPage: React.FC = () => {
             key={guest._id}
             guest={guest}
             onDelete={() => setGuestToDelete(guest)}
+            onExtend={handleExtendClick}
           />
         ))}
       </div>
@@ -1396,6 +1379,19 @@ const GuestsPage: React.FC = () => {
         createGuest={createGuest}
         prefill={prefill}
       />
+
+
+      {/* Extend Stay Dialog */}
+      {selectedGuest && (
+        <ExtendStayDialog
+          isOpen={isExtendOpen}
+          setIsOpen={setIsExtendOpen}
+          guest={selectedGuest}
+          onSuccess={() => fetchGuests()}
+          invoice={invoice}
+        />
+      )}
+
       <AlertDialog
         open={!!guestToDelete}
         onOpenChange={(open) => !open && setGuestToDelete(null)}

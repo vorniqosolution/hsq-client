@@ -96,6 +96,7 @@ export interface Invoice {
   pdfPath?: string;
   advanceAdjusted?: number;
   balanceDue?: number;
+  additionaldiscount?: number;
 }
 
 export interface CreateGuestInput {

@@ -2,13 +2,13 @@ import React, {
   createContext,
   useContext,
   useState,
-  useEffect,
   useCallback,
   useMemo,
   ReactNode,
 } from "react";
 import axios, { AxiosError, AxiosInstance } from "axios";
 import { useAuth } from "./AuthContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export interface DailyActivityData {
   arrivals: any[];
@@ -98,7 +98,7 @@ export interface CreateReservationInput {
   arrivalTime?: string;      // Maps to expectedArrivalTime
   specialRequest?: string;   // Guest notes
   paymentMethod?: "Cash" | "Card" | "Online" | "PayAtHotel";
-  promoCode?: string;   
+  promoCode?: string;
 }
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
@@ -127,158 +127,140 @@ const ReservationContext = createContext<ReservationContextType | undefined>(
   undefined
 );
 export const ReservationProvider = ({ children }: { children: ReactNode }) => {
-  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Local state for single item view (to maintain existing behavior)
   const [currentReservation, setCurrentReservation] =
     useState<Reservation | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
 
-  const [dailyActivityReport, setDailyActivityReport] =
-    useState<DailyActivityResponse | null>(null);
-
-  const apiCall = useCallback(
-    async <T,>(
-      fn: () => Promise<T>,
-      onSuccess?: (data: T) => void,
-      errorMessage = "An error occurred"
-    ): Promise<T> => {
-      setLoading(true);
-      setError(null);
-      try {
-        const result = await fn();
-        if (onSuccess) onSuccess(result);
-        return result;
-      } catch (err) {
-        let message = errorMessage;
-        if (axios.isAxiosError(err)) {
-          const axiosError = err as AxiosError<{ message?: string }>;
-          message =
-            axiosError.response?.data?.message ||
-            axiosError.message ||
-            errorMessage;
-        } else if (err instanceof Error) {
-          message = err.message;
-        }
-        setError(message);
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
-
-  const fetchDailyActivityReport = useCallback(
-    async (date: string) => {
-      // Clear previous report data before fetching new data
-      setDailyActivityReport(null);
-      await apiCall(
-        // This calls the new, powerful backend endpoint
-        () =>
-          apiClient
-            .get<DailyActivityResponse>(
-              `/api/reservation/reports/daily-activity?date=${date}`
-            )
-            .then((res) => res.data),
-        (response) => {
-          setDailyActivityReport(response);
-        },
-        "Failed to fetch daily activity report"
+  // Queries
+  const reservationsQuery = useQuery({
+    queryKey: ["reservations"],
+    queryFn: async () => {
+      const res = await apiClient.get<{ data: Reservation[] }>(
+        "/api/reservation/get-reservations"
       );
+      return res.data.data || [];
     },
-    [apiCall]
-  );
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
 
+  const [reportDate, setReportDate] = useState<string | null>(null);
+  const dailyReportQuery = useQuery({
+    queryKey: ["reservations", "report", reportDate],
+    queryFn: async () => {
+      if (!reportDate) return null;
+      const res = await apiClient.get<DailyActivityResponse>(
+        `/api/reservation/reports/daily-activity?date=${reportDate}`
+      );
+      return res.data;
+    },
+    enabled: !!reportDate,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Mutations
+  const createReservationMutation = useMutation({
+    mutationFn: (data: CreateReservationInput) =>
+      apiClient
+        .post<{ data: Reservation }>(
+          "/api/reservation/create-reservation",
+          data
+        )
+        .then((res) => res.data.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardRoomStatuses"] });
+    },
+  });
+
+  const deleteReservationMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiClient.delete(`/api/reservation/cancel-reservation/${id}/cancel`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardRoomStatuses"] });
+    },
+  });
+
+  const hardDeleteReservationMutation = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/api/reservation/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+    },
+  });
+
+  // Exposed Functions
   const fetchReservations = useCallback(async () => {
-    await apiCall(
-      () =>
-        apiClient
-          .get<{ data: Reservation[] }>("/api/reservation/get-reservations")
-          .then((res) => res.data.data || []),
-      (data) => setReservations(data),
-      "Failed to fetch reservations"
-    );
-  }, [apiCall]);
+    await queryClient.invalidateQueries({ queryKey: ["reservations"] });
+  }, [queryClient]);
+
+  const fetchDailyActivityReport = useCallback(async (date: string) => {
+    setReportDate(date);
+    // Logic dictates that setting state triggers query, so no manual fetch needed here
+  }, []);
 
   const createReservation = useCallback(
     async (data: CreateReservationInput) => {
-      await apiCall(
-        () =>
-          apiClient
-            .post<{ data: Reservation }>(
-              "/api/reservation/create-reservation",
-              data
-            )
-            .then((res) => res.data.data),
-        (newReservation) => {
-          setReservations((prev) => [...prev, newReservation]);
-        },
-        "Failed to create reservation"
-      );
+      await createReservationMutation.mutateAsync(data);
     },
-    [apiCall]
+    [createReservationMutation]
   );
 
   const deleteReservation = useCallback(
     async (id: string) => {
-      await apiCall(
-        () =>
-          apiClient.delete(`/api/reservation/cancel-reservation/${id}/cancel`),
-        () => {
-          setReservations((prev) => prev.filter((r) => r._id !== id));
-        },
-        "Failed to cancel reservation"
-      );
+      await deleteReservationMutation.mutateAsync(id);
     },
-    [apiCall]
+    [deleteReservationMutation]
   );
 
-  const hardDeleteReservation = useCallback(async (id: string) => {
-    await apiCall(
-      // This calls the new, admin-only DELETE endpoint
-      () => apiClient.delete(`/api/reservation/${id}`), // Use the simplified, correct path
-      () => {
-        // On success, remove the reservation from all local state arrays
-        setReservations((prev) => prev.filter((r) => r._id !== id));
-        // You could also update the dailyActivityReport state if needed
-      },
-      "Failed to permanently delete reservation"
-    );
-  }, [apiCall]);
+  const hardDeleteReservation = useCallback(
+    async (id: string) => {
+      await hardDeleteReservationMutation.mutateAsync(id);
+    },
+    [hardDeleteReservationMutation]
+  );
 
   const getReservationById = useCallback(
     async (id: string): Promise<Reservation> => {
-      return await apiCall(
-        () =>
-          apiClient
-            .get<{ data: Reservation }>(
-              `/api/reservation/get-reservation/${id}`
-            )
-            .then((res) => res.data.data),
-        (reservation) => {
-          setCurrentReservation(reservation);
-        },
-        "Failed to fetch reservation"
+      // For single fetch, we can just use normal query fetcher helper or axios directly,
+      // but to simulate existing behavior we update local state.
+      // Ideally we'd replace this consumption with useQuery(['reservation', id]) in components.
+      // But for backward compat:
+      const res = await apiClient.get<{ data: Reservation }>(
+        `/api/reservation/get-reservation/${id}`
       );
+      const data = res.data.data;
+      setCurrentReservation(data);
+      return data;
     },
-    [apiCall]
+    []
   );
-
-  useEffect(() => {
-    if (user) {
-      fetchReservations();
-    }
-  }, [user, fetchReservations]);
 
   const contextValue = useMemo(
     () => ({
-      reservations,
+      reservations: reservationsQuery.data || [],
       currentReservation,
-      loading,
-      error,
+      loading:
+        reservationsQuery.isLoading ||
+        dailyReportQuery.isLoading ||
+        createReservationMutation.isPending ||
+        deleteReservationMutation.isPending ||
+        hardDeleteReservationMutation.isPending,
+      error:
+        (reservationsQuery.error as any)?.message ||
+        (dailyReportQuery.error as any)?.message ||
+        (createReservationMutation.error as any)?.message ||
+        (deleteReservationMutation.error as any)?.message ||
+        (hardDeleteReservationMutation.error as any)?.message ||
+        null,
 
-      dailyActivityReport,
+      dailyActivityReport: dailyReportQuery.data || null,
       fetchDailyActivityReport,
 
       fetchReservations,
@@ -288,14 +270,20 @@ export const ReservationProvider = ({ children }: { children: ReactNode }) => {
       getReservationById,
     }),
     [
-      reservations,
+      reservationsQuery.data,
+      reservationsQuery.isLoading,
+      reservationsQuery.error,
+      dailyReportQuery.data,
+      dailyReportQuery.isLoading,
+      dailyReportQuery.error,
+      createReservationMutation.isPending,
+      createReservationMutation.error,
+      deleteReservationMutation.isPending,
+      deleteReservationMutation.error,
+      hardDeleteReservationMutation.isPending,
+      hardDeleteReservationMutation.error,
       currentReservation,
-      loading,
-      error,
-
-      dailyActivityReport,
       fetchDailyActivityReport,
-
       fetchReservations,
       createReservation,
       deleteReservation,
