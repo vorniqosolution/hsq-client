@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, Bell, Search, User } from "lucide-react";
+import { Menu, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSetting } from "@/contexts/SettingContext";
@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
+
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -63,20 +63,6 @@ const Layout = ({ children }: LayoutProps) => {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
-            {/* Search - Visual only for now */}
-            <div className="relative hidden md:block w-64">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Search..."
-                className="pl-9 h-9 bg-slate-100 border-none focus-visible:ring-1 focus-visible:ring-slate-300 focus-visible:bg-white transition-colors"
-              />
-            </div>
-
-            <Button variant="ghost" size="icon" className="text-slate-500 hover:bg-slate-100 rounded-full relative">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-2 right-2.5 h-2 w-2 bg-red-500 rounded-full ring-2 ring-white"></span>
-            </Button>
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full">
@@ -104,26 +90,28 @@ const Layout = ({ children }: LayoutProps) => {
                   Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </header>
+            </DropdownMenu >
+          </div >
+        </header >
 
         {/* Alert Pill */}
-        {settings?.systemAlert?.isActive && (
-          <div className="flex justify-center pt-4 pb-2 px-4">
-            <div
-              className={`px-6 py-2 text-sm font-medium flex items-center shadow-sm border rounded-full backdrop-blur-md animate-in slide-in-from-top-2 z-20 ${settings.systemAlert.type === "error"
-                ? "bg-red-50/80 border-red-200 text-red-900"
-                : settings.systemAlert.type === "warning"
-                  ? "bg-amber-50/80 border-amber-200 text-amber-900"
-                  : "bg-blue-50/80 border-blue-200 text-blue-900"
-                }`}
-            >
-              <span className="mr-2.5 flex h-2 w-2 rounded-full ring-[3px] ring-opacity-20 flex-shrink-0 animate-pulse bg-current" />
-              <span>{settings.systemAlert.message}</span>
+        {
+          settings?.systemAlert?.isActive && (
+            <div className="flex justify-center pt-4 pb-2 px-4">
+              <div
+                className={`px-6 py-2 text-sm font-medium flex items-center shadow-sm border rounded-full backdrop-blur-md animate-in slide-in-from-top-2 z-20 ${settings.systemAlert.type === "error"
+                  ? "bg-red-50/80 border-red-200 text-red-900"
+                  : settings.systemAlert.type === "warning"
+                    ? "bg-amber-50/80 border-amber-200 text-amber-900"
+                    : "bg-blue-50/80 border-blue-200 text-blue-900"
+                  }`}
+              >
+                <span className="mr-2.5 flex h-2 w-2 rounded-full ring-[3px] ring-opacity-20 flex-shrink-0 animate-pulse bg-current" />
+                <span>{settings.systemAlert.message}</span>
+              </div>
             </div>
-          </div>
-        )}
+          )
+        }
 
         {/* Scrollable Page Content */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 scroll-smooth">
@@ -131,8 +119,8 @@ const Layout = ({ children }: LayoutProps) => {
             {children}
           </div>
         </main>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 };
 

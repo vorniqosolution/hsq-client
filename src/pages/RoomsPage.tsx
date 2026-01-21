@@ -55,6 +55,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Room, useRoomContext } from "../contexts/RoomContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 
 const RoomsPage = () => {
@@ -131,7 +139,16 @@ const RoomsPage = () => {
     } else {
       setDisplayedRooms(rooms || []);
     }
+    setCurrentPage(1); // Reset to page 1 when tab changes or data updates
   }, [activeTab, rooms, availableRooms]);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(displayedRooms.length / itemsPerPage);
+  const paginatedRooms = displayedRooms.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const resetForm = () => {
     setFormData({
@@ -948,7 +965,7 @@ const RoomsPage = () => {
 
             {/* Room Cards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-6 ">
-              {displayedRooms.map((room) => (
+              {paginatedRooms.map((room) => (
                 <Card
                   key={room._id}
                   className="flex flex-col lg:flex-row overflow-hidden hover:shadow-lg transition-shadow duration-300 "
@@ -1071,6 +1088,41 @@ const RoomsPage = () => {
                 </Card>
               ))}
             </div>
+
+            {/* Pagination Controls */}
+            {displayedRooms.length > itemsPerPage && (
+              <div className="mt-8 flex justify-center">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          isActive={currentPage === page}
+                          onClick={() => setCurrentPage(page)}
+                          className="cursor-pointer"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
 
             {/* Empty state */}
             {displayedRooms.length === 0 && (
