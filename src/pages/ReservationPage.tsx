@@ -134,12 +134,12 @@ interface Reservation {
   updatedAt: string;
   isPaid?: boolean;
   createdBy:
-  | string
-  | {
-    _id: string;
-    name: string;
-    email: string;
-  };
+    | string
+    | {
+        _id: string;
+        name: string;
+        email: string;
+      };
 }
 
 const isPopulatedRoom = (room: any): room is PopulatedRoom => {
@@ -187,12 +187,15 @@ const ReservationsPage: React.FC = () => {
   } = useRoomContext();
 
   const { validatePromoCode } = usePromoCodeContext();
-  const [promoMessage, setPromoMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [promoMessage, setPromoMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   const { toast } = useToast();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
-  const ITEMS_PER_PAGE = 8;
+  const ITEMS_PER_PAGE = 10;
 
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
@@ -212,12 +215,12 @@ const ReservationsPage: React.FC = () => {
   const [reportDate, setReportDate] = useState(new Date());
   const hasLoadedRef = useRef(false);
   const contentRef = useRef<HTMLDivElement>(null);
-  const [reservationToSwap, setReservationToSwap] = useState<Reservation | null>(null);
+  const [reservationToSwap, setReservationToSwap] =
+    useState<Reservation | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
-      const formatDateToYYYYMMDD = (date: Date) =>
-        format(date, "yyyy-MM-dd");
+      const formatDateToYYYYMMDD = (date: Date) => format(date, "yyyy-MM-dd");
 
       setIsInitialLoad(true);
       if (viewMode === "report") {
@@ -232,23 +235,42 @@ const ReservationsPage: React.FC = () => {
   }, [viewMode, reportDate, fetchDailyActivityReport]);
 
   const getReservationStatus = useCallback((reservation: Reservation) => {
+    // Handle explicit statuses first
     if (reservation.status === "checked-out") return "checked-out";
     if (reservation.status === "cancelled") return "cancelled";
-
     if (reservation.status === "checked-in") return "active";
 
+    // For reserved/confirmed status, calculate based on dates
     const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
     const startDate = parseISO(reservation.startAt);
     const endDate = parseISO(reservation.endAt);
 
-    if (isBefore(endDate, now)) {
+    // Normalize to start of day for comparison
+    const startDay = new Date(
+      startDate.getFullYear(),
+      startDate.getMonth(),
+      startDate.getDate(),
+    );
+    const endDay = new Date(
+      endDate.getFullYear(),
+      endDate.getMonth(),
+      endDate.getDate(),
+    );
+
+    // If end date is before today, it's expired (missed check-in/checkout)
+    if (endDay < today) {
       return "expired";
     }
 
-    if (isAfter(startDate, now)) {
+    // If start date is after today, it's upcoming
+    if (startDay > today) {
       return "upcoming";
     }
-    return "reserved";
+
+    // Start date is today or in the past, end date is today or future = should check in today
+    return "upcoming"; // Treat as upcoming until they check in
   }, []);
 
   // ================ searchTerm =======================
@@ -320,7 +342,7 @@ const ReservationsPage: React.FC = () => {
         }
       }
     },
-    [formData, formErrors, fetchAvailableRooms]
+    [formData, formErrors, fetchAvailableRooms],
   );
 
   const handlePromoBlur = async () => {
@@ -332,12 +354,21 @@ const ReservationsPage: React.FC = () => {
     try {
       const res = await validatePromoCode(formData.promoCode);
       if (res.isValid) {
-        setPromoMessage({ type: 'success', text: `Promo Applied: ${res.percentage}% Off` });
+        setPromoMessage({
+          type: "success",
+          text: `Promo Applied: ${res.percentage}% Off`,
+        });
       } else {
-        setPromoMessage({ type: 'error', text: res.message || "Invalid Promo Code" });
+        setPromoMessage({
+          type: "error",
+          text: res.message || "Invalid Promo Code",
+        });
       }
     } catch (err: any) {
-      setPromoMessage({ type: 'error', text: err.message || "Error validating promo" });
+      setPromoMessage({
+        type: "error",
+        text: err.message || "Error validating promo",
+      });
     }
   };
 
@@ -420,29 +451,6 @@ const ReservationsPage: React.FC = () => {
     }
   };
 
-  // const handleCreateReservation = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   setIsSubmitting(true);
-
-  //   try {
-  //     await createReservation(formData);
-  //     toast({
-  //       title: "Success",
-  //       description: "Reservation created successfully",
-  //     });
-  //     setIsCreateDialogOpen(false);
-  //     setFormData(INITIAL_FORM_STATE);
-  //   } catch (err) {
-  //     toast({
-  //       title: "Error",
-  //       description: "Failed to create reservation. Please try again.",
-  //       variant: "destructive",
-  //     });
-  //   } finally {
-  //     setIsSubmitting(false);
-  //   }
-  // };
-
   const handleDeleteReservation = async () => {
     if (!reservationToDelete) return;
 
@@ -487,14 +495,14 @@ const ReservationsPage: React.FC = () => {
     (reservation: Reservation) => {
       navigate(`/guests?reservation=${reservation._id}`);
     },
-    [navigate]
+    [navigate],
   );
 
   const viewReservationDetails = useCallback(
     (reservation: Reservation) => {
       navigate(`/reservation/${reservation._id}`);
     },
-    [navigate]
+    [navigate],
   );
 
   const getStatusBadge = (status: string) => {
@@ -552,7 +560,7 @@ const ReservationsPage: React.FC = () => {
         <div className="">{children}</div>
       </div>
     ),
-    []
+    [],
   );
 
   // This is the helper component that needs to be robust
@@ -815,138 +823,113 @@ const ReservationsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Toolbar - fixed height */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50">
-          {/* Column 1: View Mode Selector - Always visible */}
-          <div className="md:col-span-1 space-y-1.5">
-            <Label htmlFor="view-mode-select">
-              Check reservation or calender
-            </Label>
-            <Select
-              value={viewMode}
-              onValueChange={(v) => setViewMode(v as "list" | "report")}
-            >
-              <SelectTrigger id="view-mode-select">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="list">All Reservations List</SelectItem>
-                <SelectItem value="report">Daily Reservations</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        {/* View Mode Tabs */}
+        <Tabs
+          value={viewMode}
+          onValueChange={(v) => setViewMode(v as "list" | "report")}
+          className="mb-6"
+        >
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="list" className="flex items-center gap-2">
+              <Bed className="h-4 w-4" />
+              All Reservations
+            </TabsTrigger>
+            <TabsTrigger value="report" className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4" />
+              Daily Report
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-          {viewMode === "list" ? (
-            <>
-              {/* Filter 2: Search (for 'list' mode) */}
-              <div className="md:col-span-1 space-y-1.5">
-                <Label htmlFor="search-input">Search</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="search-input"
-                    placeholder="Search by name, phone...."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10"
-                  />
-                </div>
-              </div>
-
-              {/* Filter 3: Status (for 'list' mode) */}
-              <div className="md:col-span-1 space-y-1.5">
-                <Label htmlFor="status-filter">Status</Label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger id="status-filter">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="reserved">Reserved</SelectItem>
-                    <SelectItem value="upcoming">Upcoming</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="expired">Expired</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </>
-          ) : (
-            // Date Picker (for 'report' mode)
-            <div className="md:col-span-2 space-y-1.5">
-              <Label htmlFor="report-date-picker">Report Date</Label>
-              <div className="relative">
-                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <DatePicker
-                  id="report-date-picker"
-                  selected={reportDate}
-                  onChange={(date: Date) => setReportDate(date)}
-                  dateFormat="yyyy-MM-dd"
-                  className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background"
-                />
-              </div>
+        {/* Compact Filters Toolbar */}
+        {viewMode === "list" ? (
+          <div className="flex flex-wrap items-center gap-3 mb-6">
+            {/* Search - expandable input */}
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search name, phone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 h-9"
+              />
             </div>
-          )}
-        </div>
+
+            {/* Status Filter Icons */}
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+              <Button
+                variant={statusFilter === "all" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setStatusFilter("all")}
+                className="h-8 px-3 text-xs"
+                title="All"
+              >
+                All
+              </Button>
+              <Button
+                variant={statusFilter === "upcoming" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setStatusFilter("upcoming")}
+                className={`h-8 px-3 ${statusFilter === "upcoming" ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+                title="Reserved"
+              >
+                <Calendar className="h-4 w-4 mr-1" />
+                Reserved
+              </Button>
+              <Button
+                variant={statusFilter === "active" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setStatusFilter("active")}
+                className={`h-8 px-3 ${statusFilter === "active" ? "bg-green-500 hover:bg-green-600" : ""}`}
+                title="Checked-In"
+              >
+                <CheckCircle2 className="h-4 w-4 mr-1" />
+                In
+              </Button>
+              <Button
+                variant={statusFilter === "checked-out" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setStatusFilter("checked-out")}
+                className={`h-8 px-3 ${statusFilter === "checked-out" ? "bg-slate-500 hover:bg-slate-600" : ""}`}
+                title="Checked-Out"
+              >
+                <Eye className="h-4 w-4 mr-1" />
+                Out
+              </Button>
+              <Button
+                variant={statusFilter === "cancelled" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setStatusFilter("cancelled")}
+                className={`h-8 px-3 ${statusFilter === "cancelled" ? "bg-gray-500 hover:bg-gray-600" : ""}`}
+                title="Cancelled"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          // Date Picker (for 'report' mode)
+          <div className="mb-6 max-w-xs">
+            <Label
+              htmlFor="report-date-picker"
+              className="mb-1.5 block text-sm"
+            >
+              Report Date
+            </Label>
+            <div className="relative">
+              <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <DatePicker
+                id="report-date-picker"
+                selected={reportDate}
+                onChange={(date: Date) => setReportDate(date)}
+                dateFormat="yyyy-MM-dd"
+                className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background"
+              />
+            </div>
+          </div>
+        )}
 
         <ContentContainer>{renderedContent}</ContentContainer>
-
-        {/* {totalPages > 1 && (
-            <Card className="mt-4">
-              <CardContent className="p-4 flex justify-center">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setCurrentPage((prev) => Math.max(prev - 1, 1));
-                        }}
-                        className={
-                          currentPage === 1
-                            ? "pointer-events-none opacity-50"
-                            : ""
-                        }
-                      />
-                    </PaginationItem>
-
-                    {[...Array(totalPages).keys()].map((num) => (
-                      <PaginationItem key={num}>
-                        <PaginationLink
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setCurrentPage(num + 1);
-                          }}
-                          isActive={currentPage === num + 1}
-                        >
-                          {num + 1}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
-
-                    <PaginationItem>
-                      <PaginationNext
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setCurrentPage((prev) =>
-                            Math.min(prev + 1, totalPages)
-                          );
-                        }}
-                        className={
-                          currentPage === totalPages
-                            ? "pointer-events-none opacity-50"
-                            : ""
-                        }
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </CardContent>
-            </Card>
-          )} */}
 
         {totalPages > 1 && (
           <Card className="mt-4">
@@ -987,7 +970,7 @@ const ReservationsPage: React.FC = () => {
                           </PaginationLink>
                         )}
                       </PaginationItem>
-                    )
+                    ),
                   )}
                   {/* --- CHANGED SECTION END --- */}
 
@@ -997,7 +980,7 @@ const ReservationsPage: React.FC = () => {
                       onClick={(e) => {
                         e.preventDefault();
                         setCurrentPage((prev) =>
-                          Math.min(prev + 1, totalPages)
+                          Math.min(prev + 1, totalPages),
                         );
                       }}
                       className={
@@ -1014,19 +997,13 @@ const ReservationsPage: React.FC = () => {
         )}
 
         {/* Create Reservation Dialog */}
-        <Dialog
-          open={isCreateDialogOpen}
-          onOpenChange={setIsCreateDialogOpen}
-        >
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto sm:max-h-[80vh]">
             <DialogHeader>
               <DialogTitle>New Reservation</DialogTitle>
             </DialogHeader>
 
-            <form
-              onSubmit={handleCreateReservation}
-              className="space-y-4 pt-4"
-            >
+            <form onSubmit={handleCreateReservation} className="space-y-4 pt-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Guest Name</Label>
@@ -1085,8 +1062,7 @@ const ReservationsPage: React.FC = () => {
                     value={formData.checkout}
                     onChange={handleFormChange}
                     min={
-                      formData.checkin ||
-                      new Date().toISOString().split("T")[0]
+                      formData.checkin || new Date().toISOString().split("T")[0]
                     }
                     disabled={isSubmitting}
                     required
@@ -1276,31 +1252,46 @@ const ReservationsPage: React.FC = () => {
                   name="promoCode"
                   value={formData.promoCode || ""}
                   onValueChange={(v) => {
-                    setFormData(prev => ({ ...prev, promoCode: v }));
+                    setFormData((prev) => ({ ...prev, promoCode: v }));
                     // Manually trigger validation logic
                     if (v) {
                       validatePromoCode(v)
-                        .then(res => {
+                        .then((res) => {
                           if (res.isValid) {
-                            setPromoMessage({ type: 'success', text: `Promo Applied: ${res.percentage}% Off` });
+                            setPromoMessage({
+                              type: "success",
+                              text: `Promo Applied: ${res.percentage}% Off`,
+                            });
                           } else {
-                            setPromoMessage({ type: 'error', text: res.message || "Invalid Promo" });
+                            setPromoMessage({
+                              type: "error",
+                              text: res.message || "Invalid Promo",
+                            });
                           }
                         })
-                        .catch(err => setPromoMessage({ type: 'error', text: "Error validating promo" }));
+                        .catch((err) =>
+                          setPromoMessage({
+                            type: "error",
+                            text: "Error validating promo",
+                          }),
+                        );
                     } else {
                       setPromoMessage(null);
                     }
                   }}
                   disabled={isSubmitting}
                 >
-                  <SelectTrigger className={promoMessage?.type === 'success' ? 'border-green-500' : ''}>
+                  <SelectTrigger
+                    className={
+                      promoMessage?.type === "success" ? "border-green-500" : ""
+                    }
+                  >
                     <SelectValue placeholder="Select a promo code" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">No Promo Code</SelectItem>
-                    {usePromoCodeContext().promoCodes
-                      .filter(p => p.status === 'active')
+                    {usePromoCodeContext()
+                      .promoCodes.filter((p) => p.status === "active")
                       .map((code) => (
                         <SelectItem key={code._id} value={code.code}>
                           {code.code} ({code.percentage}% Off)
@@ -1310,13 +1301,13 @@ const ReservationsPage: React.FC = () => {
                 </Select>
 
                 {promoMessage && (
-                  <p className={`text-xs mt-1 ${promoMessage.type === 'success' ? 'text-green-600 font-medium' : 'text-red-500'}`}>
+                  <p
+                    className={`text-xs mt-1 ${promoMessage.type === "success" ? "text-green-600 font-medium" : "text-red-500"}`}
+                  >
                     {promoMessage.text}
                   </p>
                 )}
               </div>
-
-              {/* 👇 NEW SECTION: ADVANCE PAYMENT 👇 */}
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mt-4 mb-4">
                 <h3 className="font-semibold text-blue-800 mb-3 flex items-center">
                   <Crown className="h-4 w-4 mr-2" />
@@ -1367,7 +1358,6 @@ const ReservationsPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-              {/* 👆 ---------------------------- 👆 */}
 
               <Button
                 type="submit"
@@ -1455,7 +1445,6 @@ const ReservationsPage: React.FC = () => {
         )}
       </div>
     </div>
-
   );
 };
 

@@ -17,6 +17,9 @@ import {
   CalendarDays,
   User,
   CalendarPlus,
+  Clock,
+  Phone,
+  Bed,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,120 +90,149 @@ const INITIAL_FORM_STATE: CreateGuestInput = {
   extraMattresses: 0,
 };
 
-const GuestCard: React.FC<{ guest: Guest; onDelete: () => void; onExtend: (guest: Guest) => void; }> = React.memo(
-  ({ guest, onDelete, onExtend }) => {
-    // Status Logic
-    const isCheckedIn = guest.status === "checked-in";
-    const statusColor = isCheckedIn ? "text-emerald-500" : "text-amber-500";
-    const statusLabel = isCheckedIn ? "Active" : "Checked Out";
+const GuestCard: React.FC<{
+  guest: Guest;
+  onDelete: () => void;
+  onExtend: (guest: Guest) => void;
+}> = React.memo(({ guest, onDelete, onExtend }) => {
+  // Status Logic
+  const isCheckedIn = guest.status === "checked-in";
+  const statusColor = isCheckedIn ? "text-emerald-500" : "text-amber-500";
+  const statusLabel = isCheckedIn ? "Active" : "Checked Out";
 
-    // Format helpers
-    const formatDate = (dateValue: string | undefined) => {
-      if (!dateValue) return "N/A";
-      try {
-        return format(toZonedTime(new Date(dateValue), "Asia/Karachi"), "dd MMM, EEE");
-      } catch { return "N/A"; }
-    };
+  // Format helpers
+  const formatDate = (dateValue: string | undefined) => {
+    if (!dateValue) return "N/A";
+    try {
+      return format(
+        toZonedTime(new Date(dateValue), "Asia/Karachi"),
+        "dd MMM, EEE",
+      );
+    } catch {
+      return "N/A";
+    }
+  };
 
+  // Category Badge Color
+  const getCategoryColor = (category: string = "") => {
+    const lower = category.toLowerCase();
+    if (lower.includes("presidential")) return "bg-purple-100 text-purple-700";
+    if (lower.includes("executive")) return "bg-blue-100 text-blue-700";
+    return "bg-slate-100 text-slate-700";
+  };
 
-
-    // Category Badge Color
-    const getCategoryColor = (category: string = "") => {
-      const lower = category.toLowerCase();
-      if (lower.includes("presidential")) return "bg-purple-100 text-purple-700";
-      if (lower.includes("executive")) return "bg-blue-100 text-blue-700";
-      return "bg-slate-100 text-slate-700";
-    };
-
-    return (
-      <Card className="hover:shadow-md transition-shadow duration-200 border-none shadow-sm mb-3">
-        <CardContent className="p-0">
-          <div className="flex flex-col md:flex-row items-stretch md:items-center min-h-[80px]">
-
-            {/* 1. Name Section */}
-            <div className="flex-1 p-4 md:pl-6 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base mb-1">
-                {guest.fullName}
-              </h3>
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className={`uppercase text-[10px] tracking-wider font-semibold rounded-md px-2 py-0.5 ${getCategoryColor(guest.room?.category)}`}>
-                  {guest.room?.category || "ROOM"}
-                </Badge>
-              </div>
+  return (
+    <Card className="hover:shadow-md transition-shadow duration-200 border-none shadow-sm mb-3">
+      <CardContent className="p-0">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center min-h-[80px]">
+          {/* 1. Name Section */}
+          <div className="flex-1 p-4 md:pl-6 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800">
+            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base mb-1">
+              {guest.fullName}
+            </h3>
+            <div className="flex items-center gap-2">
+              <Badge
+                variant="secondary"
+                className={`uppercase text-[10px] tracking-wider font-semibold rounded-md px-2 py-0.5 ${getCategoryColor(guest.room?.category)}`}
+              >
+                {guest.room?.category || "ROOM"}
+              </Badge>
             </div>
+          </div>
 
-            {/* 2. Time Section */}
-            <div className="w-full md:w-[220px] p-4 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800">
-              <div className="flex flex-col gap-1">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="font-semibold text-slate-700 dark:text-slate-300 w-16">IN</span>
-                  <div className="text-right">
-                    <span className="font-medium">{formatDate(guest.checkInAt)}</span>
-
-                  </div>
+          {/* 2. Time Section */}
+          <div className="w-full md:w-[220px] p-4 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800">
+            <div className="flex flex-col gap-1">
+              <div className="flex justify-between items-center text-sm">
+                <span className="font-semibold text-slate-700 dark:text-slate-300 w-16">
+                  IN
+                </span>
+                <div className="text-right">
+                  <span className="font-medium">
+                    {formatDate(guest.checkInAt)}
+                  </span>
                 </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="font-semibold text-slate-700 dark:text-slate-300 w-16">OUT</span>
-                  <div className="text-right">
-                    <span className="font-medium">{formatDate(guest.checkOutAt)}</span>
-                  </div>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="font-semibold text-slate-700 dark:text-slate-300 w-16">
+                  OUT
+                </span>
+                <div className="text-right">
+                  <span className="font-medium">
+                    {formatDate(guest.checkOutAt)}
+                  </span>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* 3. Location / Room Section */}
-            <div className="w-full md:w-[250px] p-4 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800">
-              <p className="font-bold text-slate-900 dark:text-slate-200">
-                Room {guest.room?.roomNumber || "N/A"}
-              </p>
-              <p className="text-xs text-slate-500 mt-1">
-                {guest.adults || 1} Adult{guest.adults !== 1 ? 's' : ''}
-                {guest.infants > 0 && `, ${guest.infants} Infant${guest.infants !== 1 ? 's' : ''}`}
-              </p>
-              <p className="text-xs text-slate-400 truncate mt-0.5">
-                {/* Fallback to show status text if needed, or remove completely */}
-              </p>
+          {/* 3. Location / Room Section */}
+          <div className="w-full md:w-[250px] p-4 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800">
+            <p className="font-bold text-slate-900 dark:text-slate-200">
+              Room {guest.room?.roomNumber || "N/A"}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">
+              {guest.adults || 1} Adult{guest.adults !== 1 ? "s" : ""}
+              {guest.infants > 0 &&
+                `, ${guest.infants} Infant${guest.infants !== 1 ? "s" : ""}`}
+            </p>
+            <p className="text-xs text-slate-400 truncate mt-0.5">
+              {/* Fallback to show status text if needed, or remove completely */}
+            </p>
+          </div>
+
+          {/* 4. Status & Actions */}
+          <div className="w-full md:w-[200px] p-4 flex items-center justify-between md:justify-end gap-4">
+            {/* Status Dot */}
+            <div className="flex items-center gap-2 mr-auto md:mr-4">
+              <div
+                className={`h-2 w-2 rounded-full ${isCheckedIn ? "bg-emerald-500" : "bg-amber-400"}`}
+              ></div>
+              <span
+                className={`text-sm font-medium whitespace-nowrap ${statusColor}`}
+              >
+                {statusLabel}
+              </span>
             </div>
 
-            {/* 4. Status & Actions */}
-            <div className="w-full md:w-[200px] p-4 flex items-center justify-between md:justify-end gap-4">
-              {/* Status Dot */}
-              <div className="flex items-center gap-2 mr-auto md:mr-4">
-                <div className={`h-2 w-2 rounded-full ${isCheckedIn ? 'bg-emerald-500' : 'bg-amber-400'}`}></div>
-                <span className={`text-sm font-medium whitespace-nowrap ${statusColor}`}>{statusLabel}</span>
-              </div>
-
-              {/* Actions Menu (simplified) */}
-              <div className="flex items-center gap-1">
-                <Link to={`/guests/${guest._id}`}>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50">
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                </Link>
-
-                {guest.status === "checked-in" && (
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50" onClick={() => onExtend(guest)}>
-                    <CalendarPlus className="h-4 w-4" />
-                  </Button>
-                )}
-
+            {/* Actions Menu (simplified) */}
+            <div className="flex items-center gap-1">
+              <Link to={`/guests/${guest._id}`}>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50"
-                  onClick={onDelete}
+                  className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Eye className="h-4 w-4" />
                 </Button>
-              </div>
-            </div>
+              </Link>
 
+              {guest.status === "checked-in" && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
+                  onClick={() => onExtend(guest)}
+                >
+                  <CalendarPlus className="h-4 w-4" />
+                </Button>
+              )}
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                onClick={onDelete}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
-    );
-  }
-);
+        </div>
+      </CardContent>
+    </Card>
+  );
+});
 
 const GuestListSkeleton: React.FC = () => (
   <div className="space-y-4">
@@ -240,7 +272,11 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
     loading: roomsLoading,
   } = useRoomContext();
   const { validatePromoCode, promoCodes } = usePromoCodeContext();
-  const [promoMessage, setPromoMessage] = useState<{ type: 'success' | 'error', text: string, discount?: number } | null>(null);
+  const [promoMessage, setPromoMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+    discount?: number;
+  } | null>(null);
 
   const { packages } = useDecor();
 
@@ -268,7 +304,7 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
     const roomsToShow = [...availableRooms];
     if (prefill?.roomNumber) {
       const reservedRoom = allRooms.find(
-        (r) => r.roomNumber === prefill.roomNumber
+        (r) => r.roomNumber === prefill.roomNumber,
       );
       if (
         reservedRoom &&
@@ -316,12 +352,22 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
     try {
       const res = await validatePromoCode(formData.promoCode);
       if (res.isValid) {
-        setPromoMessage({ type: 'success', text: `Promo Applied: ${res.percentage}% Off Room Rent`, discount: res.percentage });
+        setPromoMessage({
+          type: "success",
+          text: `Promo Applied: ${res.percentage}% Off Room Rent`,
+          discount: res.percentage,
+        });
       } else {
-        setPromoMessage({ type: 'error', text: res.message || "Invalid Promo Code" });
+        setPromoMessage({
+          type: "error",
+          text: res.message || "Invalid Promo Code",
+        });
       }
     } catch (err: any) {
-      setPromoMessage({ type: 'error', text: err.message || "Error validating promo" });
+      setPromoMessage({
+        type: "error",
+        text: err.message || "Error validating promo",
+      });
     }
   };
 
@@ -367,7 +413,7 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
 
   const handleSelectChange = (
     name: "roomNumber" | "paymentMethod",
-    value: string
+    value: string,
   ) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -513,7 +559,10 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
                 />
               </div>
               <div>
-                <Label htmlFor="extraMattresses" className="text-sm text-gray-600">
+                <Label
+                  htmlFor="extraMattresses"
+                  className="text-sm text-gray-600"
+                >
                   Extra Mattresses
                 </Label>
                 <Input
@@ -529,16 +578,26 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   {(() => {
-                    const selectedRoom = selectableRooms.find(r => r.roomNumber === formData.roomNumber);
-                    if (!selectedRoom) return "Select a room to see free mattresses";
+                    const selectedRoom = selectableRooms.find(
+                      (r) => r.roomNumber === formData.roomNumber,
+                    );
+                    if (!selectedRoom)
+                      return "Select a room to see free mattresses";
                     const isTwoBed = selectedRoom.bedType === "Two Bed";
                     let free = 0;
                     switch (selectedRoom.category) {
-                      case "Presidential": free = isTwoBed ? 2 : 1; break;
-                      case "Duluxe-Plus": free = isTwoBed ? 2 : 1; break;
+                      case "Presidential":
+                        free = isTwoBed ? 2 : 1;
+                        break;
+                      case "Duluxe-Plus":
+                        free = isTwoBed ? 2 : 1;
+                        break;
                       case "Deluxe":
-                      case "Executive": free = 1; break;
-                      default: free = 0;
+                      case "Executive":
+                        free = 1;
+                        break;
+                      default:
+                        free = 0;
                     }
                     return `${free} free for ${selectedRoom.category}. Extra: Rs 1,500 each`;
                   })()}
@@ -618,8 +677,9 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
                           {/* ✅ Show capacity info */}
                           {r.adults && (
                             <span
-                              className={`text-xs ${capacityIssue ? "text-red-500" : "text-gray-500"
-                                }`}
+                              className={`text-xs ${
+                                capacityIssue ? "text-red-500" : "text-gray-500"
+                              }`}
                             >
                               (Max: {r.adults} adults
                               {r.infants !== undefined
@@ -668,38 +728,39 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
                     None (No decor package)
                   </span>
                 </SelectItem>
-                {packages && packages.length > 0 ? (
-                  packages.map((decor) => {
-                    const isSelected = decor._id === formData.decorPackageid;
+                {packages && packages.length > 0
+                  ? packages.map((decor) => {
+                      const isSelected = decor._id === formData.decorPackageid;
 
-                    return (
-                      <SelectItem
-                        key={decor._id}
-                        value={decor._id}
-                        className={`${isSelected
-                          ? "bg-primary/10 border-l-4 border-primary"
-                          : ""
+                      return (
+                        <SelectItem
+                          key={decor._id}
+                          value={decor._id}
+                          className={`${
+                            isSelected
+                              ? "bg-primary/10 border-l-4 border-primary"
+                              : ""
                           }`}
-                      >
-                        <span className="flex items-center gap-4 mt-2">
-                          <div className="flex flex-col text-left">
-                            <span className="font-medium">
-                              {decor.title} — Rs{decor.price}
-                              {isSelected && (
-                                <Badge variant="secondary" className="ml-2">
-                                  Selected
-                                </Badge>
-                              )}
-                            </span>
-                            <span className="text-sm text-gray-600 line-clamp-1 max-w-[400px]">
-                              {decor.description}
-                            </span>
-                          </div>
-                        </span>
-                      </SelectItem>
-                    );
-                  })
-                ) : null}
+                        >
+                          <span className="flex items-center gap-4 mt-2">
+                            <div className="flex flex-col text-left">
+                              <span className="font-medium">
+                                {decor.title} — Rs{decor.price}
+                                {isSelected && (
+                                  <Badge variant="secondary" className="ml-2">
+                                    Selected
+                                  </Badge>
+                                )}
+                              </span>
+                              <span className="text-sm text-gray-600 line-clamp-1 max-w-[400px]">
+                                {decor.description}
+                              </span>
+                            </div>
+                          </span>
+                        </SelectItem>
+                      );
+                    })
+                  : null}
               </SelectContent>
             </Select>
           </div>
@@ -730,38 +791,52 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
             </Select>
           </div>
 
-
           <div>
             <Label>Promo Code (Optional)</Label>
             <Select
               name="promoCode"
               value={formData.promoCode || ""}
               onValueChange={(v) => {
-                setFormData(prev => ({ ...prev, promoCode: v }));
+                setFormData((prev) => ({ ...prev, promoCode: v }));
                 // Manually trigger validation logic
                 if (v) {
                   validatePromoCode(v)
-                    .then(res => {
+                    .then((res) => {
                       if (res.isValid) {
-                        setPromoMessage({ type: 'success', text: `Promo Applied: ${res.percentage}% Off` });
+                        setPromoMessage({
+                          type: "success",
+                          text: `Promo Applied: ${res.percentage}% Off`,
+                        });
                       } else {
-                        setPromoMessage({ type: 'error', text: res.message || "Invalid Promo" });
+                        setPromoMessage({
+                          type: "error",
+                          text: res.message || "Invalid Promo",
+                        });
                       }
                     })
-                    .catch(err => setPromoMessage({ type: 'error', text: "Error validating promo" }));
+                    .catch((err) =>
+                      setPromoMessage({
+                        type: "error",
+                        text: "Error validating promo",
+                      }),
+                    );
                 } else {
                   setPromoMessage(null);
                 }
               }}
               disabled={isSubmitting}
             >
-              <SelectTrigger className={promoMessage?.type === 'success' ? 'border-green-500' : ''}>
+              <SelectTrigger
+                className={
+                  promoMessage?.type === "success" ? "border-green-500" : ""
+                }
+              >
                 <SelectValue placeholder="Select a promo code" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No Promo Code</SelectItem>
                 {promoCodes
-                  .filter(p => p.status === 'active')
+                  .filter((p) => p.status === "active")
                   .map((code) => (
                     <SelectItem key={code._id} value={code.code}>
                       {code.code} ({code.percentage}% Off)
@@ -771,7 +846,9 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
             </Select>
 
             {promoMessage && (
-              <p className={`text-xs mt-1 ${promoMessage.type === 'success' ? 'text-green-600 font-medium' : 'text-red-500'}`}>
+              <p
+                className={`text-xs mt-1 ${promoMessage.type === "success" ? "text-green-600 font-medium" : "text-red-500"}`}
+              >
                 {promoMessage.text}
               </p>
             )}
@@ -804,7 +881,7 @@ const CheckInFormDialog: React.FC<CheckInFormDialogProps> = ({
           </Button>
         </form>
       </DialogContent>
-    </Dialog >
+    </Dialog>
   );
 };
 
@@ -838,7 +915,9 @@ const GuestsPage: React.FC = () => {
   const [isCheckInDialogOpen, setIsCheckInDialogOpen] = useState(false);
   const [guestToDelete, setGuestToDelete] = useState<Guest | null>(null);
   const [searchParams] = useSearchParams();
-  const [viewMode, setViewMode] = useState<"list" | "report" | "history">("list");
+  const [viewMode, setViewMode] = useState<"list" | "report" | "history">(
+    "list",
+  );
   const [reportDate, setReportDate] = useState(new Date());
   // Date range for Checked-out History
   const [historyDateRange, setHistoryDateRange] = useState<{
@@ -854,25 +933,28 @@ const GuestsPage: React.FC = () => {
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
   const [isFetchingInvoice, setIsFetchingInvoice] = useState(false);
 
-  const handleExtendClick = useCallback(async (guest: Guest) => {
-    setIsFetchingInvoice(true);
-    try {
-      await fetchGuestById(guest._id);
-      setSelectedGuest(guest);
-      setIsExtendOpen(true);
-    } catch (e) {
-      toast({
-        title: "Error",
-        description: "Failed to load guest details for extension.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsFetchingInvoice(false);
-    }
-  }, [fetchGuestById, toast]);
+  const handleExtendClick = useCallback(
+    async (guest: Guest) => {
+      setIsFetchingInvoice(true);
+      try {
+        await fetchGuestById(guest._id);
+        setSelectedGuest(guest);
+        setIsExtendOpen(true);
+      } catch (e) {
+        toast({
+          title: "Error",
+          description: "Failed to load guest details for extension.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsFetchingInvoice(false);
+      }
+    },
+    [fetchGuestById, toast],
+  );
 
   const [prefill, setPrefill] = useState<Partial<CreateGuestInput> | null>(
-    null
+    null,
   );
 
   useEffect(() => {
@@ -975,7 +1057,9 @@ const GuestsPage: React.FC = () => {
 
   const totalPages = useMemo(() => {
     if (viewMode === "history") {
-      return Math.ceil((checkedOutByRange?.length || 0) / HISTORY_ITEMS_PER_PAGE);
+      return Math.ceil(
+        (checkedOutByRange?.length || 0) / HISTORY_ITEMS_PER_PAGE,
+      );
     }
     return Math.ceil(filteredGuests.length / ITEMS_PER_PAGE);
   }, [filteredGuests.length, checkedOutByRange, viewMode]);
@@ -1204,110 +1288,124 @@ const GuestsPage: React.FC = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
-        {/* Column 1: View Mode Selector */}
-        <div className="md:col-span-1 space-y-1.5">
-          <Label htmlFor="view-mode-select">View Mode</Label>
-          <Select
-            value={viewMode}
-            onValueChange={(v) => setViewMode(v as "list" | "report" | "history")}
-          >
-            <SelectTrigger id="view-mode-select">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="list">All Guests List</SelectItem>
-              <SelectItem value="report">Daily Activity Report</SelectItem>
-              <SelectItem value="history">Checked-out History</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      {/* View Mode Tabs */}
+      <Tabs
+        value={viewMode}
+        onValueChange={(v) => setViewMode(v as "list" | "report" | "history")}
+        className="mb-6"
+      >
+        <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsTrigger value="list" className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            All Guests
+          </TabsTrigger>
+          <TabsTrigger value="report" className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4" />
+            Daily Report
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Out History
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
-        {viewMode === "list" ? (
-          <>
-            <div className="flex items-center space-x-2 md:col-span-2 pt-7">
-              <div className="relative flex-grow">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search guests..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full"
-                />
-              </div>
-              <Select
-                value={searchCategory}
-                onValueChange={(value) => setSearchCategory(value)}
-              >
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="name">Name</SelectItem>
-                  <SelectItem value="phone">Phone</SelectItem>
-                  <SelectItem value="roomNumber">Room</SelectItem>
-                  <SelectItem value="status">Status</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </>
-        ) : (
-          <div className="md:col-span-2 space-y-1.5 ">
-            {viewMode === "report" && (
-              <>
-                <Label>Report Date</Label>
-                <div className="relative">
-                  <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <DatePicker
-                    selected={reportDate}
-                    onChange={(date: Date) => setReportDate(date)}
-                    dateFormat="yyyy-MM-dd"
-                    className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  />
-                </div>
-              </>
-            )}
-            {viewMode === "history" && (
-              <div className="flex gap-4">
-                <div className="space-y-1.5 flex-1">
-                  <Label>Start Date</Label>
-                  <div className="relative">
-                    <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <DatePicker
-                      selected={historyDateRange.startDate}
-                      onChange={(date: Date) =>
-                        setHistoryDateRange((prev) => ({
-                          ...prev,
-                          startDate: date,
-                        }))
-                      }
-                      dateFormat="yyyy-MM-dd"
-                      className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1.5 flex-1">
-                  <Label>End Date</Label>
-                  <div className="relative">
-                    <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <DatePicker
-                      selected={historyDateRange.endDate}
-                      onChange={(date: Date) =>
-                        setHistoryDateRange((prev) => ({
-                          ...prev,
-                          endDate: date,
-                        }))
-                      }
-                      dateFormat="yyyy-MM-dd"
-                      className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
+      {viewMode === "list" ? (
+        <div className="flex flex-wrap items-center gap-3 mb-6">
+          {/* Search input */}
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search guests..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 h-9"
+            />
           </div>
-        )}
-      </div>
+
+          {/* Search Category Filter Icons */}
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+            <Button
+              variant={searchCategory === "name" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setSearchCategory("name")}
+              className={`h-8 px-3 text-xs ${searchCategory === "name" ? "bg-amber-500 hover:bg-amber-600" : ""}`}
+              title="Search by Name"
+            >
+              <User className="h-4 w-4 mr-1" />
+              Name
+            </Button>
+            <Button
+              variant={searchCategory === "phone" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setSearchCategory("phone")}
+              className={`h-8 px-3 ${searchCategory === "phone" ? "bg-amber-500 hover:bg-amber-600" : ""}`}
+              title="Search by Phone"
+            >
+              <Phone className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={searchCategory === "roomNumber" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setSearchCategory("roomNumber")}
+              className={`h-8 px-3 ${searchCategory === "roomNumber" ? "bg-amber-500 hover:bg-amber-600" : ""}`}
+              title="Search by Room"
+            >
+              <Bed className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      ) : viewMode === "report" ? (
+        <div className="mb-6 max-w-xs">
+          <Label className="mb-1.5 block text-sm">Report Date</Label>
+          <div className="relative">
+            <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <DatePicker
+              selected={reportDate}
+              onChange={(date: Date) => setReportDate(date)}
+              dateFormat="yyyy-MM-dd"
+              className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background"
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-4 mb-6 max-w-md">
+          <div className="space-y-1.5 flex-1">
+            <Label className="text-sm">Start Date</Label>
+            <div className="relative">
+              <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <DatePicker
+                selected={historyDateRange.startDate}
+                onChange={(date: Date) =>
+                  setHistoryDateRange((prev) => ({
+                    ...prev,
+                    startDate: date,
+                  }))
+                }
+                dateFormat="yyyy-MM-dd"
+                className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5 flex-1">
+            <Label className="text-sm">End Date</Label>
+            <div className="relative">
+              <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <DatePicker
+                selected={historyDateRange.endDate}
+                onChange={(date: Date) =>
+                  setHistoryDateRange((prev) => ({
+                    ...prev,
+                    endDate: date,
+                  }))
+                }
+                dateFormat="yyyy-MM-dd"
+                className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="relative">{renderContent()}</div>
       {totalPages > 1 && (
@@ -1323,42 +1421,36 @@ const GuestsPage: React.FC = () => {
                       setCurrentPage((prev) => Math.max(prev - 1, 1));
                     }}
                     className={
-                      currentPage === 1
-                        ? "pointer-events-none opacity-50"
-                        : ""
+                      currentPage === 1 ? "pointer-events-none opacity-50" : ""
                     }
                   />
                 </PaginationItem>
 
-                {getPageNumbers(currentPage, totalPages).map(
-                  (page, index) => (
-                    <PaginationItem key={index}>
-                      {page === "..." ? (
-                        <PaginationEllipsis />
-                      ) : (
-                        <PaginationLink
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setCurrentPage(page as number);
-                          }}
-                          isActive={currentPage === page}
-                        >
-                          {page}
-                        </PaginationLink>
-                      )}
-                    </PaginationItem>
-                  )
-                )}
+                {getPageNumbers(currentPage, totalPages).map((page, index) => (
+                  <PaginationItem key={index}>
+                    {page === "..." ? (
+                      <PaginationEllipsis />
+                    ) : (
+                      <PaginationLink
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setCurrentPage(page as number);
+                        }}
+                        isActive={currentPage === page}
+                      >
+                        {page}
+                      </PaginationLink>
+                    )}
+                  </PaginationItem>
+                ))}
 
                 <PaginationItem>
                   <PaginationNext
                     href="#"
                     onClick={(e) => {
                       e.preventDefault();
-                      setCurrentPage((prev) =>
-                        Math.min(prev + 1, totalPages)
-                      );
+                      setCurrentPage((prev) => Math.min(prev + 1, totalPages));
                     }}
                     className={
                       currentPage === totalPages
@@ -1380,7 +1472,6 @@ const GuestsPage: React.FC = () => {
         prefill={prefill}
       />
 
-
       {/* Extend Stay Dialog */}
       {selectedGuest && (
         <ExtendStayDialog
@@ -1401,10 +1492,7 @@ const GuestsPage: React.FC = () => {
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete the guest record for{" "}
-              <span className="font-semibold">
-                {guestToDelete?.fullName}
-              </span>
-              .
+              <span className="font-semibold">{guestToDelete?.fullName}</span>.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

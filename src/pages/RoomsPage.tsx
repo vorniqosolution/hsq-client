@@ -64,7 +64,6 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 
-
 const RoomsPage = () => {
   const availableAmenities = [
     "WiFi",
@@ -108,7 +107,6 @@ const RoomsPage = () => {
   const [deletedImages, setDeletedImages] = useState<string[]>([]);
   const { toast } = useToast();
 
-
   const [formData, setFormData] = useState<Partial<Room>>({
     roomNumber: "",
     bedType: "One Bed",
@@ -147,7 +145,7 @@ const RoomsPage = () => {
   const totalPages = Math.ceil(displayedRooms.length / itemsPerPage);
   const paginatedRooms = displayedRooms.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   const resetForm = () => {
@@ -416,193 +414,7 @@ const RoomsPage = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
               <div className="w-full mb-6">
                 <Card className="p-6">
-                  <div className="backdrop-blur-sm rounded-xl p-6 shadow-sm">
-                    <div className="flex flex-col lg:flex-row gap-4">
-                      <div className="flex-1">
-                        <Label
-                          htmlFor="checkin"
-                          className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2"
-                        >
-                          <Calendar className="h-4 w-4 " />
-                          Check-in Date
-                        </Label>
-                        <div className="relative group">
-                          <Input
-                            id="checkin"
-                            type="date"
-                            value={searchDates.checkin}
-                            min={new Date().toISOString().split("T")[0]}
-                            max={searchDates.checkout || undefined}
-                            onChange={(e) =>
-                              setSearchDates({
-                                ...searchDates,
-                                checkin: e.target.value,
-                              })
-                            }
-                            className={`
-            w-full pl-10 pr-3 py-2.5 
-            border-gray-200 rounded-lg`}
-                            required
-                          />
-                          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-
-                          {/* Date preview */}
-                          {searchDates.checkin && (
-                            <div className="absolute -bottom-5 left-0 text-xs  font-medium">
-                              {new Date(searchDates.checkin).toLocaleDateString(
-                                "en-US",
-                                {
-                                  weekday: "short",
-                                  month: "short",
-                                  day: "numeric",
-                                }
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="hidden lg:flex items-center justify-center px-2 mt-6">
-                        <div className="flex items-center gap-1">
-                          <div className="w-8 h-[2px] bg-gradient-to-r from-amber-300 to-amber-400"></div>
-                          <Clock className="h-4 w-4 text-amber-400" />
-                          <div className="w-8 h-[2px] bg-gradient-to-r from-amber-400 to-amber-300"></div>
-                        </div>
-                      </div>
-
-                      <div className="flex-1">
-                        <Label
-                          htmlFor="checkout"
-                          className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2"
-                        >
-                          <Calendar className="h-4 w-4" />
-                          Check-out Date
-                          {!searchDates.checkin && (
-                            <span className="text-xs text-gray-400 font-normal">
-                              (Select check-in first)
-                            </span>
-                          )}
-                        </Label>
-                        <div className="relative group">
-                          <Input
-                            id="checkout"
-                            type="date"
-                            value={searchDates.checkout}
-                            min={
-                              searchDates.checkin ||
-                              new Date().toISOString().split("T")[0]
-                            }
-                            onChange={(e) =>
-                              setSearchDates({
-                                ...searchDates,
-                                checkout: e.target.value,
-                              })
-                            }
-                            disabled={!searchDates.checkin}
-                            className={`
-            w-full pl-10 pr-3 py-2.5
-            border-gray-200 rounded-lg
-            focus:ring-2`}
-                            required
-                          />
-                          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-
-                          {searchDates.checkout && (
-                            <div className="absolute -bottom-5 left-0 text-xs font-medium">
-                              {new Date(
-                                searchDates.checkout
-                              ).toLocaleDateString("en-US", {
-                                weekday: "short",
-                                month: "short",
-                                day: "numeric",
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex gap-2 items-end lg:mt-6">
-                        {(searchDates.checkin || searchDates.checkout) && (
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setSearchDates({ checkin: "", checkout: "" });
-                              setHasSearched(false);
-                              setActiveTab("all");
-                            }}
-                            className="px-3 py-2.5 transition-all group"
-                            title="Clear dates"
-                          >
-                            <RefreshCw className="h-4 w-4 group-hover:rotate-180 transition-transform duration-500" />
-                          </Button>
-                        )}
-
-                        {/* Search Button */}
-                        <Button
-                          onClick={handleSearchAvailableRooms}
-                          disabled={
-                            !searchDates.checkin ||
-                            !searchDates.checkout ||
-                            loading
-                          }
-                          className={`
-          relative overflow-hidden
-          px-6 py-2.5 font-medium
-          bg-gradient-to-r from-amber-500 to-amber-600
-          hover:from-amber-600 hover:to-amber-700
-          text-white rounded-lg
-          transform transition-all duration-200
-          hover:scale-105 active:scale-95
-          disabled:opacity-50 disabled:cursor-not-allowed
-          disabled:hover:scale-100
-          shadow-lg shadow-amber-500/25
-          group
-        `}
-                        >
-                          <span className="relative z-10 flex items-center gap-2">
-                            {loading ? (
-                              <>
-                                <RefreshCw className="h-4 w-4 animate-spin" />
-                                Searching...
-                              </>
-                            ) : (
-                              <>
-                                <Search className="h-4 w-4 group-hover:scale-110 transition-transform" />
-                                Find Available Rooms
-                              </>
-                            )}
-                          </span>
-                          <div className="absolute inset-0 bg-gradient-to-r from-amber-600 to-amber-700 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300" />
-                        </Button>
-                      </div>
-                    </div>
-                    {hasSearched && (
-                      <div
-                        className={`mt-4 pt-4 border-t border-amber-100 animate-in slide-in-from-bottom-2 duration-300`}
-                      >
-                        {availableRooms && availableRooms.length > 0 ? (
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm text-green-700 font-medium flex items-center gap-2">
-                              <Check className="h-4 w-4 bg-green-100 rounded-full p-0.5" />
-                              Found {availableRooms.length} available room
-                              {availableRooms.length !== 1 ? "s" : ""} for your
-                              selected dates
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                            <p className="text-sm text-orange-700 flex items-center gap-2">
-                              <X className="h-4 w-4" />
-                              No rooms available for these dates. Try different
-                              dates or contact us for assistance.
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="border-t border-gray-200 my-4"></div>
-
-                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between border border-red">
+                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
                     {/* Room filtering tabs */}
                     <Tabs
                       value={activeTab}
@@ -617,14 +429,13 @@ const RoomsPage = () => {
                           <Bed className="h-4 w-4 mr-2" />
                           All Rooms ({rooms?.length || 0})
                         </TabsTrigger>
-                        <TabsTrigger
+                        {/* <TabsTrigger
                           value="available"
                           className="flex items-center justify-center"
                         >
                           <Check className="h-4 w-4 mr-2" />
-                          {hasSearched ? "Search Results" : "Available"} (
-                          {availableRooms?.length || 0})
-                        </TabsTrigger>
+                          Available ({availableRooms?.length || 0})
+                        </TabsTrigger> */}
                       </TabsList>
                     </Tabs>
 
@@ -861,7 +672,7 @@ const RoomsPage = () => {
                                       type="checkbox"
                                       id={`amenity-${amenity}`}
                                       checked={formData.amenities?.includes(
-                                        amenity
+                                        amenity,
                                       )}
                                       onChange={() =>
                                         handleAmenityChange(amenity)
@@ -1000,7 +811,7 @@ const RoomsPage = () => {
                         </div>
                         <Badge
                           className={`${getStatusColor(
-                            room.status
+                            room.status,
                           )} flex-shrink-0 ml-2`}
                         >
                           {room.status.charAt(0).toUpperCase() +
@@ -1096,27 +907,41 @@ const RoomsPage = () => {
                   <PaginationContent>
                     <PaginationItem>
                       <PaginationPrevious
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        onClick={() =>
+                          setCurrentPage((p) => Math.max(1, p - 1))
+                        }
+                        className={
+                          currentPage === 1
+                            ? "pointer-events-none opacity-50"
+                            : "cursor-pointer"
+                        }
                       />
                     </PaginationItem>
 
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <PaginationItem key={page}>
-                        <PaginationLink
-                          isActive={currentPage === page}
-                          onClick={() => setCurrentPage(page)}
-                          className="cursor-pointer"
-                        >
-                          {page}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      (page) => (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            isActive={currentPage === page}
+                            onClick={() => setCurrentPage(page)}
+                            className="cursor-pointer"
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ),
+                    )}
 
                     <PaginationItem>
                       <PaginationNext
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        onClick={() =>
+                          setCurrentPage((p) => Math.min(totalPages, p + 1))
+                        }
+                        className={
+                          currentPage === totalPages
+                            ? "pointer-events-none opacity-50"
+                            : "cursor-pointer"
+                        }
                       />
                     </PaginationItem>
                   </PaginationContent>
@@ -1407,14 +1232,15 @@ const RoomsPage = () => {
                           <div className="grid grid-cols-3 gap-2">
                             {existingImages
                               .filter(
-                                (imageUrl) => !deletedImages.includes(imageUrl)
+                                (imageUrl) => !deletedImages.includes(imageUrl),
                               )
                               .map((imageUrl, index) => (
                                 <div key={index} className="relative group">
                                   <img
                                     src={imageUrl}
-                                    alt={`Room ${formData.roomNumber} - ${index + 1
-                                      }`}
+                                    alt={`Room ${formData.roomNumber} - ${
+                                      index + 1
+                                    }`}
                                     className="w-full h-24 object-cover rounded"
                                   />
                                   <button
@@ -1543,8 +1369,9 @@ const RoomsPage = () => {
                             >
                               <img
                                 src={imageUrl}
-                                alt={`Room ${currentRoom.roomNumber} - ${index + 1
-                                  }`}
+                                alt={`Room ${currentRoom.roomNumber} - ${
+                                  index + 1
+                                }`}
                                 className="w-full h-32 object-cover"
                               />
                             </a>
