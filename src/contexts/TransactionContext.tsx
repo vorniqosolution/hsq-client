@@ -1,11 +1,11 @@
 import React, {
   createContext,
   useContext,
-  useState,
   ReactNode,
   useCallback,
 } from "react";
 import axios from "axios";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const apiClient = axios.create({
@@ -45,62 +45,104 @@ interface TransactionContextType {
   transactions: Transaction[];
   addTransaction: (data: TransactionPayload) => Promise<void>;
   fetchTransactions: () => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
   getTransactionsBySource: (
     sourceId: string,
-    source: "reservation" | "guest"
+    source: "reservation" | "guest",
   ) => Promise<Transaction[]>;
 }
 
 const TransactionContext = createContext<TransactionContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export const TransactionProvider = ({ children }: { children: ReactNode }) => {
-  const [loading, setLoading] = useState(false);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const queryClient = useQueryClient();
 
-  const addTransaction = useCallback(async (data: TransactionPayload) => {
-    setLoading(true);
-    try {
-      await apiClient.post("/api/transactions/add", data);
-      // Optional: refresh list after add
-      // await fetchTransactions();
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const fetchTransactions = useCallback(async () => {
-    setLoading(true);
-    try {
+  // 1. Fetch Transactions (useQuery)
+  const {
+    data: transactions = [],
+    isLoading: loading,
+    refetch: fetchTransactions,
+  } = useQuery({
+    queryKey: ["transactions"],
+    queryFn: async () => {
       const res = await apiClient.get<{
         success: boolean;
         data: Transaction[];
       }>("/api/transactions/get-transactions");
-      setTransactions(res.data.data || []);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return res.data.data || [];
+    },
+  });
+
+  // 2. Add Transaction (useMutation)
+  const addMutation = useMutation({
+    mutationFn: async (data: TransactionPayload) => {
+      await apiClient.post("/api/transactions/add", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+
+  const addTransaction = async (data: TransactionPayload) => {
+    await addMutation.mutateAsync(data);
+  };
+
+  // 3. Delete Transaction with Optimistic Updates
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiClient.delete(`/api/transactions/${id}`);
+    },
+    onMutate: async (id) => {
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: ["transactions"] });
+
+      // Snapshot the previous value
+      const previousTransactions = queryClient.getQueryData<Transaction[]>([
+        "transactions",
+      ]);
+
+      // Optimistically update to remove the item
+      queryClient.setQueryData<Transaction[]>(["transactions"], (old) =>
+        old ? old.filter((tx) => tx._id !== id) : [],
+      );
+
+      // Return a context object with the snapshot
+      return { previousTransactions };
+    },
+    onError: (_err, _id, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousTransactions) {
+        queryClient.setQueryData(
+          ["transactions"],
+          context.previousTransactions,
+        );
+      }
+    },
+    onSettled: () => {
+      // Always refetch after error or success:
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+
+  const deleteTransaction = async (id: string) => {
+    await deleteMutation.mutateAsync(id);
+  };
 
   const getTransactionsBySource = useCallback(
     async (sourceId: string, source: "reservation" | "guest") => {
-      setLoading(true);
-      try {
-        const query =
-          source === "reservation"
-            ? `reservationId=${sourceId}`
-            : `guestId=${sourceId}`;
-        const res = await apiClient.get<{
-          success: boolean;
-          data: Transaction[];
-        }>(`/api/transactions?${query}`);
-        return res.data.data || [];
-      } finally {
-        setLoading(false);
-      }
+      const query =
+        source === "reservation"
+          ? `reservationId=${sourceId}`
+          : `guestId=${sourceId}`;
+      const res = await apiClient.get<{
+        success: boolean;
+        data: Transaction[];
+      }>(`/api/transactions?${query}`);
+      return res.data.data || [];
     },
-    []
+    [],
   );
 
   return (
@@ -109,7 +151,10 @@ export const TransactionProvider = ({ children }: { children: ReactNode }) => {
         loading,
         transactions,
         addTransaction,
-        fetchTransactions,
+        fetchTransactions: async () => {
+          await fetchTransactions();
+        },
+        deleteTransaction,
         getTransactionsBySource,
       }}
     >

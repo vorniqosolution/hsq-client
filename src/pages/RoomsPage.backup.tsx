@@ -63,12 +63,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const RoomsPage = () => {
   const availableAmenities = [
@@ -145,9 +139,9 @@ const RoomsPage = () => {
     }
     setCurrentPage(1); // Reset to page 1 when tab changes or data updates
   }, [activeTab, rooms, availableRooms]);
-  /* viewMode removed */
+
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
+  const itemsPerPage = 10;
   const totalPages = Math.ceil(displayedRooms.length / itemsPerPage);
   const paginatedRooms = displayedRooms.slice(
     (currentPage - 1) * itemsPerPage,
@@ -780,161 +774,131 @@ const RoomsPage = () => {
               </div>
             </div>
 
-            <Card className="overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-xs uppercase text-slate-500 font-medium border-b">
-                    <tr>
-                      <th className="px-4 py-3 text-left w-20">Image</th>
-                      <th className="px-4 py-3 text-left">Room</th>
-                      <th className="px-4 py-3 text-left">Type</th>
-                      <th className="px-4 py-3 text-left">Status</th>
-                      <th className="px-4 py-3 text-right">Rate</th>
-                      <th className="px-4 py-3 text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {paginatedRooms.map((room) => (
-                      <tr
-                        key={room._id}
-                        className="hover:bg-slate-50 transition-colors"
-                      >
-                        <td className="px-4 py-3">
-                          <HoverCard>
-                            <HoverCardTrigger asChild>
-                              <div className="flex items-center justify-center cursor-pointer">
-                                <Avatar className="h-10 w-10 border border-slate-200 transition-transform hover:scale-105">
-                                  {room.images && room.images.length > 0 ? (
-                                    <AvatarImage
-                                      src={room.images[0]}
-                                      alt={room.roomNumber}
-                                      className="object-cover"
-                                    />
-                                  ) : null}
-                                  <AvatarFallback className="bg-slate-100">
-                                    <ImageIcon className="h-5 w-5 text-slate-400" />
-                                  </AvatarFallback>
-                                </Avatar>
-                              </div>
-                            </HoverCardTrigger>
-                            {room.images && room.images.length > 0 && (
-                              <HoverCardContent
-                                className="w-80 p-0 overflow-hidden shadow-xl border-none"
-                                side="right"
-                              >
-                                <OptimizedImage
-                                  src={room.images[0]}
-                                  alt={`Room ${room.roomNumber}`}
-                                  className="w-full h-52 object-cover"
-                                />
-                                <div className="p-3 bg-white border-t">
-                                  <div className="flex justify-between items-start">
-                                    <div>
-                                      <p className="font-bold text-slate-800">
-                                        Room {room.roomNumber}
-                                      </p>
-                                      <p className="text-xs text-slate-500 mt-0.5">
-                                        {room.category} • {room.view}
-                                      </p>
-                                    </div>
-                                    <Badge
-                                      className={`${getStatusColor(
-                                        room.status,
-                                      )} text-[10px] px-1.5 py-0`}
-                                    >
-                                      {room.status}
-                                    </Badge>
-                                  </div>
-                                </div>
-                              </HoverCardContent>
-                            )}
-                          </HoverCard>
-                        </td>
-                        <td className="px-4 py-3 font-medium text-slate-900">
-                          {room.roomNumber}
-                        </td>
-                        <td className="px-4 py-3 text-slate-600">
-                          <div className="flex flex-col">
-                            <span>{room.category}</span>
-                            <span className="text-xs text-slate-400">
-                              {room.bedType} • {room.view}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge
-                            className={`${getStatusColor(room.status)} text-xs`}
-                          >
-                            {room.status.charAt(0).toUpperCase() +
-                              room.status.slice(1)}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3 text-right font-medium text-amber-600">
+            {/* Room Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-6 ">
+              {paginatedRooms.map((room) => (
+                <Card
+                  key={room._id}
+                  className="flex flex-col lg:flex-row overflow-hidden hover:shadow-lg transition-shadow duration-300 "
+                >
+                  <div className="lg:w-1/3 flex-shrink-0 relative">
+                    {room.images && room.images.length > 0 ? (
+                      <OptimizedImage
+                        src={room.images[0]}
+                        alt={`Room ${room.roomNumber}`}
+                        className="w-full h-48 lg:h-full"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center w-full h-48 lg:h-full bg-slate-100">
+                        <ImageIcon className="h-12 w-12 text-slate-300" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content Section */}
+                  <div className="p-4 flex flex-col flex-grow justify-between lg:w-2/3 ">
+                    {/* Top part: Title, Description, and Status */}
+                    <div>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="text-xl font-bold text-slate-800">
+                            Room {room.roomNumber}
+                          </h3>
+                          <p className="text-sm text-slate-500 mt-1">
+                            {room.dropdownLabel ||
+                              `${room.bedType} ${room.category} ${room.view}`}
+                          </p>
+                        </div>
+                        <Badge
+                          className={`${getStatusColor(
+                            room.status,
+                          )} flex-shrink-0 ml-2`}
+                        >
+                          {room.status.charAt(0).toUpperCase() +
+                            room.status.slice(1)}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Bottom part: Price and Actions */}
+                    <div className="mt-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                      <div>
+                        <p className="text-sm text-slate-600">Rate</p>
+                        <p className="text-lg font-semibold text-slate-900">
                           Rs {room.rate.toLocaleString()}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center justify-center gap-2">
+                          <span className="text-sm font-normal text-slate-500">
+                            {" "}
+                            / night
+                          </span>
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
+                        {/* View Room Details */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewRoom(room._id)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+
+                        {/* Edit Room */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditRoom(room)}
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+
+                        {/* Delete Room */}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
                             <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-slate-400 hover:text-blue-600"
-                              onClick={() => handleViewRoom(room._id)}
+                              variant="outline"
+                              size="sm"
+                              className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                              onClick={() => setRoomToDelete(room._id)}
                             >
-                              <Eye className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Delete
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-slate-400 hover:text-amber-600"
-                              onClick={() => handleEditRoom(room)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-slate-400 hover:text-red-600"
-                                  onClick={() => setRoomToDelete(room._id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    Delete Room {room.roomNumber}?
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This action cannot be undone. This will
-                                    permanently delete the room and all
-                                    associated data.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel
-                                    onClick={() => setRoomToDelete(null)}
-                                  >
-                                    Cancel
-                                  </AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={handleDeleteRoom}
-                                    className="bg-red-600 hover:bg-red-700"
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Delete Room {room.roomNumber}?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will
+                                permanently delete the room and all associated
+                                data.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel
+                                onClick={() => setRoomToDelete(null)}
+                              >
+                                Cancel
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={handleDeleteRoom}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
 
             {/* Pagination Controls */}
             {displayedRooms.length > itemsPerPage && (

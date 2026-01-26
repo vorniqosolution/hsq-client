@@ -1185,15 +1185,15 @@ const GuestsPage: React.FC = () => {
           </div>
           <Card>
             <CardContent className="p-0">
-              <div className="rounded-md border">
-                <div className="grid grid-cols-12 gap-4 p-4 border-b bg-muted/40 font-medium text-sm">
+              <div className="rounded-md border overflow-x-auto">
+                <div className="grid grid-cols-12 gap-4 p-4 border-b bg-muted/40 font-medium text-sm min-w-[800px]">
                   <div className="col-span-4">Guest Name</div>
                   <div className="col-span-2">Room</div>
                   <div className="col-span-2">Check In</div>
                   <div className="col-span-2">Check Out</div>
                   <div className="col-span-2 text-right">Action</div>
                 </div>
-                <div className="divide-y">
+                <div className="divide-y min-w-[800px]">
                   {paginatedHistory.map((guest) => (
                     <div
                       key={guest._id}
@@ -1277,7 +1277,7 @@ const GuestsPage: React.FC = () => {
 
   return (
     <>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Guests</h1>
         <Button
           onClick={() => setIsCheckInDialogOpen(true)}
@@ -1305,7 +1305,7 @@ const GuestsPage: React.FC = () => {
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
-            Out History
+            History
           </TabsTrigger>
         </TabsList>
       </Tabs>
