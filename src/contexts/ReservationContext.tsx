@@ -54,7 +54,7 @@ export interface Reservation {
   roomNumber: string;
   startAt: string;
   endAt: string;
-  status: "reserved" | "cancelled" | "checked-in" | "checked-out";
+  status: "reserved" | "confirmed" | "cancelled" | "checked-in" | "checked-out";
 
   financials?: {
     nights: number;
@@ -101,6 +101,27 @@ export interface CreateReservationInput {
   promoCode?: string;
 }
 
+export interface SwapReservationInput {
+  newRoomId?: string;
+  newCheckin?: string;
+  newCheckout?: string;
+}
+
+export interface SwapReservationResult {
+  reservation: Reservation;
+  changes: {
+    room: { from: { roomNumber: string; rate: number }; to: { roomNumber: string; rate: number } } | null;
+    dates: { from: { startAt: string; endAt: string; nights: number }; to: { startAt: string; endAt: string; nights: number } } | null;
+  };
+  financials: {
+    originalEstimate: number;
+    newEstimate: number;
+    difference: number;
+    totalAdvance: number;
+    newBalance: number;
+  };
+}
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE,
@@ -121,6 +142,7 @@ interface ReservationContextType {
   deleteReservation: (id: string) => Promise<void>;
   hardDeleteReservation: (id: string) => Promise<void>;
   getReservationById: (id: string) => Promise<Reservation>;
+  swapReservation: (id: string, data: SwapReservationInput) => Promise<SwapReservationResult>;
 }
 
 const ReservationContext = createContext<ReservationContextType | undefined>(
@@ -195,6 +217,22 @@ export const ReservationProvider = ({ children }: { children: ReactNode }) => {
     },
   });
 
+  const swapReservationMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: SwapReservationInput }) =>
+      apiClient
+        .put<{ success: boolean; data: SwapReservationResult }>(
+          `/api/reservation/${id}/swap`,
+          data
+        )
+        .then((res) => res.data.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardRoomStatuses"] });
+    },
+  });
+
   // Exposed Functions
   const fetchReservations = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ["reservations"] });
@@ -242,6 +280,13 @@ export const ReservationProvider = ({ children }: { children: ReactNode }) => {
     []
   );
 
+  const swapReservation = useCallback(
+    async (id: string, data: SwapReservationInput): Promise<SwapReservationResult> => {
+      return await swapReservationMutation.mutateAsync({ id, data });
+    },
+    [swapReservationMutation]
+  );
+
   const contextValue = useMemo(
     () => ({
       reservations: reservationsQuery.data || [],
@@ -251,13 +296,15 @@ export const ReservationProvider = ({ children }: { children: ReactNode }) => {
         dailyReportQuery.isLoading ||
         createReservationMutation.isPending ||
         deleteReservationMutation.isPending ||
-        hardDeleteReservationMutation.isPending,
+        hardDeleteReservationMutation.isPending ||
+        swapReservationMutation.isPending,
       error:
         (reservationsQuery.error as any)?.message ||
         (dailyReportQuery.error as any)?.message ||
         (createReservationMutation.error as any)?.message ||
         (deleteReservationMutation.error as any)?.message ||
         (hardDeleteReservationMutation.error as any)?.message ||
+        (swapReservationMutation.error as any)?.message ||
         null,
 
       dailyActivityReport: dailyReportQuery.data || null,
@@ -268,6 +315,7 @@ export const ReservationProvider = ({ children }: { children: ReactNode }) => {
       deleteReservation,
       hardDeleteReservation,
       getReservationById,
+      swapReservation,
     }),
     [
       reservationsQuery.data,
@@ -282,6 +330,8 @@ export const ReservationProvider = ({ children }: { children: ReactNode }) => {
       deleteReservationMutation.error,
       hardDeleteReservationMutation.isPending,
       hardDeleteReservationMutation.error,
+      swapReservationMutation.isPending,
+      swapReservationMutation.error,
       currentReservation,
       fetchDailyActivityReport,
       fetchReservations,
@@ -289,6 +339,7 @@ export const ReservationProvider = ({ children }: { children: ReactNode }) => {
       deleteReservation,
       hardDeleteReservation,
       getReservationById,
+      swapReservation,
     ]
   );
 

@@ -77,6 +77,8 @@ import {
   CreateReservationInput,
 } from "@/contexts/ReservationContext";
 import { usePromoCodeContext } from "@/contexts/PromoCodeContext";
+import ReservationCard from "@/components/cards/ReservationCard";
+import SwapReservationModal from "@/components/modals/SwapReservationModal";
 
 import {
   Pagination,
@@ -109,7 +111,7 @@ interface Reservation {
   roomNumber: string;
   startAt: string;
   endAt: string;
-  status: "reserved" | "cancelled" | "checked-in" | "checked-out";
+  status: "reserved" | "confirmed" | "cancelled" | "checked-in" | "checked-out";
 
   financials?: {
     nights: number;
@@ -210,6 +212,7 @@ const ReservationsPage: React.FC = () => {
   const [reportDate, setReportDate] = useState(new Date());
   const hasLoadedRef = useRef(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const [reservationToSwap, setReservationToSwap] = useState<Reservation | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -748,6 +751,7 @@ const ReservationsPage: React.FC = () => {
             onHardDelete={() => setReservationToHardDelete(reservation)}
             onCheckIn={() => convertToCheckIn(reservation)}
             onViewDetails={() => viewReservationDetails(reservation)}
+            onSwap={() => setReservationToSwap(reservation)}
             getStatus={getReservationStatus}
             getStatusBadge={getStatusBadge}
           />
@@ -1440,270 +1444,20 @@ const ReservationsPage: React.FC = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Swap Reservation Modal */}
+        {reservationToSwap && (
+          <SwapReservationModal
+            open={!!reservationToSwap}
+            onOpenChange={(open) => !open && setReservationToSwap(null)}
+            reservation={reservationToSwap as any}
+          />
+        )}
       </div>
     </div>
 
   );
 };
-
-interface ReservationCardProps {
-  reservation: Reservation;
-  allRooms: Room[];
-  onDelete: () => void;
-  onHardDelete: () => void; // Prop for the new permanent delete action
-  onCheckIn: () => void;
-  onViewDetails: () => void;
-  getStatus: (reservation: Reservation) => string;
-  getStatusBadge: (status: string) => React.ReactNode;
-}
-
-const ReservationCard = React.memo(
-  ({
-    reservation,
-    allRooms,
-    onDelete,
-    onCheckIn,
-    onViewDetails,
-    onHardDelete,
-    getStatus,
-    getStatusBadge,
-  }: ReservationCardProps) => {
-    const { user } = useAuth();
-    const isAdmin = user?.role === "admin";
-
-    const status = getStatus(reservation);
-    const isCheckInEnabled = status === "reserved" || status === "upcoming";
-
-    const roomDetails = useMemo(() => {
-      if (isPopulatedRoom(reservation.room)) {
-        return reservation.room;
-      }
-      if (allRooms && allRooms.length) {
-        return allRooms.find(
-          (room) => room.roomNumber === reservation.roomNumber
-        );
-      }
-      return null;
-    }, [reservation.room, reservation.roomNumber, allRooms]);
-
-    return (
-      <Card className="hover:shadow-lg transition-all duration-300 border-gray-100">
-        <CardContent className="p-0">
-          <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
-            <div className="flex flex-col md:flex-row">
-              {/* Main Content Section (Guest & Booking Details) */}
-              <div className="flex-1">
-                {/* Card Header with Guest Info */}
-                <CardHeader className="pb-4">
-                  <div className="flex justify-between items-start gap-4">
-                    <div>
-                      <CardTitle className="text-xl tracking-tight">
-                        {reservation.fullName}
-                      </CardTitle>
-                      <CardDescription className="flex items-center gap-2 pt-1">
-                        <Phone className="h-3.5 w-3.5" />
-                        {reservation.phone}
-                      </CardDescription>
-                      {/* new line  */}
-                      <CardDescription className="flex items-center gap-2 pt-1">
-                        Reservation created on{" "}
-                        {format(
-                          toZonedTime(reservation.createdAt, "Asia/Karachi"),
-                          "dd MMM yyyy, hh:mm a"
-                        )}
-                      </CardDescription>
-                    </div>
-                    <div className="flex-shrink-0 flex flex-col items-end gap-2">
-                      {getStatusBadge(status)}
-                      {reservation.financials && reservation.financials.totalAdvance > 0 && (
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 gap-1">
-                          <CheckCircle className="h-3 w-3" />
-                          Adv: Rs {reservation.financials.totalAdvance.toLocaleString()}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-
-                {/* Card Content with Room & Date Details */}
-                <CardContent className="pt-0">
-                  <div className="border-t border-gray-200 pt-4">
-                    <div className="grid md:grid-cols-2 gap-6">
-                      {/* Room Info */}
-                      <div className="flex items-start gap-3">
-                        <div className="mt-1 p-2 bg-amber-100 rounded-full">
-                          <Bed className="h-4 w-4 text-amber-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-gray-800">
-                            Room{" "}
-                            {isPopulatedRoom(reservation.room)
-                              ? reservation.room.roomNumber
-                              : reservation.roomNumber}
-                          </p>
-                          {roomDetails && (
-                            <>
-                              <p className="text-xs text-gray-500">
-                                {roomDetails.category}
-                              </p>
-                              <p className="text-sm font-medium text-gray-900 mt-1">
-                                Rs. {roomDetails.rate.toLocaleString()}
-                                <span className="text-xs font-normal text-gray-500">
-                                  {" "}
-                                  / night
-                                </span>
-                              </p>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Dates */}
-                      <div className="flex items-start gap-3">
-                        <div className="mt-1 p-2 bg-blue-100 rounded-full">
-                          <CalendarDays className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-gray-800">
-                            Stay Dates
-                          </p>
-                          <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 mt-1">
-                            <div>
-                              <span className="font-medium text-gray-700 block">
-                                {format(
-                                  toZonedTime(reservation.startAt, "Asia/Karachi"),
-                                  "MMM d, yyyy"
-                                )}
-                              </span>
-                              <span className="uppercase tracking-wide text-[10px]">
-                                Check-in
-                              </span>
-                            </div>
-                            <div>
-                              <span className="font-medium text-gray-700 block">
-                                {format(
-                                  toZonedTime(reservation.endAt, "Asia/Karachi"),
-                                  "MMM d, yyyy"
-                                )}
-                              </span>
-                              <span className="uppercase tracking-wide text-[10px]">
-                                Check-out
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    {reservation.promoCode && (
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-500">Promo Code:</span>
-                        <span className="font-medium text-emerald-600">
-                          {reservation.promoCode}
-                        </span>
-                      </div>
-                    )}
-                    {reservation.specialRequest && (
-                      <div className="mt-4 pt-4 border-t border-gray-100">
-                        <div className="flex items-start gap-3">
-                          <div className="mt-1 p-2 bg-purple-100 rounded-full flex-shrink-0">
-                            <MessageSquare className="h-4 w-4 text-purple-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-800 mb-1">
-                              Special Request
-                            </p>
-                            <p className="text-sm text-gray-600 bg-purple-50 rounded-lg p-3 border border-purple-100">
-                              {reservation.specialRequest}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </div>
-
-              <div className="flex md:flex-col items-center justify-between p-4 bg-gray-50/70 border-t md:border-t-0 md:border-l border-gray-200">
-                <div className="text-center md:mb-4">
-                  <Badge variant="outline">
-                    {formatDistanceStrict(
-                      new Date(reservation.endAt),
-                      new Date(reservation.startAt)
-                    )}{" "}
-                    Stay
-                  </Badge>
-                </div>
-
-                {/* This is the main container for all action buttons */}
-                <div className="flex md:flex-col gap-2 w-full">
-                  {/* CHECK IN BUTTON (No Change) */}
-                  {isCheckInEnabled && (
-                    <Button
-                      size="sm"
-                      onClick={onCheckIn}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-                    >
-                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                      Check In
-                    </Button>
-                  )}
-
-                  {/* VIEW BUTTON (No Change) */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onViewDetails}
-                    className="w-full bg-white"
-                  >
-                    <Eye className="mr-2 h-4 w-4" />
-                    View
-                  </Button>
-
-                  {/* CHANGE ROOM BUTTON - for reserved/upcoming */}
-                  {isCheckInEnabled && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => window.location.href = `/reservation/${reservation._id}?action=changeRoom`}
-                      className="w-full border-amber-500 text-amber-600 hover:bg-amber-50"
-                    >
-                      <RefreshCcw className="mr-2 h-4 w-4" />
-                      Change Room
-                    </Button>
-                  )}
-                  {(status === "reserved" || status === "upcoming") && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={onDelete}
-                      className="w-full hover:bg-red-50 text-gray-500 hover:text-red-600 justify-start md:justify-center"
-                      title="Cancel this reservation"
-                    >
-                      <Trash2 className="h-4 w-4 md:mr-0" />
-                      <span className="md:hidden ml-2">Cancel</span>
-                    </Button>
-                  )}
-                  {isAdmin && (status === "cancelled" || status === "checked-out" || status === "expired") && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={onHardDelete}
-                      className="w-full"
-                      title="Permanently delete this reservation"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </Card>
-        </CardContent>
-      </Card>
-    );
-  }
-);
 
 const ReservationListSkeleton: React.FC = () => (
   <div className="space-y-4">
